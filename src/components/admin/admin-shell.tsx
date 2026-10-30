@@ -16,6 +16,8 @@ import {
   Menu,
   X,
   ExternalLink,
+  Utensils,
+  QrCode,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,7 @@ interface AdminShellProps {
 
 export function AdminShell({
   businessName,
+  businessSlug,
   userName,
   role,
   isPlatformAdmin,
@@ -55,6 +58,18 @@ export function AdminShell({
       href: "/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
+      roles: ["owner", "manager", "cashier"],
+    },
+    {
+      href: "/orders",
+      label: "Live QR Orders",
+      icon: Utensils,
+      roles: ["owner", "manager", "cashier"],
+    },
+    {
+      href: "/menu",
+      label: "Store QR & Menu",
+      icon: QrCode,
       roles: ["owner", "manager", "cashier"],
     },
     {
@@ -163,6 +178,17 @@ export function AdminShell({
         </div>
 
         <div className="flex items-center gap-2.5">
+          <Link
+            href={`/s/${businessSlug || "araku-filter-coffee"}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded border border-border bg-surface hover:bg-surface-elevated text-accent"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>Store QR Menu</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+
           <Link
             href="/card/cd_araku_ananya_01"
             target="_blank"

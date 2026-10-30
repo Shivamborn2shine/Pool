@@ -462,6 +462,13 @@ export default function CustomerPublicCardPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href={`/s/${business.slug}`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Order Menu</span>
+            </Link>
             <button
               type="button"
               onClick={() => window.print()}

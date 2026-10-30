@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateCreditFromPoints,
+  calculateOrderPointsEarned,
   calculatePointsEarned,
+  canTransitionOrderStatus,
   computeExpiryDate,
   evaluateAdjustmentPermission,
   isClaimWithinWindow,
+  resolveCustomerDisplayName,
   validateRedemption,
 } from "@/lib/loyalty";
-import { getPublicCardUrl, generateCardQrSvg } from "@/lib/qr";
+import { getPublicCardUrl, generateCardQrSvg, getStoreQrUrl } from "@/lib/qr";
 import { verifyPhoneLast4, normalizePhone, maskPhone } from "@/lib/utils";
 
 describe("Loyalty Engine - Points Calculation (PRD Section 8.1)", () => {
@@ -296,4 +299,65 @@ describe("Public Card Security, QR Privacy & Phone Verification (CARD-09)", () =
     expect(computeExpiryDate({ points_expiry_months: null })).toBeNull();
   });
 });
+
+describe("QR Ordering + Loyalty Engine (QR_ORDERING_LOYALTY_FEATURE.md)", () => {
+  it("generates dynamic store QR URL without sensitive data (QR-01..08)", () => {
+    const storeUrl = getStoreQrUrl("araku-filter-coffee", "https://loopa.in");
+    expect(storeUrl).toBe("https://loopa.in/s/araku-filter-coffee");
+    expect(storeUrl).not.toContain("phone");
+    expect(storeUrl).not.toContain("balance");
+  });
+
+  it("enforces server-side order state transition rules (Section 4)", () => {
+    expect(
+      canTransitionOrderStatus("awaiting_confirmation", "confirmed")
+    ).toBe(true);
+    expect(canTransitionOrderStatus("awaiting_confirmation", "rejected")).toBe(
+      true
+    );
+    expect(canTransitionOrderStatus("awaiting_confirmation", "served")).toBe(
+      false
+    );
+    expect(canTransitionOrderStatus("confirmed", "paid")).toBe(true);
+    expect(canTransitionOrderStatus("points_credited", "preparing")).toBe(true);
+    expect(canTransitionOrderStatus("preparing", "ready")).toBe(true);
+    expect(canTransitionOrderStatus("ready", "served")).toBe(true);
+    expect(canTransitionOrderStatus("served", "preparing")).toBe(false);
+    expect(canTransitionOrderStatus("cancelled", "confirmed")).toBe(false);
+  });
+
+  it("resolves safe customer display names without exposing phone numbers (Section 8)", () => {
+    expect(
+      resolveCustomerDisplayName("Ananya Deshmukh", null, "765")
+    ).toBe("Ananya");
+    expect(
+      resolveCustomerDisplayName("", "Karthik Subramanian", "340")
+    ).toBe("Karthik");
+    expect(resolveCustomerDisplayName("", "Guest-101", "892")).toBe(
+      "Guest-892"
+    );
+    expect(resolveCustomerDisplayName("+919845098765", "", "765")).toBe(
+      "Guest-765"
+    );
+  });
+
+  it("calculates order points with item-level loyalty multipliers and max cap (Section 8)", () => {
+    const calc = calculateOrderPointsEarned({
+      purchaseAmount: 700,
+      pointsPerCurrencyUnit: 1,
+      currencyUnit: 10,
+      minimumPurchaseAmount: 50,
+      maximumPointsPerTransaction: 500,
+      items: [
+        { totalPrice: 150, loyaltyMultiplier: 1.0 },
+        { totalPrice: 550, loyaltyMultiplier: 1.5 }, // +27.5 -> 27 bonus pts
+      ],
+    });
+
+    expect(calc.basePoints).toBe(70);
+    expect(calc.itemBonusPoints).toBe(27);
+    expect(calc.totalPoints).toBe(97);
+  });
+});
+
 

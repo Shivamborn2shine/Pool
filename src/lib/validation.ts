@@ -202,3 +202,107 @@ export const contactSubmissionSchema = z.object({
   utmContent: z.string().optional(),
 });
 
+/**
+ * QR_ORDERING_LOYALTY_FEATURE.md Section 5.2: Customer registration via Store QR
+ * Phone number is the only required field; name and email are optional.
+ */
+export const storeCustomerRegisterSchema = z.object({
+  phone: z
+    .string()
+    .min(10, "Enter a valid 10-digit mobile number")
+    .max(20),
+  fullName: z.string().max(120).optional().nullable().or(z.literal("")),
+  email: z.string().email("Enter a valid email address").optional().nullable().or(z.literal("")),
+  loyaltyConsent: z.boolean().refine((val) => val === true, {
+    message: "Please accept the Loyalty Program Terms & Privacy Policy to continue.",
+  }),
+  marketingConsent: z.boolean().optional().default(false),
+});
+
+export const orderCartItemSchema = z.object({
+  menuItemId: z.string().uuid("Valid menu item ID is required"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1").max(50),
+  variantId: z.string().uuid().optional().nullable().or(z.literal("")),
+  addonIds: z.array(z.string().uuid()).optional().default([]),
+  notes: z.string().max(200).optional().nullable(),
+});
+
+export const createOrderSchema = z.object({
+  cardPublicId: z.string().min(4, "Customer loyalty account is required"),
+  customerDisplayName: z.string().max(60).optional().nullable(),
+  orderType: z.enum(["dine_in", "takeaway", "pickup"]).default("dine_in"),
+  tableNumber: z.string().max(30).optional().nullable(),
+  notes: z.string().max(300).optional().nullable(),
+  rewardPointsToRedeem: z.coerce.number().int().min(0).optional().default(0),
+  idempotencyKey: z.string().min(6).max(120).optional(),
+  items: z
+    .array(orderCartItemSchema)
+    .min(1, "Add at least one item to your cart before placing an order"),
+});
+
+export const menuCategorySchema = z.object({
+  name: z.string().min(2, "Category name is required").max(80),
+  description: z.string().max(240).optional().nullable(),
+  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+  status: z.enum(["active", "inactive"]).default("active"),
+});
+
+export const menuItemSchema = z.object({
+  categoryId: z.string().uuid("Select a valid category"),
+  name: z.string().min(2, "Item name is required").max(120),
+  description: z.string().max(400).optional().nullable(),
+  price: z.coerce.number().min(0, "Price cannot be negative").max(100000),
+  imageUrl: z.string().url().optional().nullable().or(z.literal("")),
+  isAvailable: z.boolean().default(true),
+  isVisible: z.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+  loyaltyMultiplier: z.coerce.number().min(1).max(10).default(1),
+  variants: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(80),
+        priceDelta: z.coerce.number().min(-10000).max(50000).default(0),
+      })
+    )
+    .optional()
+    .default([]),
+  addons: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(80),
+        price: z.coerce.number().min(0).max(50000).default(0),
+      })
+    )
+    .optional()
+    .default([]),
+});
+
+export const menuItemUpdateSchema = z.object({
+  categoryId: z.string().uuid().optional(),
+  name: z.string().min(2).max(120).optional(),
+  description: z.string().max(400).optional().nullable(),
+  price: z.coerce.number().min(0).max(100000).optional(),
+  imageUrl: z.string().url().optional().nullable().or(z.literal("")),
+  isAvailable: z.boolean().optional(),
+  isVisible: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(999).optional(),
+  loyaltyMultiplier: z.coerce.number().min(1).max(10).optional(),
+});
+
+export const staffOrderActionSchema = z.object({
+  action: z.enum([
+    "confirm",
+    "reject",
+    "mark_paid",
+    "preparing",
+    "ready",
+    "served",
+    "cancel",
+    "refund",
+  ]),
+  paymentMethod: z.enum(["cash", "online"]).optional(),
+  paymentReference: z.string().max(120).optional().nullable(),
+  reason: z.string().max(300).optional().nullable(),
+});
+
+

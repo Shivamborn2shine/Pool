@@ -1,4 +1,4 @@
-import type { LoyaltyRules, UserRole } from "@/types";
+import type { LoyaltyRules, OrderStatus, UserRole } from "@/types";
 
 export interface PointsCalculationInput {
   purchaseAmount: number;
@@ -327,4 +327,114 @@ export function computeExpiryDate(
   d.setMonth(d.getMonth() + rules.points_expiry_months);
   return d.toISOString();
 }
+
+const ORDER_STATE_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  created: ["awaiting_confirmation", "cancelled", "expired"],
+  awaiting_confirmation: [
+    "confirmed",
+    "awaiting_payment",
+    "rejected",
+    "cancelled",
+    "expired",
+  ],
+  confirmed: ["awaiting_payment", "paid", "points_credited", "cancelled"],
+  awaiting_payment: ["paid", "points_credited", "cancelled"],
+  paid: ["points_credited", "preparing", "refunded"],
+  points_credited: ["preparing", "ready", "refunded"],
+  preparing: ["ready", "cancelled", "refunded"],
+  ready: ["served", "refunded"],
+  served: ["refunded"],
+  cancelled: [],
+  rejected: [],
+  expired: [],
+  refunded: [],
+};
+
+/**
+ * QR_ORDERING_LOYALTY_FEATURE.md Section 4: Server-side order state transition validator
+ */
+export function canTransitionOrderStatus(
+  fromStatus: OrderStatus,
+  toStatus: OrderStatus
+): boolean {
+  const allowed = ORDER_STATE_TRANSITIONS[fromStatus] || [];
+  return allowed.includes(toStatus);
+}
+
+/**
+ * QR_ORDERING_LOYALTY_FEATURE.md Section 8: Customer Display Name priority
+ * 1. Customer-entered name
+ * 2. Existing customer profile name (if not a Guest placeholder)
+ * 3. Safe generated name ("Guest-482") — never exposes full phone number
+ */
+export function resolveCustomerDisplayName(
+  enteredName?: string | null,
+  profileName?: string | null,
+  fallbackSuffix?: string
+): string {
+  const cleanEntered = (enteredName || "").trim();
+  if (cleanEntered.length > 0 && !/^\+?\d+$/.test(cleanEntered)) {
+    return cleanEntered.split(/\s+/)[0].slice(0, 28);
+  }
+  const cleanProfile = (profileName || "").trim();
+  if (
+    cleanProfile.length > 0 &&
+    !cleanProfile.startsWith("Guest-") &&
+    !/^\+?\d+$/.test(cleanProfile)
+  ) {
+    return cleanProfile.split(/\s+/)[0].slice(0, 28);
+  }
+  const suffix =
+    fallbackSuffix && /^\d{3,4}$/.test(fallbackSuffix)
+      ? fallbackSuffix.slice(-3)
+      : String(Math.floor(100 + Math.random() * 900));
+  return `Guest-${suffix}`;
+}
+
+export interface OrderPointsCalculationInput extends PointsCalculationInput {
+  items?: { totalPrice: number; loyaltyMultiplier?: number }[];
+}
+
+/**
+ * QR_ORDERING_LOYALTY_FEATURE.md Section 8: Order Points Calculation with Item Multipliers
+ */
+export function calculateOrderPointsEarned(
+  input: OrderPointsCalculationInput
+): PointsCalculationResult & { itemBonusPoints: number } {
+  const baseCalc = calculatePointsEarned(input);
+  if (baseCalc.belowMinimum || baseCalc.basePoints === 0) {
+    return { ...baseCalc, itemBonusPoints: 0 };
+  }
+
+  let itemBonusFloat = 0;
+  for (const item of input.items || []) {
+    const mult = Number(item.loyaltyMultiplier ?? 1);
+    if (mult > 1 && item.totalPrice > 0 && input.currencyUnit > 0) {
+      const itemBase =
+        (item.totalPrice / input.currencyUnit) * input.pointsPerCurrencyUnit;
+      itemBonusFloat += itemBase * (mult - 1);
+    }
+  }
+
+  const itemBonusPoints = Math.max(0, Math.floor(itemBonusFloat));
+  let totalPoints =
+    baseCalc.basePoints + baseCalc.campaignBonusPoints + itemBonusPoints;
+  let cappedByMax = baseCalc.cappedByMax;
+
+  if (
+    input.maximumPointsPerTransaction > 0 &&
+    totalPoints > input.maximumPointsPerTransaction
+  ) {
+    totalPoints = input.maximumPointsPerTransaction;
+    cappedByMax = true;
+  }
+
+  return {
+    ...baseCalc,
+    itemBonusPoints,
+    totalPoints,
+    cappedByMax,
+  };
+}
+
 

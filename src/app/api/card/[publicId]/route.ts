@@ -84,6 +84,26 @@ export async function GET(
     LIMIT 20
   `;
 
+  const orders = await sql`
+    SELECT
+      id,
+      public_token,
+      order_number,
+      customer_display_name,
+      order_type,
+      table_number,
+      status,
+      total,
+      points_earned,
+      payment_method,
+      payment_status,
+      created_at
+    FROM public.orders
+    WHERE card_id = ${row.id}
+    ORDER BY created_at DESC
+    LIMIT 20
+  `;
+
   const qrDataUrl = await generateCardQrDataUrl(
     row.public_id,
     row.business_primary_color
@@ -142,6 +162,7 @@ export async function GET(
     transactions,
     claims,
     redemptions,
+    orders,
   });
 }
 

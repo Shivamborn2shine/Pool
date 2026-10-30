@@ -347,7 +347,221 @@ async function seed() {
       }
     }
 
+    // 8. Seed Generic Store QR Code (/s/araku-filter-coffee)
+    await sql`
+      UPDATE public.businesses
+      SET order_prefix = 'ARK', tax_percentage = 5.00, order_expiry_minutes = 20
+      WHERE id = ${business.id}
+    `;
+
+    await sql`
+      INSERT INTO public.store_qr_codes (
+        business_id, location_id, type, slug, destination_url, status, label
+      ) VALUES (
+        ${business.id},
+        ${mainLocationId},
+        'store',
+        ${business.slug},
+        ${`/s/${business.slug}`},
+        'active',
+        'Main Counter & Table Ordering QR'
+      )
+      ON CONFLICT (slug) DO UPDATE SET
+        destination_url = EXCLUDED.destination_url,
+        label = EXCLUDED.label
+    `;
+
+    // 9. Seed Store Menu, Categories, Items, Variants & Add-ons
+    const existingItems = await sql`
+      SELECT id FROM public.menu_items WHERE business_id = ${business.id} LIMIT 1
+    `;
+    let menuId: string;
+    if (existingItems.length === 0) {
+      await sql`DELETE FROM public.menus WHERE business_id = ${business.id}`;
+      const [m] = await sql`
+        INSERT INTO public.menus (business_id, name, description, status)
+        VALUES (
+          ${business.id},
+          'All-Day Roastery & Bakehouse Menu',
+          'Freshly roasted single-estate Araku Arabica coffees and sourdough viennoiserie baked every morning.',
+          'active'
+        )
+        RETURNING *
+      `;
+      menuId = m.id;
+
+      const [catCoffee, catBakery, catCold, catBeans] = await sql`
+        INSERT INTO public.menu_categories (business_id, menu_id, name, description, sort_order, status)
+        VALUES
+          (${business.id}, ${menuId}, 'Filter Coffee & Espresso', 'Traditional brass-davara filter coffee and specialty espresso beverages', 1, 'active'),
+          (${business.id}, ${menuId}, 'Artisanal Bakehouse', 'Laminated sourdough croissants, tarts, and morning bakes', 2, 'active'),
+          (${business.id}, ${menuId}, 'Cold Brews & Iced Signatures', '18-hour cold-steeped coffees and botanical tonics', 3, 'active'),
+          (${business.id}, ${menuId}, 'Take-Home Whole Beans', '250g freshly roasted single-estate packs (1.5x Bonus Points)', 4, 'active')
+        RETURNING *
+      `;
+
+      const [item1, item2, item3, item4, item5, item6, item7, item8] = await sql`
+        INSERT INTO public.menu_items (
+          business_id, menu_id, category_id, name, description, price, currency,
+          is_available, is_visible, sort_order, loyalty_multiplier
+        ) VALUES
+          (${business.id}, ${menuId}, ${catCoffee.id}, 'Traditional Brass-Davara Filter Coffee', '85:15 specialty Arabica decoction brewed slow and served frothy with farm milk.', 150, 'INR', TRUE, TRUE, 1, 1.00),
+          (${business.id}, ${menuId}, ${catCoffee.id}, 'Single-Estate V60 Pour-Over', 'Hand-poured Micro-Climate lot with notes of dark cocoa, jaggery, and citrus.', 240, 'INR', TRUE, TRUE, 2, 1.00),
+          (${business.id}, ${menuId}, ${catCoffee.id}, 'Cortado / Flat White', 'Double ristretto pulled on our La Marzocco with velvety micro-foam.', 210, 'INR', TRUE, TRUE, 3, 1.00),
+          (${business.id}, ${menuId}, ${catBakery.id}, 'Sourdough Almond Frangipane Croissant', 'Twice-baked French butter croissant filled with house-roasted almond cream.', 260, 'INR', TRUE, TRUE, 1, 1.00),
+          (${business.id}, ${menuId}, ${catBakery.id}, 'Cardamom & Jaggery Morning Bun', 'Flaky brioche laminated with Coorg green cardamom and organic cane jaggery.', 190, 'INR', TRUE, TRUE, 2, 1.00),
+          (${business.id}, ${menuId}, ${catBakery.id}, 'Whipped Ricotta & Wild Honey Sourdough Toast', 'Thick-cut country loaf toasted in brown butter with forest honey and pistachios.', 310, 'INR', TRUE, TRUE, 3, 1.00),
+          (${business.id}, ${menuId}, ${catCold.id}, '18-Hour Barrel-Aged Cold Brew', 'Silky, low-acid cold extraction served over hand-carved crystal ice.', 230, 'INR', TRUE, TRUE, 1, 1.00),
+          (${business.id}, ${menuId}, ${catBeans.id}, '250g Selection Specialty Beans (Tin)', '100% organic Araku Highlands Arabica — roasted this week (1.5x Loyalty Points).', 550, 'INR', TRUE, TRUE, 1, 1.50)
+        RETURNING *
+      `;
+
+      // Variants & Add-ons for Filter Coffee & Pour-Over
+      await sql`
+        INSERT INTO public.menu_item_variants (menu_item_id, name, price_delta, is_available, sort_order)
+        VALUES
+          (${item1.id}, 'Regular (160ml)', 0, TRUE, 1),
+          (${item1.id}, 'Large Brass Tumbler (240ml)', 50, TRUE, 2),
+          (${item3.id}, 'Whole Farm Milk', 0, TRUE, 1),
+          (${item3.id}, 'Barista Oat Milk', 45, TRUE, 2),
+          (${item8.id}, 'Whole Bean', 0, TRUE, 1),
+          (${item8.id}, 'South Indian Filter Grind', 0, TRUE, 2),
+          (${item8.id}, 'Espresso / Moka Pot Grind', 0, TRUE, 3)
+      `;
+
+      await sql`
+        INSERT INTO public.menu_item_addons (menu_item_id, name, price, is_available, sort_order)
+        VALUES
+          (${item1.id}, 'Extra Espresso / Decoction Shot', 40, TRUE, 1),
+          (${item1.id}, 'Organic Palm Jaggery on Side', 20, TRUE, 2),
+          (${item4.id}, 'Warm Dark Chocolate Ganache Dip', 50, TRUE, 1),
+          (${item6.id}, 'Poached Free-Range Egg', 65, TRUE, 1)
+      `;
+
+      // Seed 2 live demo orders so Staff Order Queue is immediately populated
+      const [ananyaCust] = await sql`
+        SELECT * FROM public.customers WHERE business_id = ${business.id} AND phone = '+919845098765' LIMIT 1
+      `;
+      const [ananyaCard] = await sql`
+        SELECT * FROM public.loyalty_cards WHERE customer_id = ${ananyaCust.id} LIMIT 1
+      `;
+      const [karthikCust] = await sql`
+        SELECT * FROM public.customers WHERE business_id = ${business.id} AND phone = '+919845012340' LIMIT 1
+      `;
+      const [karthikCard] = await sql`
+        SELECT * FROM public.loyalty_cards WHERE customer_id = ${karthikCust.id} LIMIT 1
+      `;
+
+      if (ananyaCust && ananyaCard) {
+        const [order1] = await sql`
+          INSERT INTO public.orders (
+            public_token, business_id, customer_id, card_id, order_number,
+            customer_display_name, order_type, table_number, status,
+            subtotal, tax_total, discount_total, total, currency,
+            payment_method, payment_status, notes, expires_at
+          ) VALUES (
+            'ord_tok_demo_ananya_1001',
+            ${business.id},
+            ${ananyaCust.id},
+            ${ananyaCard.id},
+            'ARK-1001',
+            'Ananya',
+            'dine_in',
+            'Table 04',
+            'awaiting_confirmation',
+            560,
+            28,
+            0,
+            588,
+            'INR',
+            'pending',
+            'pending',
+            'Less sugar in the filter coffee please, sitting by the window',
+            NOW() + INTERVAL '20 minutes'
+          )
+          ON CONFLICT (business_id, order_number) DO NOTHING
+          RETURNING *
+        `;
+
+        if (order1) {
+          await sql`
+            INSERT INTO public.order_items (
+              order_id, menu_item_id, item_name, unit_price, quantity, total_price, loyalty_multiplier
+            ) VALUES
+              (${order1.id}, ${item1.id}, ${item1.name}, 150, 2, 300, 1.00),
+              (${order1.id}, ${item4.id}, ${item4.name}, 260, 1, 260, 1.00)
+          `;
+          await sql`
+            INSERT INTO public.order_events (order_id, event, actor_type, actor_id, note)
+            VALUES (${order1.id}, 'created', 'customer', ${ananyaCust.id}, 'Order placed via Store QR — awaiting counter confirmation')
+          `;
+        }
+      }
+
+      if (karthikCust && karthikCard) {
+        const [order2] = await sql`
+          INSERT INTO public.orders (
+            public_token, business_id, customer_id, card_id, order_number,
+            customer_display_name, order_type, table_number, status,
+            subtotal, tax_total, discount_total, points_earned, total, currency,
+            payment_method, payment_status, payment_reference,
+            confirmed_by_user_id, confirmed_at, paid_at, points_credited_at, prepared_at
+          ) VALUES (
+            'ord_tok_demo_karthik_1002',
+            ${business.id},
+            ${karthikCust.id},
+            ${karthikCard.id},
+            'ARK-1002',
+            'Karthik',
+            'takeaway',
+            NULL,
+            'preparing',
+            420,
+            21,
+            0,
+            44,
+            441,
+            'INR',
+            'online',
+            'paid',
+            'UPI-4309188210',
+            ${cashierUser.id},
+            NOW() - INTERVAL '12 minutes',
+            NOW() - INTERVAL '10 minutes',
+            NOW() - INTERVAL '10 minutes',
+            NOW() - INTERVAL '8 minutes'
+          )
+          ON CONFLICT (business_id, order_number) DO NOTHING
+          RETURNING *
+        `;
+
+        if (order2) {
+          await sql`
+            INSERT INTO public.order_items (
+              order_id, menu_item_id, item_name, unit_price, quantity, total_price, loyalty_multiplier
+            ) VALUES
+              (${order2.id}, ${item7.id}, ${item7.name}, 230, 1, 230, 1.00),
+              (${order2.id}, ${item5.id}, ${item5.name}, 190, 1, 190, 1.00)
+          `;
+          await sql`
+            INSERT INTO public.order_events (order_id, event, actor_type, actor_id, note)
+            VALUES
+              (${order2.id}, 'created', 'customer', ${karthikCust.id}, 'Order placed via Store QR'),
+              (${order2.id}, 'confirmed', 'staff', ${cashierUser.id}, 'Verified customer at counter'),
+              (${order2.id}, 'paid', 'staff', ${cashierUser.id}, 'Online UPI payment verified (UPI-4309188210)'),
+              (${order2.id}, 'points_credited', 'system', 'system', '44 loyalty points automatically credited'),
+              (${order2.id}, 'preparing', 'staff', ${cashierUser.id}, 'Sent to espresso bar & bakery counter')
+          `;
+        }
+      }
+
+      await sql`
+        UPDATE public.businesses SET order_sequence = 1002 WHERE id = ${business.id}
+      `;
+    }
+
     console.log("Seed completed! Demo login: owner@arakucoffee.in / Loopa@2026");
+    console.log("Demo Store QR Ordering URL: /s/araku-filter-coffee");
     console.log("Demo public card: /card/cd_araku_ananya_01 (Phone last 4 digits: 8765)");
   } finally {
     await sql.end();
