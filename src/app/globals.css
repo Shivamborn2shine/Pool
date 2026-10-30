@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #faf9f6;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f4f3ef;
+  --text-primary: #18181b;
+  --text-muted: #52525b;
+  --border-color: #e4e4e7;
+}
+
+.dark {
+  --bg-primary: #09090b;
+  --bg-surface: #121215;
+  --bg-elevated: #18181b;
+  --text-primary: #fafafa;
+  --text-muted: #a1a1aa;
+  --border-color: #27272a;
+}
+
+@layer base {
+  * {
+    border-color: var(--border-color);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid #c2410c;
+    outline-offset: 2px;
+  }
+}
+
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 0.5rem;
+  z-index: 9999;
+  padding: 0.625rem 1rem;
+  background-color: #18181b;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 2px solid #c2410c;
+}
+
+.skip-to-content:focus {
+  left: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  header,
+  nav,
+  footer,
+  aside,
+  .cookie-banner,
+  .no-print {
+    display: none !important;
+  }
+
+  body,
+  main,
+  .print-surface {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+
+  .print-card {
+    border: 2px solid #000000 !important;
+    page-break-inside: avoid;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 24px !important;
+  }
+
+  .accordion-content {
+    display: block !important;
+    height: auto !important;
+  }
+}
+
