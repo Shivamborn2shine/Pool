@@ -1,0 +1,229 @@
+export interface BulkMenuVariantInput {
+  name: string;
+  priceDelta: number;
+}
+
+export interface BulkMenuAddonInput {
+  name: string;
+  price: number;
+}
+
+export interface BulkMenuItemInput {
+  name: string;
+  description?: string;
+  price: number;
+  loyaltyMultiplier?: number;
+  isAvailable?: boolean;
+  isVisible?: boolean;
+  variants?: BulkMenuVariantInput[];
+  addons?: BulkMenuAddonInput[];
+}
+
+export interface BulkMenuCategoryInput {
+  name: string;
+  description?: string;
+  sortOrder?: number;
+  items: BulkMenuItemInput[];
+}
+
+export interface BulkMenuPayload {
+  mode?: "replace" | "merge";
+  orderPrefix?: string;
+  categories: BulkMenuCategoryInput[];
+}
+
+export const SCOOP_N_BREW_MENU_PRESET: BulkMenuPayload = {
+  mode: "replace",
+  orderPrefix: "SNB",
+  categories: [
+    {
+      name: "Breads n Buns",
+      description: "Freshly grilled sandwiches & burgers",
+      sortOrder: 1,
+      items: [
+        {
+          name: "Veg Sandwich",
+          description: "Freshly toasted vegetable sandwich",
+          price: 99,
+          loyaltyMultiplier: 1,
+        },
+        {
+          name: "Cheese Sandwich",
+          description: "Grilled vegetable sandwich loaded with melted cheese",
+          price: 119,
+          loyaltyMultiplier: 1,
+        },
+        {
+          name: "Veg Burger",
+          description: "Crispy veg patty burger with fresh lettuce & signature sauce",
+          price: 99,
+          loyaltyMultiplier: 1,
+        },
+        {
+          name: "Cheese Burger",
+          description: "Crispy veg patty burger topped with rich cheese slice",
+          price: 119,
+          loyaltyMultiplier: 1,
+        },
+      ],
+    },
+    {
+      name: "Mojitos",
+      description: "Refreshing coolers & iced teas",
+      sortOrder: 2,
+      items: [
+        { name: "Watermelon Mojito", price: 99, loyaltyMultiplier: 1 },
+        { name: "Blueberry Mojito", price: 99, loyaltyMultiplier: 1 },
+        { name: "Iced Tea", price: 99, loyaltyMultiplier: 1 },
+        { name: "Peach Tea", price: 99, loyaltyMultiplier: 1 },
+        { name: "Bubble Gum Mojito", price: 99, loyaltyMultiplier: 1 },
+        { name: "Mint Mojito", price: 99, loyaltyMultiplier: 1 },
+        { name: "Mango Mojito", price: 99, loyaltyMultiplier: 1 },
+      ],
+    },
+    {
+      name: "Chai",
+      description: "Desi Vibes • Available with Kulhad (+₹10)",
+      sortOrder: 3,
+      items: [
+        {
+          name: "Kesar Chai",
+          description: "Aromatic saffron-infused hot chai",
+          price: 25,
+          loyaltyMultiplier: 1,
+          addons: [{ name: "With Kulhad", price: 10 }],
+        },
+        {
+          name: "Elaichi Chai",
+          description: "Classic cardamom-spiced hot chai",
+          price: 25,
+          loyaltyMultiplier: 1,
+          addons: [{ name: "With Kulhad", price: 10 }],
+        },
+        {
+          name: "Masala Chai",
+          description: "Signature desi spice blend chai",
+          price: 25,
+          loyaltyMultiplier: 1,
+          addons: [{ name: "With Kulhad", price: 10 }],
+        },
+        {
+          name: "Chocolate Chai",
+          description: "Rich cocoa-infused hot chai",
+          price: 25,
+          loyaltyMultiplier: 1,
+          addons: [{ name: "With Kulhad", price: 10 }],
+        },
+      ],
+    },
+    {
+      name: "Waffles",
+      description: "Sweet Moments • Freshly baked crispy Belgian waffles",
+      sortOrder: 4,
+      items: [
+        { name: "Chocolate Waffle", price: 129, loyaltyMultiplier: 1 },
+        { name: "White Chocolate Waffle", price: 129, loyaltyMultiplier: 1 },
+        { name: "Nutella Waffle", price: 139, loyaltyMultiplier: 1 },
+        { name: "Biscoff Waffle", price: 149, loyaltyMultiplier: 1 },
+        { name: "Hazelnut Waffle", price: 139, loyaltyMultiplier: 1 },
+      ],
+    },
+    {
+      name: "Shakes",
+      description: "Thick & creamy milkshakes",
+      sortOrder: 5,
+      items: [
+        { name: "Oreo Shake", price: 99, loyaltyMultiplier: 1 },
+        { name: "Chocolate Shake", price: 89, loyaltyMultiplier: 1 },
+        { name: "Butterscotch Shake", price: 89, loyaltyMultiplier: 1 },
+        { name: "Blueberry Shake", price: 89, loyaltyMultiplier: 1 },
+        { name: "Strawberry Shake", price: 89, loyaltyMultiplier: 1 },
+      ],
+    },
+    {
+      name: "Fries",
+      description: "Crispy & Tasty golden fries",
+      sortOrder: 6,
+      items: [
+        { name: "Peri Peri Fries", price: 89, loyaltyMultiplier: 1 },
+        { name: "Loaded Fries", price: 99, loyaltyMultiplier: 1 },
+      ],
+    },
+    {
+      name: "Coffee",
+      description: "Good Coffee, Good Mood • Plain, Caramel & Butterscotch",
+      sortOrder: 7,
+      items: [
+        {
+          name: "Hot Coffee",
+          description: "Choose Plain (₹39), Caramel (₹49), or Butterscotch (₹49)",
+          price: 39,
+          loyaltyMultiplier: 1,
+          variants: [
+            { name: "Plain", priceDelta: 0 },
+            { name: "Caramel", priceDelta: 10 },
+            { name: "Butterscotch", priceDelta: 10 },
+          ],
+        },
+        {
+          name: "Cold Coffee",
+          description: "Choose Plain (₹89), Caramel (₹99), or Butterscotch (₹99)",
+          price: 89,
+          loyaltyMultiplier: 1,
+          variants: [
+            { name: "Plain", priceDelta: 0 },
+            { name: "Caramel", priceDelta: 10 },
+            { name: "Butterscotch", priceDelta: 10 },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Specials",
+      description: "Must Try house specials",
+      sortOrder: 8,
+      items: [
+        {
+          name: "Potato Spiral",
+          description: "Crispy golden seasoned tornado potato spiral on a skewer",
+          price: 99,
+          loyaltyMultiplier: 1,
+        },
+      ],
+    },
+  ],
+};
+
+export const AI_MENU_EXTRACTION_PROMPT = `Convert my restaurant/cafe menu (image or text) into valid JSON matching this exact structure for Loopa QR Menu Import. Return ONLY raw JSON (no markdown fences or explanation):
+
+{
+  "mode": "replace",
+  "categories": [
+    {
+      "name": "Category Name (e.g.Mojitos, Waffles, Coffee)",
+      "description": "Short optional category tagline",
+      "sortOrder": 1,
+      "items": [
+        {
+          "name": "Item Name",
+          "description": "Optional short description",
+          "price": 99,
+          "loyaltyMultiplier": 1,
+          "variants": [
+            { "name": "Plain", "priceDelta": 0 },
+            { "name": "Caramel", "priceDelta": 10 }
+          ],
+          "addons": [
+            { "name": "With Kulhad", "price": 10 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+1. Group all items strictly under their respective categories in "categories".
+2. "price" must be the base numeric price (e.g. 99).
+3. If an item has slash pricing like "Coffee (plain / caramel / butterscotch) 39/49/49", set "price": 39 and add "variants" with "priceDelta" as the difference from base price (0, 10, 10).
+4. If a category or item has an extra option like "With Kulhad +10", include it in "addons": [{ "name": "With Kulhad", "price": 10 }].`;

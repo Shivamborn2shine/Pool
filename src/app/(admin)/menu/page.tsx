@@ -11,17 +11,23 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  FileJson,
   Layers,
   Pencil,
   Plus,
   Printer,
   Sparkles,
   Trash2,
+  Upload,
   Utensils,
   X,
 } from "lucide-react";
 import { Badge, Button, Card, Input } from "@/components/ui/primitives";
 import { formatCurrency } from "@/lib/utils";
+import {
+  AI_MENU_EXTRACTION_PROMPT,
+  SCOOP_N_BREW_MENU_PRESET,
+} from "@/lib/menu-presets";
 
 interface MenuCategory {
   id: string;
@@ -125,6 +131,16 @@ export default function AdminMenuAndQrPage() {
   const [editItemPrice, setEditItemPrice] = useState("");
   const [editItemMultiplier, setEditItemMultiplier] = useState("1");
   const [savingItemEdit, setSavingItemEdit] = useState(false);
+
+  // Bulk Import / AI Menu Modal
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [bulkJsonText, setBulkJsonText] = useState("");
+  const [bulkImportMode, setBulkImportMode] = useState<"replace" | "merge">(
+    "replace"
+  );
+  const [importingBulk, setImportingBulk] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [bulkSuccessMsg, setBulkSuccessMsg] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -445,6 +461,83 @@ export default function AdminMenuAndQrPage() {
     }
   };
 
+  const handleExportCurrentMenuJson = () => {
+    const exported = {
+      mode: bulkImportMode,
+      orderPrefix: orderPrefix || "SNB",
+      categories: categories.map((cat, idx) => ({
+        name: cat.name,
+        description: cat.description || undefined,
+        sortOrder: cat.sort_order ?? idx + 1,
+        items: items
+          .filter((i) => i.category_id === cat.id)
+          .map((item) => ({
+            name: item.name,
+            description: item.description || undefined,
+            price: Number(item.price),
+            loyaltyMultiplier: Number(item.loyalty_multiplier ?? 1),
+            isAvailable: item.is_available,
+            isVisible: item.is_visible,
+            variants: (item.variants || []).map((v) => ({
+              name: v.name,
+              priceDelta: Number(v.price_delta),
+            })),
+            addons: (item.addons || []).map((a) => ({
+              name: a.name,
+              price: Number(a.price),
+            })),
+          })),
+      })),
+    };
+    setBulkJsonText(JSON.stringify(exported, null, 2));
+    setFormError(null);
+    setBulkSuccessMsg(null);
+  };
+
+  const handleBulkImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setBulkSuccessMsg(null);
+
+    let parsedJson: Record<string, unknown>;
+    try {
+      // Strip optional markdown code fences if user pasted directly from AI chat
+      const cleaned = bulkJsonText
+        .trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "");
+      parsedJson = JSON.parse(cleaned);
+    } catch {
+      setFormError(
+        "Invalid JSON format. Make sure you pasted valid JSON without extra text."
+      );
+      return;
+    }
+
+    setImportingBulk(true);
+    try {
+      const res = await fetch("/api/staff/menu/bulk-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...parsedJson,
+          mode: bulkImportMode,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFormError(data.error || "Failed to import menu JSON.");
+        return;
+      }
+      setBulkSuccessMsg(
+        `Imported ${data.categoriesCreated} categories and ${data.itemsCreated} menu items!`
+      );
+      await loadAll();
+    } finally {
+      setImportingBulk(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -458,6 +551,23 @@ export default function AdminMenuAndQrPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setFormError(null);
+              setBulkSuccessMsg(null);
+              if (!bulkJsonText) {
+                setBulkJsonText(
+                  JSON.stringify(SCOOP_N_BREW_MENU_PRESET, null, 2)
+                );
+              }
+              setShowBulkImportModal(true);
+            }}
+          >
+            <Upload className="w-3.5 h-3.5 mr-1.5" />
+            Bulk Import / AI Menu
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -1408,6 +1518,162 @@ export default function AdminMenuAndQrPage() {
                 <Button type="submit" disabled={savingItemEdit}>
                   {savingItemEdit ? "Saving..." : "Save Item Changes"}
                 </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Bulk Import / AI Menu Loader Modal */}
+      {showBulkImportModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-3xl p-6 space-y-4 bg-white dark:bg-zinc-900 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-stone-200 dark:border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <FileJson className="w-5 h-5 text-terracotta-600" />
+                  Bulk Import / AI Menu JSON Loader
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Convert any menu photo or text into JSON using AI, or load a preset / upload a JSON file to populate all categories, items, variants, and add-ons in one click.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBulkImportModal(false)}
+                className="p-1.5 rounded-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Action Toolbar */}
+            <div className="flex flex-wrap items-center gap-2 bg-stone-50 dark:bg-zinc-950 p-3 rounded-sm border border-stone-200 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(AI_MENU_EXTRACTION_PROMPT);
+                  setCopiedPrompt(true);
+                  setTimeout(() => setCopiedPrompt(false), 2500);
+                }}
+                className="px-3 py-1.5 rounded-sm bg-zinc-900 text-white dark:bg-stone-100 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5"
+              >
+                {copiedPrompt ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Copied AI Prompt! Paste in ChatGPT/Gemini with Menu Image
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    1. Copy AI Prompt (for ChatGPT / Gemini / Claude)
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkJsonText(
+                    JSON.stringify(SCOOP_N_BREW_MENU_PRESET, null, 2)
+                  );
+                  setFormError(null);
+                  setBulkSuccessMsg(null);
+                }}
+                className="px-3 py-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800"
+              >
+                Load &ldquo;Scoop n Brew&rdquo; Full Menu Preset
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportCurrentMenuJson}
+                className="px-3 py-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800"
+              >
+                Export Current Store Menu JSON
+              </button>
+
+              <label className="px-3 py-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs font-semibold hover:bg-stone-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-1">
+                <Upload className="w-3.5 h-3.5" />
+                Upload .json File
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      if (typeof reader.result === "string") {
+                        setBulkJsonText(reader.result);
+                        setFormError(null);
+                      }
+                    };
+                    reader.readAsText(file);
+                  }}
+                />
+              </label>
+            </div>
+
+            <form onSubmit={handleBulkImportSubmit} className="space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                  2. Paste AI-Generated Menu JSON Below
+                </label>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-zinc-500 font-medium">Import Mode:</span>
+                  <select
+                    value={bulkImportMode}
+                    onChange={(e) =>
+                      setBulkImportMode(e.target.value as "replace" | "merge")
+                    }
+                    className="px-2.5 py-1 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 font-semibold"
+                  >
+                    <option value="replace">
+                      Replace Entire Menu (Clean Slate)
+                    </option>
+                    <option value="merge">
+                      Merge / Append into Existing Categories
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <textarea
+                rows={14}
+                value={bulkJsonText}
+                onChange={(e) => setBulkJsonText(e.target.value)}
+                placeholder='{"categories": [{"name": "Mojitos", "items": [{"name": "Watermelon Mojito", "price": 99}]}]}'
+                className="w-full p-3 font-mono text-xs rounded-sm border border-stone-300 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-terracotta-600"
+                required
+              />
+
+              {formError && (
+                <p className="text-xs font-semibold text-red-600">{formError}</p>
+              )}
+              {bulkSuccessMsg && (
+                <p className="text-xs font-semibold text-emerald-600">
+                  {bulkSuccessMsg}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-[11px] text-zinc-500">
+                  Supports categories, items, variants (priceDelta), and add-ons (e.g. With Kulhad +10).
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowBulkImportModal(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button type="submit" disabled={importingBulk}>
+                    {importingBulk ? "Importing Menu..." : "Import Menu Now"}
+                  </Button>
+                </div>
               </div>
             </form>
           </Card>
