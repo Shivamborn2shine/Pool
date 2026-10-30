@@ -7,7 +7,7 @@ export function getPublicCardUrl(
   const root = (
     baseUrl ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000"
+    "https://loopacards.netlify.app"
   ).replace(/\/$/, "");
   // CARD-09: QR never contains balances, secrets, or internal UUIDs — only publicId
   return `${root}/card/${encodeURIComponent(publicId)}`;
@@ -76,7 +76,7 @@ export function getStoreQrUrl(
   const root = (
     baseUrl ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000"
+    "https://loopacards.netlify.app"
   ).replace(/\/$/, "");
   return `${root}/s/${encodeURIComponent(storeSlug)}`;
 }

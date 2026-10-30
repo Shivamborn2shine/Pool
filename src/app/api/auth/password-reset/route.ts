@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       `;
 
       const appUrl = (
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        process.env.NEXT_PUBLIC_APP_URL || "https://loopacards.netlify.app"
       ).replace(/\/$/, "");
       fallbackResetUrl = `${appUrl}/forgot-password?token=${encodeURIComponent(
         rawToken

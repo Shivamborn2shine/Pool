@@ -4,7 +4,7 @@ export const SITE_CONFIG = {
   tagline: "Digital loyalty cards for local businesses. No app download required.",
   description:
     "Create QR-based digital loyalty cards for cafés, salons, restaurants, gyms, and retail stores. Record purchases, approve customer claims, and redeem rewards with an auditable ledger.",
-  url: process.env.NEXT_PUBLIC_APP_URL || "https://loopa.in",
+  url: process.env.NEXT_PUBLIC_APP_URL || "https://loopacards.netlify.app",
   lastUpdated: "October 30, 2026",
   supportEmail: "support@loopa.in",
   privacyEmail: "privacy@loopa.in",
