@@ -297,3 +297,131 @@ export function EmptyState({
   );
 }
 
+/* 6. Button Primitive */
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md" | "lg";
+}
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  className,
+  children,
+  ...props
+}: ButtonProps) {
+  const variantStyles = {
+    primary:
+      "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-stone-100 dark:text-zinc-900 dark:hover:bg-stone-200 border border-transparent",
+    secondary:
+      "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-stone-300 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800",
+    danger:
+      "bg-red-700 text-white hover:bg-red-800 border border-transparent",
+    ghost:
+      "bg-transparent text-zinc-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800 border border-transparent",
+  }[variant];
+
+  const sizeStyles = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-sm",
+    lg: "px-5 py-2.5 text-base",
+  }[size];
+
+  return (
+    <button
+      type={props.type || "button"}
+      className={cn(
+        "inline-flex items-center justify-center font-semibold rounded-sm transition-colors disabled:opacity-50 disabled:pointer-events-none active:translate-y-[0.5px]",
+        variantStyles,
+        sizeStyles,
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* 7. Card Primitive */
+export function Card({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-sm shadow-xs",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* 8. Badge Primitive */
+export function Badge({
+  variant = "neutral",
+  className,
+  children,
+}: {
+  variant?: "neutral" | "success" | "warning" | "danger";
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const styles = {
+    neutral:
+      "bg-stone-100 text-zinc-800 border-stone-300 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700",
+    success:
+      "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
+    warning:
+      "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
+    danger:
+      "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
+  }[variant];
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center px-2 py-0.5 text-[11px] font-semibold border rounded-xs",
+        styles,
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/* 9. Input Primitive */
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+export function Input({ label, error, className, ...props }: InputProps) {
+  return (
+    <div className="space-y-1.5">
+      {label && (
+        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+          {label}
+        </label>
+      )}
+      <input
+        className={cn(
+          "w-full px-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-terracotta-600",
+          className
+        )}
+        {...props}
+      />
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+
