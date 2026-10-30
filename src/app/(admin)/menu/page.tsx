@@ -3,18 +3,22 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowDown,
+  ArrowUp,
   Check,
   Copy,
   Download,
   ExternalLink,
   Eye,
   EyeOff,
+  Layers,
+  Pencil,
   Plus,
   Printer,
-  QrCode,
   Sparkles,
   Trash2,
   Utensils,
+  X,
 } from "lucide-react";
 import { Badge, Button, Card, Input } from "@/components/ui/primitives";
 import { formatCurrency } from "@/lib/utils";
@@ -85,6 +89,22 @@ export default function AdminMenuAndQrPage() {
   const [catSort, setCatSort] = useState("1");
   const [creatingCat, setCreatingCat] = useState(false);
 
+  // Manage Categories Modal & Edit/Delete Category States
+  const [showManageCategoriesModal, setShowManageCategoriesModal] =
+    useState(false);
+  const [editingCat, setEditingCat] = useState<MenuCategory | null>(null);
+  const [editCatName, setEditCatName] = useState("");
+  const [editCatDesc, setEditCatDesc] = useState("");
+  const [editCatSort, setEditCatSort] = useState("1");
+  const [editCatStatus, setEditCatStatus] = useState<"active" | "inactive">(
+    "active"
+  );
+  const [savingCatEdit, setSavingCatEdit] = useState(false);
+
+  const [deletingCat, setDeletingCat] = useState<MenuCategory | null>(null);
+  const [moveItemsToCatId, setMoveItemsToCatId] = useState<string>("");
+  const [deletingCatLoading, setDeletingCatLoading] = useState(false);
+
   // New Item Modal
   const [showItemModal, setShowItemModal] = useState(false);
   const [itemCategoryId, setItemCategoryId] = useState("");
@@ -96,6 +116,15 @@ export default function AdminMenuAndQrPage() {
   const [itemAddonsText, setItemAddonsText] = useState("");
   const [creatingItem, setCreatingItem] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Edit Item Modal
+  const [editingItem, setEditingItem] = useState<MenuItemRow | null>(null);
+  const [editItemCatId, setEditItemCatId] = useState("");
+  const [editItemName, setEditItemName] = useState("");
+  const [editItemDesc, setEditItemDesc] = useState("");
+  const [editItemPrice, setEditItemPrice] = useState("");
+  const [editItemMultiplier, setEditItemMultiplier] = useState("1");
+  const [savingItemEdit, setSavingItemEdit] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -276,6 +305,146 @@ export default function AdminMenuAndQrPage() {
     await loadAll();
   };
 
+  const openEditCategory = (cat: MenuCategory) => {
+    setFormError(null);
+    setEditingCat(cat);
+    setEditCatName(cat.name);
+    setEditCatDesc(cat.description || "");
+    setEditCatSort(String(cat.sort_order ?? 1));
+    setEditCatStatus(cat.status === "inactive" ? "inactive" : "active");
+  };
+
+  const handleSaveCategoryEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCat) return;
+    setSavingCatEdit(true);
+    setFormError(null);
+    try {
+      const res = await fetch(`/api/staff/menu/categories/${editingCat.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editCatName,
+          description: editCatDesc,
+          sortOrder: Number(editCatSort) || 1,
+          status: editCatStatus,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFormError(data.error || "Failed to update category.");
+        return;
+      }
+      setEditingCat(null);
+      await loadAll();
+    } finally {
+      setSavingCatEdit(false);
+    }
+  };
+
+  const toggleCategoryStatus = async (cat: MenuCategory) => {
+    const nextStatus = cat.status === "inactive" ? "active" : "inactive";
+    await fetch(`/api/staff/menu/categories/${cat.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    await loadAll();
+  };
+
+  const moveCategoryOrder = async (
+    catIndex: number,
+    direction: "up" | "down"
+  ) => {
+    const targetIndex = direction === "up" ? catIndex - 1 : catIndex + 1;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+    const currentCat = categories[catIndex];
+    const swapCat = categories[targetIndex];
+    await Promise.all([
+      fetch(`/api/staff/menu/categories/${currentCat.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sortOrder: targetIndex + 1 }),
+      }),
+      fetch(`/api/staff/menu/categories/${swapCat.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sortOrder: catIndex + 1 }),
+      }),
+    ]);
+    await loadAll();
+  };
+
+  const openDeleteCategory = (cat: MenuCategory) => {
+    setFormError(null);
+    setDeletingCat(cat);
+    const otherCats = categories.filter((c) => c.id !== cat.id);
+    setMoveItemsToCatId(otherCats.length > 0 ? otherCats[0].id : "");
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!deletingCat) return;
+    setDeletingCatLoading(true);
+    setFormError(null);
+    try {
+      const query = moveItemsToCatId
+        ? `?moveItemsToCategoryId=${encodeURIComponent(moveItemsToCatId)}`
+        : "";
+      const res = await fetch(
+        `/api/staff/menu/categories/${deletingCat.id}${query}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setFormError(data.error || "Failed to remove category.");
+        return;
+      }
+      setDeletingCat(null);
+      await loadAll();
+    } finally {
+      setDeletingCatLoading(false);
+    }
+  };
+
+  const openEditItem = (item: MenuItemRow) => {
+    setFormError(null);
+    setEditingItem(item);
+    setEditItemCatId(item.category_id);
+    setEditItemName(item.name);
+    setEditItemDesc(item.description || "");
+    setEditItemPrice(String(item.price));
+    setEditItemMultiplier(String(item.loyalty_multiplier ?? 1));
+  };
+
+  const handleSaveItemEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setSavingItemEdit(true);
+    setFormError(null);
+    try {
+      const res = await fetch(`/api/staff/menu/items/${editingItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryId: editItemCatId,
+          name: editItemName,
+          description: editItemDesc,
+          price: Number(editItemPrice),
+          loyaltyMultiplier: Number(editItemMultiplier) || 1,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFormError(data.error || "Failed to update menu item.");
+        return;
+      }
+      setEditingItem(null);
+      await loadAll();
+    } finally {
+      setSavingItemEdit(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -292,12 +461,33 @@ export default function AdminMenuAndQrPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setShowCatModal(true)}
+            onClick={() => {
+              setFormError(null);
+              setShowManageCategoriesModal(true);
+            }}
+          >
+            <Layers className="w-3.5 h-3.5 mr-1.5" />
+            Manage Categories ({categories.length})
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setFormError(null);
+              setCatSort(String(categories.length + 1));
+              setShowCatModal(true);
+            }}
           >
             <Plus className="w-3.5 h-3.5 mr-1.5" />
             Add Category
           </Button>
-          <Button size="sm" onClick={() => setShowItemModal(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setFormError(null);
+              setShowItemModal(true);
+            }}
+          >
             <Plus className="w-3.5 h-3.5 mr-1.5" />
             Add Menu Item
           </Button>
@@ -518,28 +708,90 @@ export default function AdminMenuAndQrPage() {
             </Button>
           </Card>
         ) : (
-          categories.map((cat) => {
+          categories.map((cat, catIndex) => {
             const catItems = items.filter((i) => i.category_id === cat.id);
+            const isHiddenCat = cat.status === "inactive";
             return (
               <Card key={cat.id} className="overflow-hidden">
-                <div className="p-4 bg-stone-100 dark:bg-zinc-900 border-b border-stone-200 dark:border-zinc-800 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-base">{cat.name}</h3>
+                <div className="p-4 bg-stone-100 dark:bg-zinc-900 border-b border-stone-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-base">{cat.name}</h3>
+                      <Badge variant="neutral">{catItems.length} items</Badge>
+                      {isHiddenCat && (
+                        <Badge variant="warning">Hidden from Menu</Badge>
+                      )}
+                    </div>
                     {cat.description && (
                       <p className="text-xs text-zinc-500">{cat.description}</p>
                     )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setItemCategoryId(cat.id);
-                      setShowItemModal(true);
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1" />
-                    Add Item to {cat.name}
-                  </Button>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={catIndex === 0}
+                      onClick={() => moveCategoryOrder(catIndex, "up")}
+                      className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                      title="Move category up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={catIndex === categories.length - 1}
+                      onClick={() => moveCategoryOrder(catIndex, "down")}
+                      className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                      title="Move category down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleCategoryStatus(cat)}
+                      className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
+                      title={
+                        isHiddenCat
+                          ? "Show category on customer menu"
+                          : "Hide category from customer menu"
+                      }
+                    >
+                      {isHiddenCat ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditCategory(cat)}
+                      className="px-2.5 py-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-stone-50 dark:hover:bg-zinc-800 flex items-center gap-1"
+                      title="Edit category name or description"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openDeleteCategory(cat)}
+                      className="px-2.5 py-1.5 rounded-sm border border-red-200 dark:border-red-900/60 bg-white dark:bg-zinc-950 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-1"
+                      title="Remove category"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setFormError(null);
+                        setItemCategoryId(cat.id);
+                        setShowItemModal(true);
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Add Item
+                    </Button>
+                  </div>
                 </div>
 
                 {catItems.length === 0 ? (
@@ -615,6 +867,15 @@ export default function AdminMenuAndQrPage() {
 
                           <button
                             type="button"
+                            onClick={() => openEditItem(item)}
+                            className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
+                            title="Edit menu item or move to another category"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() =>
                               toggleItemField(
                                 item,
@@ -654,6 +915,137 @@ export default function AdminMenuAndQrPage() {
           })
         )}
       </div>
+
+      {/* Manage Categories Modal */}
+      {showManageCategoriesModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl p-6 space-y-4 bg-white dark:bg-zinc-900 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-stone-200 dark:border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-lg font-bold">Manage Menu Categories</h3>
+                <p className="text-xs text-zinc-500">
+                  Add, rename, reorder, hide, or remove categories from your digital store menu.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setFormError(null);
+                    setCatSort(String(categories.length + 1));
+                    setShowCatModal(true);
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Add Category
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowManageCategoriesModal(false)}
+                  className="p-1.5 rounded-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {categories.length === 0 ? (
+              <div className="py-8 text-center text-sm text-zinc-500">
+                No categories found. Click &ldquo;Add Category&rdquo; to create your first category.
+              </div>
+            ) : (
+              <div className="divide-y divide-stone-200 dark:divide-zinc-800 border border-stone-200 dark:border-zinc-800 rounded-sm">
+                {categories.map((cat, idx) => {
+                  const count = items.filter(
+                    (i) => i.category_id === cat.id
+                  ).length;
+                  const isHidden = cat.status === "inactive";
+                  return (
+                    <div
+                      key={cat.id}
+                      className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-mono text-zinc-400">
+                            #{idx + 1}
+                          </span>
+                          <span className="font-bold text-sm">{cat.name}</span>
+                          <Badge variant="neutral">{count} items</Badge>
+                          {isHidden ? (
+                            <Badge variant="warning">Hidden</Badge>
+                          ) : (
+                            <Badge variant="success">Active</Badge>
+                          )}
+                        </div>
+                        {cat.description && (
+                          <p className="text-xs text-zinc-500">
+                            {cat.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => moveCategoryOrder(idx, "up")}
+                          className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                          title="Move up"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === categories.length - 1}
+                          onClick={() => moveCategoryOrder(idx, "down")}
+                          className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                          title="Move down"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategoryStatus(cat)}
+                          className="px-2.5 py-1 rounded-sm border border-stone-300 dark:border-zinc-700 text-xs font-semibold"
+                        >
+                          {isHidden ? "Show" : "Hide"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditCategory(cat)}
+                          className="px-2.5 py-1 rounded-sm border border-stone-300 dark:border-zinc-700 text-xs font-semibold flex items-center gap-1"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Rename / Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDeleteCategory(cat)}
+                          className="px-2.5 py-1 rounded-sm border border-red-200 dark:border-red-900/60 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowManageCategoriesModal(false)}
+              >
+                Done
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Add Category Modal */}
       {showCatModal && (
@@ -696,6 +1088,158 @@ export default function AdminMenuAndQrPage() {
                 </Button>
               </div>
             </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Category Modal */}
+      {editingCat && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 bg-white dark:bg-zinc-900">
+            <h3 className="text-lg font-bold">Edit Category</h3>
+            <form onSubmit={handleSaveCategoryEdit} className="space-y-3.5">
+              <Input
+                label="Category Name"
+                value={editCatName}
+                onChange={(e) => setEditCatName(e.target.value)}
+                required
+              />
+              <Input
+                label="Description (Optional)"
+                value={editCatDesc}
+                onChange={(e) => setEditCatDesc(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Display Sort Order"
+                  type="number"
+                  value={editCatSort}
+                  onChange={(e) => setEditCatSort(e.target.value)}
+                />
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+                    Visibility Status
+                  </label>
+                  <select
+                    value={editCatStatus}
+                    onChange={(e) =>
+                      setEditCatStatus(
+                        e.target.value as "active" | "inactive"
+                      )
+                    }
+                    className="w-full px-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                  >
+                    <option value="active">Active (Visible)</option>
+                    <option value="inactive">Hidden from Menu</option>
+                  </select>
+                </div>
+              </div>
+              {formError && (
+                <p className="text-xs text-red-600">{formError}</p>
+              )}
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setEditingCat(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={savingCatEdit}>
+                  {savingCatEdit ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete / Remove Category Confirmation Modal */}
+      {deletingCat && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 bg-white dark:bg-zinc-900">
+            <h3 className="text-lg font-bold text-red-600">
+              Remove Category: {deletingCat.name}
+            </h3>
+            {(() => {
+              const catItemsCount = items.filter(
+                (i) => i.category_id === deletingCat.id
+              ).length;
+              const otherCats = categories.filter(
+                (c) => c.id !== deletingCat.id
+              );
+
+              return (
+                <div className="space-y-3 text-xs text-zinc-600 dark:text-zinc-300">
+                  {catItemsCount === 0 ? (
+                    <p>
+                      This category has <strong>0 items</strong>. Are you sure
+                      you want to remove <strong>{deletingCat.name}</strong>?
+                    </p>
+                  ) : (
+                    <>
+                      <p>
+                        This category currently contains{" "}
+                        <strong>{catItemsCount} menu item(s)</strong>. Choose
+                        what should happen to those items when this category is
+                        removed:
+                      </p>
+                      {otherCats.length > 0 ? (
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+                            Item Handling Option
+                          </label>
+                          <select
+                            value={moveItemsToCatId}
+                            onChange={(e) =>
+                              setMoveItemsToCatId(e.target.value)
+                            }
+                            className="w-full px-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                          >
+                            {otherCats.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                Move {catItemsCount} item(s) to &ldquo;{c.name}
+                                &rdquo;
+                              </option>
+                            ))}
+                            <option value="">
+                              Delete all {catItemsCount} item(s) with this
+                              category
+                            </option>
+                          </select>
+                        </div>
+                      ) : (
+                        <p className="text-red-600 font-medium">
+                          There are no other categories to move items into.
+                          Removing this category will also delete its{" "}
+                          {catItemsCount} menu item(s).
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setDeletingCat(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={deletingCatLoading}
+                onClick={handleConfirmDeleteCategory}
+              >
+                {deletingCatLoading ? "Removing..." : "Confirm Remove Category"}
+              </Button>
+            </div>
           </Card>
         </div>
       )}
@@ -787,6 +1331,82 @@ export default function AdminMenuAndQrPage() {
                 </Button>
                 <Button type="submit" disabled={creatingItem}>
                   {creatingItem ? "Adding Item..." : "Save Menu Item"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Menu Item Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 space-y-4 bg-white dark:bg-zinc-900 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold">Edit Menu Item</h3>
+            <form onSubmit={handleSaveItemEdit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+                  Category
+                </label>
+                <select
+                  value={editItemCatId}
+                  onChange={(e) => setEditItemCatId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                  required
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Input
+                label="Item Name"
+                value={editItemName}
+                onChange={(e) => setEditItemName(e.target.value)}
+                required
+              />
+
+              <Input
+                label="Description"
+                value={editItemDesc}
+                onChange={(e) => setEditItemDesc(e.target.value)}
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Price (INR)"
+                  type="number"
+                  step="0.01"
+                  value={editItemPrice}
+                  onChange={(e) => setEditItemPrice(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Loyalty Points Multiplier"
+                  type="number"
+                  step="0.25"
+                  value={editItemMultiplier}
+                  onChange={(e) => setEditItemMultiplier(e.target.value)}
+                />
+              </div>
+
+              {formError && (
+                <p className="text-xs text-red-600">{formError}</p>
+              )}
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setEditingItem(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={savingItemEdit}>
+                  {savingItemEdit ? "Saving..." : "Save Item Changes"}
                 </Button>
               </div>
             </form>
