@@ -69,8 +69,13 @@ export function verifyPhoneLast4(
 
 export function maskPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
-  if (digits.length < 4) return "••••";
-  return `•••• •••• ${digits.slice(-4)}`;
+  if (digits.length < 4) return "****";
+  // Extract national phone number (last 10 digits for standard phone numbers)
+  const national = digits.length >= 10 ? digits.slice(-10) : digits;
+  const first2 = national.slice(0, 2);
+  const last2 = national.slice(-2);
+  const maskCount = Math.max(2, national.length - 4);
+  return `${first2}${"*".repeat(maskCount)}${last2}`;
 }
 
 export function generateCardNumber(businessSlug: string = "LP"): string {

@@ -287,7 +287,7 @@ describe("Public Card Security, QR Privacy & Phone Verification (CARD-09)", () =
 
   it("normalizes and masks phone numbers cleanly", () => {
     expect(normalizePhone("9876548765")).toBe("+919876548765");
-    expect(maskPhone("+919876548765")).toBe("•••• •••• 8765");
+    expect(maskPhone("+919876548765")).toBe("98******65");
   });
 
   it("computes points expiry dates accurately when configured", () => {
