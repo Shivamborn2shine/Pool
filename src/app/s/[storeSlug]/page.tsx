@@ -31,6 +31,9 @@ import {
   Gift,
   Receipt,
   X,
+  Edit3,
+  Mail,
+  Cake,
 } from "lucide-react";
 import { Badge, Button, Card, Input } from "@/components/ui/primitives";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -77,12 +80,21 @@ interface CartEntry {
   notes: string;
 }
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
 interface CustomerSession {
   id: string;
   displayName: string;
   fullName: string;
+  email?: string | null;
   maskedPhone: string;
   phoneLast4: string;
+  birthdayDay?: number | null;
+  birthdayMonth?: number | null;
+  marketingConsent?: boolean;
   cardPublicId: string;
   cardNumber: string;
   pointsBalance: number;
@@ -283,6 +295,17 @@ export default function StoreQrOrderingPage() {
   const [refreshingPoints, setRefreshingPoints] = useState(false);
   const [copiedCardNum, setCopiedCardNum] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Customer Edit Profile Modal state
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editBdayDay, setEditBdayDay] = useState("");
+  const [editBdayMonth, setEditBdayMonth] = useState("");
+  const [editMarketing, setEditMarketing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [editProfileError, setEditProfileError] = useState<string | null>(null);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
 
   // Item customization modal state
   const [customizingItem, setCustomizingItem] = useState<StoreMenuItem | null>(
@@ -529,7 +552,11 @@ export default function StoreQrOrderingPage() {
               ),
               fullName: data.customer?.fullName || prev.fullName,
               displayName: data.customer?.fullName || prev.displayName,
+              email: data.customer?.email !== undefined ? data.customer.email : prev.email,
               maskedPhone: data.customer?.maskedPhone || prev.maskedPhone,
+              birthdayDay: data.customer?.birthdayDay !== undefined ? data.customer.birthdayDay : prev.birthdayDay,
+              birthdayMonth: data.customer?.birthdayMonth !== undefined ? data.customer.birthdayMonth : prev.birthdayMonth,
+              marketingConsent: data.customer?.marketingConsent !== undefined ? data.customer.marketingConsent : prev.marketingConsent,
               cardNumber: data.card.cardNumber || prev.cardNumber,
             };
           });
@@ -551,9 +578,66 @@ export default function StoreQrOrderingPage() {
     setCart([]);
     setShowAccountDrawer(false);
     setShowLogoutConfirm(false);
+    setShowEditProfileModal(false);
     try {
       window.localStorage.removeItem(storageKey);
     } catch {}
+  };
+
+  const handleOpenEditProfile = () => {
+    if (!customer) return;
+    setEditName(customer.fullName || "");
+    setEditEmail(customer.email || "");
+    setEditBdayDay(customer.birthdayDay ? String(customer.birthdayDay) : "");
+    setEditBdayMonth(customer.birthdayMonth ? String(customer.birthdayMonth) : "");
+    setEditMarketing(Boolean(customer.marketingConsent));
+    setEditProfileError(null);
+    setShowEditProfileModal(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customer?.cardPublicId) return;
+    setSavingProfile(true);
+    setEditProfileError(null);
+    try {
+      const res = await fetch(`/api/s/${storeSlug}/customer-profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardPublicId: customer.cardPublicId,
+          fullName: editName,
+          email: editEmail || null,
+          birthdayDay: editBdayDay ? Number(editBdayDay) : null,
+          birthdayMonth: editBdayMonth ? Number(editBdayMonth) : null,
+          marketingConsent: editMarketing,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEditProfileError(data.error || "Failed to update profile.");
+        return;
+      }
+      setCustomer((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          fullName: data.customer.fullName,
+          displayName: data.customer.displayName,
+          email: data.customer.email,
+          birthdayDay: data.customer.birthdayDay,
+          birthdayMonth: data.customer.birthdayMonth,
+          marketingConsent: data.customer.marketingConsent,
+        };
+      });
+      setShowEditProfileModal(false);
+      setProfileSuccessMsg("Profile updated successfully!");
+      setTimeout(() => setProfileSuccessMsg(null), 3500);
+    } catch {
+      setEditProfileError("Network error. Could not update profile.");
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleReorderOrder = (targetOrder: ActiveOrderView) => {
@@ -2573,17 +2657,74 @@ export default function StoreQrOrderingPage() {
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
               {/* Profile Card */}
               <div className="p-4 rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950/50 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="font-extrabold text-base text-zinc-900 dark:text-zinc-100">
-                      {customer.fullName || customer.displayName || "Valued Customer"}
-                    </h4>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-extrabold text-base text-zinc-900 dark:text-zinc-100 truncate">
+                        {customer.fullName || customer.displayName || "Valued Customer"}
+                      </h4>
+                      <Badge variant="success" className="shrink-0 text-[10px]">Verified Member</Badge>
+                    </div>
                     <p className="text-xs text-zinc-500 font-mono mt-0.5">
                       {customer.maskedPhone}
                     </p>
                   </div>
-                  <Badge variant="success">Verified Member</Badge>
+                  <button
+                    type="button"
+                    onClick={handleOpenEditProfile}
+                    className="px-2.5 py-1 rounded-lg border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-stone-50 dark:hover:bg-zinc-700 flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs"
+                  >
+                    <Edit3 className="w-3 h-3 text-terracotta-600 dark:text-terracotta-400" />
+                    <span>Edit Profile</span>
+                  </button>
                 </div>
+
+                {/* Email & Birthday Quick Tags */}
+                <div className="space-y-1.5 text-xs pt-1 border-t border-stone-200/60 dark:border-zinc-800/60">
+                  <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-400">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Mail className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                      <span className="truncate">{customer.email || "No email linked"}</span>
+                    </span>
+                    {!customer.email && (
+                      <button
+                        type="button"
+                        onClick={handleOpenEditProfile}
+                        className="text-[11px] text-terracotta-600 dark:text-terracotta-400 font-semibold hover:underline shrink-0 ml-2"
+                      >
+                        + Add Email
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-400">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Cake className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                      <span className="truncate">
+                        {customer.birthdayDay && customer.birthdayMonth
+                          ? `Birthday: ${customer.birthdayDay} ${MONTH_NAMES[customer.birthdayMonth - 1]}`
+                          : "Birthday Club: Not set"}
+                      </span>
+                    </span>
+                    {(!customer.birthdayDay || !customer.birthdayMonth) ? (
+                      <button
+                        type="button"
+                        onClick={handleOpenEditProfile}
+                        className="text-[11px] text-terracotta-600 dark:text-terracotta-400 font-semibold hover:underline shrink-0 ml-2"
+                      >
+                        + Add for Free Treat
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium shrink-0 ml-2">🎂 Club Active</span>
+                    )}
+                  </div>
+                </div>
+
+                {profileSuccessMsg && (
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-1.5 animate-in fade-in">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>{profileSuccessMsg}</span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-200/60 dark:border-zinc-800/60 text-xs">
                   <span className="text-zinc-500 font-mono truncate">
@@ -2793,6 +2934,129 @@ export default function StoreQrOrderingPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditProfileModal && customer && (
+        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-stone-200 dark:border-zinc-800 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-terracotta-50 dark:bg-terracotta-950/50 flex items-center justify-center text-terracotta-600 dark:text-terracotta-400">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Edit Profile</h3>
+                  <p className="text-[11px] text-zinc-500">Update your membership details</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditProfileModal(false)}
+                className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {editProfileError && (
+              <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+                {editProfileError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  Full Name
+                </label>
+                <Input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Shivam"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  Email Address (for order receipts & rewards)
+                </label>
+                <Input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="e.g. shivam@gmail.com"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  Birthday (for Annual Birthday Club treats 🎂)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={editBdayDay}
+                    onChange={(e) => setEditBdayDay(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-foreground focus:outline-hidden focus:ring-1 focus:ring-terracotta-500"
+                  >
+                    <option value="">Select Day</option>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={editBdayMonth}
+                    onChange={(e) => setEditBdayMonth(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-foreground focus:outline-hidden focus:ring-1 focus:ring-terracotta-500"
+                  >
+                    <option value="">Select Month</option>
+                    {MONTH_NAMES.map((name, i) => (
+                      <option key={name} value={i + 1}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={editMarketing}
+                  onChange={(e) => setEditMarketing(e.target.checked)}
+                  className="rounded-xs text-terracotta-600 focus:ring-terracotta-500"
+                />
+                <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                  Receive exclusive offers & point balance alerts on WhatsApp
+                </span>
+              </label>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEditProfileModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={savingProfile}
+                  className="bg-terracotta-600 hover:bg-terracotta-700 text-white font-semibold"
+                >
+                  {savingProfile ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

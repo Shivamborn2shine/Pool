@@ -136,6 +136,7 @@ export async function GET(
     },
     customer: {
       fullName: row.customer_name,
+      email: row.customer_email || null,
       maskedPhone: maskPhone(row.customer_phone),
       birthdayDay: row.customer_birthday_day ? Number(row.customer_birthday_day) : null,
       birthdayMonth: row.customer_birthday_month ? Number(row.customer_birthday_month) : null,

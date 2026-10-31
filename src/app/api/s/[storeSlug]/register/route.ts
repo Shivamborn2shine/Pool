@@ -248,8 +248,12 @@ export async function POST(
             digitsOnly.slice(-3)
           ),
           fullName: customer.full_name,
+          email: customer.email || null,
           maskedPhone: maskPhone(customer.phone),
           phoneLast4: digitsOnly.slice(-4),
+          birthdayDay: customer.birthday_day || null,
+          birthdayMonth: customer.birthday_month || null,
+          marketingConsent: Boolean(customer.marketing_consent),
         },
         card: {
           id: card.id,
