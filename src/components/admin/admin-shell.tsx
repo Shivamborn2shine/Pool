@@ -151,20 +151,36 @@ export function AdminShell({
     setUploadingLogo(true);
     setLogoError(null);
     try {
-      const fd = new FormData();
-      fd.append("file", selectedFile);
-      fd.append("bucket", "business-assets");
-      const upRes = await fetch("/api/upload", {
-        method: "POST",
-        body: fd,
-      });
-      const upData = await upRes.json();
-      if (!upRes.ok) {
-        setLogoError(upData.error || "Failed to upload logo.");
-        return;
+      let newLogoUrl = "";
+
+      // 1. Try Supabase Storage CDN upload first
+      try {
+        const fd = new FormData();
+        fd.append("file", selectedFile);
+        fd.append("bucket", "business-assets");
+        const upRes = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+        });
+        const upData = await upRes.json();
+        if (upRes.ok && upData.url) {
+          newLogoUrl = upData.url;
+        }
+      } catch (storageErr) {
+        console.warn("Storage upload failed, falling back to local encoding:", storageErr);
       }
 
-      const newLogoUrl = upData.url;
+      // 2. Seamless Data URL fallback if storage API was unavailable
+      if (!newLogoUrl) {
+        newLogoUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(selectedFile);
+        });
+      }
+
+      // 3. Save to business profile
       const patchRes = await fetch("/api/business", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -187,8 +203,8 @@ export function AdminShell({
       setSelectedFile(null);
       setLogoPreview(null);
       router.refresh();
-    } catch {
-      setLogoError("Network error uploading logo.");
+    } catch (err: any) {
+      setLogoError(err?.message || "Network error uploading logo.");
     } finally {
       setUploadingLogo(false);
     }

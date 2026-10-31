@@ -6,9 +6,20 @@ import { checkRateLimit, getClientContext } from "@/lib/auth";
 const ALLOWED_TYPES = new Set([
   "image/png",
   "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
   "image/webp",
   "image/svg+xml",
   "application/pdf",
+]);
+
+const ALLOWED_EXTENSIONS = new Set([
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "svg",
+  "pdf",
 ]);
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -35,7 +46,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!ALLOWED_TYPES.has(file.type)) {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const isAllowed =
+      ALLOWED_TYPES.has(file.type) || ALLOWED_EXTENSIONS.has(ext);
+
+    if (!isAllowed) {
       return NextResponse.json(
         {
           error:
@@ -52,7 +67,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    let contentType = file.type;
+    if (
+      !contentType ||
+      contentType === "application/octet-stream" ||
+      !ALLOWED_TYPES.has(contentType)
+    ) {
+      if (ext === "jpg" || ext === "jpeg") contentType = "image/jpeg";
+      else if (ext === "png") contentType = "image/png";
+      else if (ext === "webp") contentType = "image/webp";
+      else if (ext === "svg") contentType = "image/svg+xml";
+      else if (ext === "pdf") contentType = "application/pdf";
+      else contentType = "image/jpeg";
+    }
+
     const fileName = `${Date.now()}-${crypto
       .randomBytes(6)
       .toString("hex")}.${ext}`;
@@ -66,14 +94,16 @@ export async function POST(request: Request) {
     const { error: uploadError } = await supabase.storage
       .from(targetBucket)
       .upload(fileName, buffer, {
-        contentType: file.type,
+        contentType,
         upsert: false,
       });
 
     if (uploadError) {
       console.error("Supabase Storage upload error:", uploadError);
       return NextResponse.json(
-        { error: "Failed to upload file to storage." },
+        {
+          error: `Storage upload error: ${uploadError.message || "Failed to upload file to storage."}`,
+        },
         { status: 500 }
       );
     }
@@ -106,10 +136,10 @@ export async function POST(request: Request) {
       url: signedData.signedUrl,
       path: fileName,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("POST /api/upload error:", err);
     return NextResponse.json(
-      { error: "Upload failed." },
+      { error: err?.message || "Upload failed." },
       { status: 500 }
     );
   }

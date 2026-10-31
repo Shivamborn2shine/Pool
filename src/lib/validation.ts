@@ -40,7 +40,13 @@ export const changePasswordSchema = z.object({
 
 export const businessUpdateSchema = z.object({
   name: z.string().min(2, "Business name is required").max(120),
-  logoUrl: z.string().url().optional().nullable().or(z.literal("")),
+  logoUrl: z
+    .string()
+    .url()
+    .optional()
+    .nullable()
+    .or(z.literal(""))
+    .or(z.string().startsWith("data:image/")),
   primaryColor: z
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color (e.g. #18181B)"),

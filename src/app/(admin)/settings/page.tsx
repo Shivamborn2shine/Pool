@@ -54,29 +54,46 @@ export default function SettingsAndRulesPage() {
     setUploadingLogo(true);
     setLogoUploadError(null);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("bucket", "business-assets");
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: fd,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLogoUploadError(data.error || "Failed to upload logo.");
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setBizData((prev: any) => ({
-          ...prev,
-          business: { ...prev.business, logo_url: data.url },
-        }));
-        setFeedback({
-          type: "success",
-          text: "Logo uploaded! Click 'Update Business Profile' below to save changes permanently.",
+      let finalUrl = "";
+
+      // 1. Try Supabase Storage CDN upload first
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("bucket", "business-assets");
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          finalUrl = data.url;
+        }
+      } catch (uploadFetchErr) {
+        console.warn("Storage upload failed, falling back to local encoding:", uploadFetchErr);
+      }
+
+      // 2. Seamless Data URL fallback if storage API was unavailable
+      if (!finalUrl) {
+        finalUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
       }
-    } catch {
-      setLogoUploadError("Network error uploading logo.");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setBizData((prev: any) => ({
+        ...prev,
+        business: { ...prev.business, logo_url: finalUrl },
+      }));
+      setFeedback({
+        type: "success",
+        text: "Logo selected! Click 'Update Business Profile' below to save changes permanently.",
+      });
+    } catch (err: any) {
+      setLogoUploadError(err?.message || "Error processing logo file.");
     } finally {
       setUploadingLogo(false);
     }
