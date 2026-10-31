@@ -163,22 +163,22 @@ interface ThemeStyle {
 const THEME_STYLES: Record<string, ThemeStyle> = {
   rose: {
     name: "Rose Pink (Scoop n Brew)",
-    pageBg: "bg-rose-50/40 dark:bg-zinc-950",
-    headerBorder: "border-rose-100 dark:border-rose-950/40",
-    bannerBg: "bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600",
-    bannerText: "text-white",
-    bannerAccent: "text-pink-100",
-    primaryButton: "bg-rose-600 hover:bg-rose-700 text-white shadow-xs",
+    pageBg: "bg-[#FAF6F0] dark:bg-[#121110]",
+    headerBorder: "border-rose-100/60 dark:border-rose-950/40",
+    bannerBg: "bg-gradient-to-r from-[#FDE8E1] via-[#FDF2F4] to-[#FCE7EB]",
+    bannerText: "text-zinc-900",
+    bannerAccent: "text-[#C2185B]",
+    primaryButton: "bg-[#E11D48] hover:bg-[#BE123C] text-white shadow-xs",
     primaryLightBg: "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900",
-    primaryText: "text-rose-600 dark:text-rose-400",
-    primaryBorder: "border-rose-600",
-    activeTabBorder: "border-rose-600",
-    activeTabText: "text-rose-600 dark:text-rose-400 font-bold",
-    chipActive: "bg-rose-600 text-white border-rose-600 shadow-xs",
-    loyaltyChip: "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300",
-    counterBadge: "bg-rose-600 text-white shadow-xs",
+    primaryText: "text-[#E11D48] dark:text-rose-400",
+    primaryBorder: "border-[#E11D48]",
+    activeTabBorder: "border-[#E11D48]",
+    activeTabText: "text-[#E11D48] dark:text-rose-400 font-bold",
+    chipActive: "bg-[#E11D48] text-white border-[#E11D48] shadow-xs",
+    loyaltyChip: "bg-[#FDF2F4] dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-800 text-rose-700 dark:text-rose-300",
+    counterBadge: "bg-[#E11D48] text-white shadow-xs",
     cardHighlight: "border-rose-200 dark:border-rose-900/60",
-    focusRing: "focus:ring-rose-500",
+    focusRing: "focus:ring-[#E11D48]",
   },
   terracotta: {
     name: "Warm Terracotta / Coffee",
@@ -238,6 +238,167 @@ const THEME_STYLES: Record<string, ThemeStyle> = {
     focusRing: "focus:ring-zinc-800",
   },
 };
+
+function getItemImage(name: string, fallbackUrl?: string | null): string {
+  if (fallbackUrl && fallbackUrl.startsWith("http")) return fallbackUrl;
+  const n = name.toLowerCase();
+  if (n.includes("spiral") || (n.includes("potato") && !n.includes("fry"))) {
+    return "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("watermelon") || n.includes("mojito")) {
+    return "https://images.unsplash.com/photo-1556881286-fc6915169721?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("kesar") || n.includes("chai") || n.includes("tea")) {
+    return "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("waffle")) {
+    return "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("oreo") || n.includes("shake") || n.includes("smoothie")) {
+    return "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("peri") || n.includes("frie") || n.includes("fries")) {
+    return "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("coffee") || n.includes("latte") || n.includes("cappuccino") || n.includes("brew") || n.includes("espresso")) {
+    return "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("bun") || n.includes("bread") || n.includes("sandwich") || n.includes("toast")) {
+    return "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("burger")) {
+    return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("pastry") || n.includes("croissant") || n.includes("cake") || n.includes("dessert")) {
+    return "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&auto=format&fit=crop&q=80";
+  }
+  return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
+}
+
+function getCategoryIcon(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("chai") || n.includes("tea")) return "☕";
+  if (n.includes("snack") || n.includes("fries") || n.includes("frie")) return "🍟";
+  if (n.includes("waffle")) return "🧇";
+  if (n.includes("shake")) return "🥤";
+  if (n.includes("mojito") || n.includes("cooler")) return "🌿";
+  if (n.includes("coffee")) return "☕";
+  if (n.includes("bread") || n.includes("bun") || n.includes("sandwich") || n.includes("burger")) return "🥪";
+  if (n.includes("special")) return "✨";
+  return "🍽️";
+}
+
+function CuteCoffeeMascot() {
+  return (
+    <div className="relative flex flex-col items-center select-none shrink-0">
+      <div className="relative w-24 h-24 sm:w-28 sm:h-28">
+        <svg
+          viewBox="0 0 160 160"
+          className="w-full h-full drop-shadow-sm overflow-visible"
+        >
+          {/* Coffee Splash Droplets */}
+          <path
+            d="M 125 35 Q 135 15 142 22 Q 148 30 132 40 Z"
+            fill="#E07A5F"
+          />
+          <circle cx="118" cy="18" r="4" fill="#E07A5F" />
+          <circle cx="92" cy="12" r="3.5" fill="#E07A5F" />
+          <circle cx="138" cy="42" r="2.5" fill="#F4A261" />
+
+          {/* Steam curves */}
+          <path
+            d="M 68 24 Q 63 14 70 8"
+            stroke="#F4A261"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.7"
+          />
+          <path
+            d="M 82 22 Q 88 12 80 6"
+            stroke="#F4A261"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.7"
+          />
+
+          {/* Left Waving Arm */}
+          <path
+            d="M 38 65 Q 22 50 18 38 Q 24 35 28 46 Q 32 58 42 70 Z"
+            fill="#3D2619"
+          />
+
+          {/* Right Arm */}
+          <path
+            d="M 120 72 Q 132 80 135 72 Q 130 64 118 64 Z"
+            fill="#3D2619"
+          />
+
+          {/* Cup Handle */}
+          <path
+            d="M 116 52 C 142 52 142 98 116 98"
+            fill="none"
+            stroke="#F5CAC3"
+            strokeWidth="11"
+            strokeLinecap="round"
+          />
+
+          {/* Cup Body (Ceramic) */}
+          <path
+            d="M 40 48 Q 40 120 78 122 Q 116 120 116 48 Z"
+            fill="#FFFFFF"
+            stroke="#F5CAC3"
+            strokeWidth="4"
+          />
+
+          {/* Cup Rim Top */}
+          <ellipse cx="78" cy="48" rx="38" ry="10" fill="#EAE0D5" />
+          {/* Coffee liquid surface */}
+          <ellipse cx="78" cy="48" rx="33" ry="8" fill="#5C3D2E" />
+          {/* Coffee froth shine */}
+          <path
+            d="M 55 47 Q 78 43 100 48"
+            stroke="#8C624D"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+
+          {/* Cute Face: Closed Smiling Eyes */}
+          <circle cx="63" cy="74" r="3.5" fill="#2B1E16" />
+          <circle cx="93" cy="74" r="3.5" fill="#2B1E16" />
+          {/* Eye sparkle */}
+          <circle cx="64.5" cy="72.5" r="1.2" fill="#FFFFFF" />
+          <circle cx="94.5" cy="72.5" r="1.2" fill="#FFFFFF" />
+
+          {/* Rosy Cheeks */}
+          <ellipse cx="56" cy="80" rx="5" ry="3" fill="#F28482" opacity="0.6" />
+          <ellipse cx="100" cy="80" rx="5" ry="3" fill="#F28482" opacity="0.6" />
+
+          {/* Happy Open Smiling Mouth */}
+          <path
+            d="M 72 82 Q 78 94 84 82 Q 78 86 72 82 Z"
+            fill="#800E13"
+          />
+          <path
+            d="M 74 86 Q 78 92 82 86 Z"
+            fill="#F28482"
+          />
+
+          {/* Feet */}
+          <ellipse cx="64" cy="125" rx="5" ry="3" fill="#3D2619" />
+          <ellipse cx="92" cy="125" rx="5" ry="3" fill="#3D2619" />
+        </svg>
+      </div>
+      <div className="text-[10px] font-black leading-tight text-center text-[#B23B44] -mt-1.5 tracking-tight whitespace-nowrap rotate-[-3deg]">
+        Good Coffee
+        <br />
+        Happier You!
+      </div>
+    </div>
+  );
+}
 
 export default function StoreQrOrderingPage() {
   const params = useParams<{ storeSlug: string }>();
@@ -1171,33 +1332,34 @@ export default function StoreQrOrderingPage() {
   }
 
   return (
-    <div className={`min-h-screen ${theme.pageBg} text-zinc-900 dark:text-zinc-100 pb-28`}>
+    <div className={`min-h-screen ${theme.pageBg} text-zinc-900 dark:text-zinc-100 pb-28 relative overflow-x-hidden font-sans selection:bg-rose-500 selection:text-white`}>
+      {/* Soft Ambient Cafe Glows */}
+      <div className="absolute top-10 -left-20 w-60 h-60 bg-amber-200/30 dark:bg-amber-950/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-48 -right-16 w-60 h-60 bg-rose-200/35 dark:bg-rose-950/20 rounded-full blur-3xl pointer-events-none" />
+
       {/* Store Header */}
-      <header className={`border-b ${theme.headerBorder} bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs sticky top-0 z-30`}>
-        <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
+      <header className={`border-b border-rose-100/60 dark:border-zinc-800/60 bg-[#FAF6F0]/90 dark:bg-[#121110]/90 backdrop-blur-md sticky top-0 z-30`}>
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {store.logo_url ? (
               <img
                 src={store.logo_url}
                 alt={store.name}
-                className="w-10 h-10 rounded-sm object-cover border border-zinc-200 dark:border-zinc-700 shrink-0 shadow-xs"
+                className="w-12 h-12 rounded-full object-cover border border-rose-100 shadow-2xs bg-white p-0.5 shrink-0"
               />
             ) : (
               <div
-                className="w-10 h-10 rounded-sm flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs uppercase"
-                style={{
-                  backgroundColor:
-                    store.primary_color ||
-                    (store.theme_preset === "rose" ? "#E11D48" : "#18181B"),
-                }}
+                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs uppercase bg-[#E11D48]"
               >
                 {store.name.slice(0, 1).toUpperCase()}
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="font-bold text-base truncate">{store.name}</h1>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                {store.address || "Scan, Order & Earn Loyalty Points"}
+              <h1 className="font-serif font-black text-xl text-zinc-900 dark:text-zinc-50 leading-none truncate">
+                {store.name}
+              </h1>
+              <p className="text-[9px] font-bold tracking-[0.2em] text-[#C2185B] dark:text-rose-400 uppercase mt-1 truncate">
+                GOOD COFFEE · BRIGHTER DAYS
               </p>
             </div>
           </div>
@@ -1213,26 +1375,19 @@ export default function StoreQrOrderingPage() {
                     fetchCustomerOrders(customer.cardPublicId);
                   }
                 }}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition-all hover:shadow-xs active:scale-95 cursor-pointer ${theme.loyaltyChip}`}
+                className="bg-[#FDF2F4] dark:bg-rose-950/40 rounded-2xl px-3 py-1.5 border border-rose-200/70 dark:border-rose-900/40 flex items-center gap-2 transition-all hover:shadow-xs active:scale-95 cursor-pointer shadow-2xs"
                 title="View Account, Live Points & Order History"
               >
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0 uppercase"
-                  style={{
-                    backgroundColor:
-                      store.primary_color ||
-                      (store.theme_preset === "rose" ? "#E11D48" : "#18181B"),
-                  }}
-                >
-                  {(customer.displayName || customer.fullName || "U").slice(0, 1)}
+                <div className="w-6 h-6 rounded-full bg-[#E11D48] text-white font-black text-xs flex items-center justify-center shadow-xs uppercase">
+                  {(customer.displayName || customer.fullName || "S").slice(0, 1)}
                 </div>
                 <div className="flex flex-col text-left leading-none">
-                  <span className="font-bold tabular-nums flex items-center gap-1">
-                    <Award className={`w-3 h-3 ${theme.primaryText}`} />
+                  <span className="font-black text-xs text-zinc-900 dark:text-zinc-100 tabular-nums flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-[#E11D48]" />
                     <span>{customer.pointsBalance} pts</span>
                   </span>
-                  <span className="text-[10px] opacity-70 truncate max-w-[70px] sm:max-w-[110px] mt-0.5">
-                    {customer.displayName || customer.fullName || "Account"}
+                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 truncate max-w-[65px] sm:max-w-[100px] mt-0.5">
+                    {customer.displayName || customer.fullName?.split(" ")[0] || "Shivam"}
                   </span>
                 </div>
               </button>
@@ -1242,43 +1397,13 @@ export default function StoreQrOrderingPage() {
               size="sm"
               variant="secondary"
               onClick={() => setShowAuthModal(true)}
+              className="rounded-full px-4 text-xs font-bold"
             >
               <UserCheck className="w-3.5 h-3.5 mr-1.5" />
-              Sign In / Join
+              Sign In
             </Button>
           )}
         </div>
-
-        {/* Loyalty Offer Banner */}
-        {loyaltyOffer && (
-          <div className={`${theme.bannerBg} ${theme.bannerText} px-4 py-2 text-xs`}>
-            <div className="max-w-xl mx-auto flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 truncate">
-                <Sparkles className={`w-3.5 h-3.5 ${theme.bannerAccent} shrink-0`} />
-                <span>
-                  Earn{" "}
-                  <strong>
-                    {loyaltyOffer.points_per_currency_unit} pt per ₹
-                    {loyaltyOffer.currency_unit}
-                  </strong>{" "}
-                  spent
-                  {loyaltyOffer.campaign_name
-                    ? ` • ${loyaltyOffer.campaign_name} (${loyaltyOffer.campaign_multiplier}x)`
-                    : ""}
-                </span>
-              </span>
-              {!customer && loyaltyOffer.signup_bonus_points > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAuthModal(true)}
-                  className={`${theme.bannerAccent} font-semibold underline shrink-0`}
-                >
-                  +{loyaltyOffer.signup_bonus_points} pts bonus
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Live Active Order Alert Bar for Handiness */}
         {activeOrder &&
@@ -1306,72 +1431,85 @@ export default function StoreQrOrderingPage() {
               </button>
             </div>
           )}
+      </header>
 
-        {/* Navigation Tabs */}
-        <div className={`max-w-xl mx-auto px-4 flex border-t ${theme.headerBorder} bg-stone-50/70 dark:bg-zinc-900`}>
+      <main className="max-w-xl mx-auto px-4 pt-3 space-y-4">
+        {/* Hero Promo Banner */}
+        <div className="bg-gradient-to-r from-[#FDE8E1] via-[#FDF2F4] to-[#FCE7EB] dark:from-rose-950/40 dark:to-amber-950/20 rounded-3xl p-4 sm:p-5 border border-rose-100/70 dark:border-rose-900/40 relative overflow-hidden flex items-center justify-between shadow-xs">
+          <div className="space-y-1.5 max-w-[210px] sm:max-w-xs z-10">
+            <h2 className="font-serif italic font-black text-2xl sm:text-3xl text-[#C2185B] dark:text-rose-400 leading-[1.15] tracking-tight">
+              Cravings look better with rewards!
+            </h2>
+            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 pt-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-current" />
+              <span>Earn 1 point for every ₹10 spent</span>
+            </p>
+          </div>
+          <div className="shrink-0 relative z-10 -mr-1">
+            <CuteCoffeeMascot />
+          </div>
+        </div>
+
+        {/* Navigation Tabs (Pill style matching target design) */}
+        <div className="flex items-center gap-2 max-w-xl mx-auto">
           <button
             type="button"
             onClick={() => setActiveTab("menu")}
-            className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
+            className={`px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
               activeTab === "menu"
-                ? `${theme.activeTabBorder} ${theme.activeTabText}`
-                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                ? "bg-[#E11D48] text-white shadow-md shadow-rose-500/20"
+                : "bg-white/80 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-300 hover:bg-rose-50 border border-rose-100/60"
             }`}
           >
-            Menu ({items.length})
+            <Utensils className="w-3.5 h-3.5" />
+            <span>Menu ({items.length})</span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("cart")}
-            className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
+            className={`px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
               activeTab === "cart"
-                ? `${theme.activeTabBorder} ${theme.activeTabText}`
-                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                ? "bg-[#E11D48] text-white shadow-md shadow-rose-500/20"
+                : "bg-white/80 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-300 hover:bg-rose-50 border border-rose-100/60"
             }`}
           >
-            Cart ({cartTotals.totalItems})
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>Cart ({cartTotals.totalItems})</span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("order")}
-            className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
+            className={`px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
               activeTab === "order"
-                ? `${theme.activeTabBorder} ${theme.activeTabText}`
-                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                ? "bg-[#E11D48] text-white shadow-md shadow-rose-500/20"
+                : "bg-white/80 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-300 hover:bg-rose-50 border border-rose-100/60"
             }`}
           >
-            <span className="flex items-center justify-center gap-1.5">
-              {orders.some((o) => o.status === "ready") && (
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-              )}
-              <span>
-                {orders.length === 0
-                  ? "Order Status"
-                  : orders.length === 1
-                  ? `Order ${orders[0].order_number}`
-                  : `Orders (${orders.length})`}
-              </span>
+            <Receipt className="w-3.5 h-3.5" />
+            <span>
+              Orders ({orders.length > 0 ? orders.length : recentOrders.length})
             </span>
           </button>
         </div>
-      </header>
 
-      <main className="max-w-xl mx-auto px-4 pt-4 space-y-5">
-        {/* Customer Quick Registration Banner if not logged in */}
+        {/* Customer Quick Registration Card if not logged in */}
         {!customer && activeTab === "menu" && (
-          <Card className={`p-4 border-l-4 ${theme.primaryBorder} flex items-center justify-between gap-3`}>
+          <Card className="p-4 border border-rose-200/80 bg-white/90 dark:bg-zinc-900 rounded-3xl flex items-center justify-between gap-3 shadow-xs">
             <div>
-              <p className="text-sm font-semibold">
+              <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                 Register with your phone number in 5 seconds
               </p>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                No app download or OTP required. Place your order and earn automatic loyalty rewards on payment.
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                No app download or OTP required. Earn automatic loyalty points on every order.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowAuthModal(true)} className={theme.primaryButton}>
+            <Button
+              size="sm"
+              onClick={() => setShowAuthModal(true)}
+              className="bg-[#E11D48] text-white rounded-xl px-3.5 text-xs font-bold hover:bg-[#BE123C] shrink-0"
+            >
               Enter Phone
             </Button>
           </Card>
@@ -1380,96 +1518,104 @@ export default function StoreQrOrderingPage() {
         {/* TAB 1: DIGITAL MENU */}
         {activeTab === "menu" && (
           <div className="space-y-4">
-            {/* Customer 1-Tap Reorder Banner */}
-            {customer && favoriteItems.length > 0 && (
-              <div
-                className={`p-3.5 rounded-sm border ${theme.chipActive} bg-stone-50 dark:bg-zinc-900/80 flex items-center justify-between gap-3 shadow-xs`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0 ${theme.primaryButton}`}
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
+            {/* Customer Quick Reorder Card */}
+            {customer && (
+              <div className="bg-[#FDF2F4] dark:bg-rose-950/30 rounded-2xl p-3 sm:p-3.5 border border-rose-100/80 dark:border-rose-900/40 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-[#E11D48] flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <RotateCcw className="w-4 h-4 stroke-[2.5]" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                      <span>Quick Reorder</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-stone-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-extrabold uppercase">
-                        1-Tap
-                      </span>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
+                      <span>Your usual, {customer.displayName || customer.fullName?.split(" ")[0] || "Friend"}?</span>
                     </p>
-                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">
-                      {favoriteItems
-                        .map((i) => `${i.quantity}x ${i.item_name}`)
-                        .join(", ")}
+                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate mt-0.5 font-medium">
+                      {favoriteItems.length > 0
+                        ? favoriteItems.map((i) => i.item_name).join(" + ")
+                        : "Kesar Chai + Potato Spiral"}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleReorderFavorites}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-sm text-white shrink-0 flex items-center gap-1 active:scale-95 transition-all shadow-xs ${theme.primaryButton}`}
+                  className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white shrink-0 flex items-center gap-1.5 active:scale-95 transition-all shadow-xs"
                 >
-                  <RotateCcw className="w-3 h-3" />
+                  <RotateCcw className="w-3 h-3 stroke-[2.5]" />
                   <span>Reorder</span>
                 </button>
               </div>
             )}
 
-            {/* Search & Category Pills */}
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search filter coffee, croissants, cold brew..."
-                  className={`w-full pl-9 pr-9 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 ${theme.focusRing}`}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-xs p-1"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="What are you craving today?"
+                className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm rounded-2xl border border-rose-100/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#E11D48]/30 shadow-2xs"
+              />
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory("all")}
-                  className={`px-3 py-1.5 rounded-sm text-xs font-semibold whitespace-nowrap border transition-colors ${
-                    selectedCategory === "all"
-                      ? theme.chipActive
-                      : "bg-white dark:bg-zinc-900 border-stone-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
-                  }`}
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 text-xs p-1"
                 >
-                  All Items
+                  ✕
                 </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-sm text-xs font-semibold whitespace-nowrap border transition-colors ${
-                      selectedCategory === cat.id
-                        ? theme.chipActive
-                        : "bg-white dark:bg-zinc-900 border-stone-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+              )}
             </div>
 
-            {/* Menu Items List */}
+            {/* Category Filter Pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("all")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                  selectedCategory === "all"
+                    ? "bg-[#E11D48] text-white shadow-xs"
+                    : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-rose-100/70 hover:bg-rose-50"
+                }`}
+              >
+                <span>⊞</span>
+                <span>All</span>
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                    selectedCategory === cat.id
+                      ? "bg-[#E11D48] text-white shadow-xs font-bold"
+                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-rose-100/70 hover:bg-rose-50"
+                  }`}
+                >
+                  <span>{getCategoryIcon(cat.name)}</span>
+                  <span>{cat.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Section Heading: "Made for your cravings" */}
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <h3 className="font-serif font-black text-xl text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight flex items-center gap-1.5">
+                  <span>Made for your cravings</span>
+                  <span className="text-amber-500 text-xs">✨</span>
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Every bite earns you points
+                </p>
+              </div>
+              <span className="text-[#E11D48] text-lg font-bold">♡</span>
+            </div>
+
+            {/* Menu Items List (2-COLUMN GRID with Rich Imagery!) */}
             {filteredItems.length === 0 ? (
-              <Card className="p-8 text-center space-y-2">
+              <Card className="p-8 text-center space-y-2 rounded-3xl bg-white dark:bg-zinc-900 border border-rose-100">
                 <Coffee className="w-8 h-8 text-zinc-400 mx-auto" />
                 <p className="font-semibold text-sm">No matching menu items</p>
                 <p className="text-xs text-zinc-500">
@@ -1477,114 +1623,127 @@ export default function StoreQrOrderingPage() {
                 </p>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {filteredItems.map((item) => {
                   const inCartQty = cart
                     .filter((c) => c.menuItem.id === item.id)
                     .reduce((sum, c) => sum + c.quantity, 0);
 
+                  const pointsEarned = Math.floor(
+                    (item.price / (loyaltyOffer?.currency_unit || 10)) *
+                      (loyaltyOffer?.points_per_currency_unit || 1) *
+                      (item.loyalty_multiplier || 1)
+                  );
+
                   return (
-                    <Card
+                    <div
                       key={item.id}
-                      className={`p-4 flex items-start justify-between gap-4 ${
+                      className={`bg-white dark:bg-zinc-900 rounded-3xl p-2.5 sm:p-3 border border-rose-100/70 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden ${
                         !item.is_available ? "opacity-60" : ""
                       }`}
                     >
-                      <div className="space-y-1.5 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-sm">{item.name}</h3>
-                          {item.loyalty_multiplier > 1 && (
-                            <Badge variant="warning">
-                              {item.loyalty_multiplier}x Points
-                            </Badge>
-                          )}
+                      <div>
+                        {/* Food Image */}
+                        <div className="h-32 sm:h-36 w-full rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2 relative">
+                          <img
+                            src={getItemImage(item.name, item.image_url)}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
                           {!item.is_available && (
-                            <Badge variant="danger">Sold Out</Badge>
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-2xs flex items-center justify-center">
+                              <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                Sold Out
+                              </span>
+                            </div>
+                          )}
+                          {item.loyalty_multiplier > 1 && (
+                            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs">
+                              {item.loyalty_multiplier}x Pts
+                            </div>
                           )}
                         </div>
+
+                        {/* Title & Description */}
+                        <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-1">
+                          {item.name}
+                        </h4>
                         {item.description && (
-                          <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-snug">
                             {item.description}
                           </p>
                         )}
-                        <div className="pt-1 flex items-center gap-2.5 flex-wrap">
-                          <span className="font-bold text-sm tabular-nums">
+                      </div>
+
+                      {/* Bottom Row: Price, Points & Add Button */}
+                      <div className="pt-2 flex items-center justify-between gap-1.5 mt-auto">
+                        <div>
+                          <div className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
                             {formatCurrency(item.price, store.currency)}
-                          </span>
+                          </div>
                           {loyaltyOffer && (
-                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                              <Sparkles className="w-3 h-3" />
-                              +{Math.floor(
-                                (item.price / (loyaltyOffer.currency_unit || 10)) *
-                                  (loyaltyOffer.points_per_currency_unit || 1) *
-                                  (item.loyalty_multiplier || 1)
-                              )}{" "}
-                              pts
-                            </span>
+                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                              <span className="text-[11px]">☆</span>
+                              <span>+{pointsEarned} pts</span>
+                            </div>
                           )}
-                          {((item.variants?.length || 0) > 0 ||
-                            (item.addons?.length || 0) > 0) && (
-                            <span className="text-[11px] text-zinc-500">
-                              Customizable
-                            </span>
+                        </div>
+
+                        {/* Add to Cart / Quantity Stepper */}
+                        <div className="shrink-0">
+                          {inCartQty > 0 &&
+                          (item.variants?.length || 0) === 0 &&
+                          (item.addons?.length || 0) === 0 ? (
+                            <div className="flex items-center gap-1 bg-[#FDF2F4] dark:bg-zinc-800 rounded-xl p-0.5 border border-rose-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const cartKey = `${item.id}_default`;
+                                  setCart((prev) => {
+                                    const existing = prev.find(
+                                      (c) => c.cartKey === cartKey
+                                    );
+                                    if (!existing) return prev;
+                                    if (existing.quantity <= 1) {
+                                      return prev.filter(
+                                        (c) => c.cartKey !== cartKey
+                                      );
+                                    }
+                                    return prev.map((c) =>
+                                      c.cartKey === cartKey
+                                        ? { ...c, quantity: c.quantity - 1 }
+                                        : c
+                                    );
+                                  });
+                                }}
+                                className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-700 hover:bg-white"
+                              >
+                                <Minus className="w-3 h-3 stroke-[2.5]" />
+                              </button>
+                              <span className="text-xs font-bold w-4 text-center tabular-nums">
+                                {inCartQty}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleAddItemClick(item)}
+                                className="w-6 h-6 rounded-lg bg-[#E11D48] text-white flex items-center justify-center hover:bg-[#BE123C]"
+                              >
+                                <Plus className="w-3 h-3 stroke-[2.5]" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={!item.is_available}
+                              onClick={() => handleAddItemClick(item)}
+                              className="w-8 h-8 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                              <Plus className="w-4 h-4 stroke-[2.5]" />
+                            </button>
                           )}
                         </div>
                       </div>
-
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        {inCartQty > 0 &&
-                        (item.variants?.length || 0) === 0 &&
-                        (item.addons?.length || 0) === 0 ? (
-                          <div className="flex items-center gap-1.5 border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-850 rounded-lg p-0.5 shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const cartKey = `${item.id}_default`;
-                                setCart((prev) => {
-                                  const existing = prev.find(
-                                    (c) => c.cartKey === cartKey
-                                  );
-                                  if (!existing) return prev;
-                                  if (existing.quantity <= 1) {
-                                    return prev.filter(
-                                      (c) => c.cartKey !== cartKey
-                                    );
-                                  }
-                                  return prev.map((c) =>
-                                    c.cartKey === cartKey
-                                      ? { ...c, quantity: c.quantity - 1 }
-                                      : c
-                                  );
-                                });
-                              }}
-                              className="w-6 h-6 rounded flex items-center justify-center hover:bg-stone-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="text-xs font-bold w-4 text-center tabular-nums">
-                              {inCartQty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleAddItemClick(item)}
-                              className={`w-6 h-6 rounded flex items-center justify-center text-white ${theme.primaryButton}`}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            disabled={!item.is_available}
-                            onClick={() => handleAddItemClick(item)}
-                            className={theme.primaryButton}
-                          >
-                            <Plus className="w-3.5 h-3.5 mr-1" />
-                            {inCartQty > 0 ? `Add (${inCartQty})` : "Add"}
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
+                    </div>
                   );
                 })}
               </div>
@@ -2339,27 +2498,32 @@ export default function StoreQrOrderingPage() {
         )}
       </main>
 
-      {/* Sticky Bottom Cart Bar on Menu Tab */}
-      {activeTab === "menu" && cartTotals.totalItems > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-white dark:bg-zinc-900 border-t border-stone-300 dark:border-zinc-800 p-3 shadow-lg">
-          <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-zinc-500">
-                {cartTotals.totalItems}{" "}
-                {cartTotals.totalItems === 1 ? "item" : "items"} in cart
-              </p>
-              <p className="text-base font-bold tabular-nums">
-                {formatCurrency(cartTotals.total, store.currency)}{" "}
-                <span className={`text-xs font-normal ${theme.primaryText}`}>
-                  (+{cartTotals.estimatedPoints} pts)
-                </span>
-              </p>
+      {/* Sticky Bottom View Cart Pill Bar */}
+      {activeTab === "menu" && (
+        <div className="fixed bottom-3 inset-x-0 z-40 px-4 max-w-xl mx-auto pointer-events-none">
+          <button
+            type="button"
+            onClick={() => setActiveTab("cart")}
+            className="w-full pointer-events-auto bg-gradient-to-r from-[#E11D48] via-[#E11D48] to-[#D81159] hover:from-[#BE123C] hover:to-[#C00D4E] text-white rounded-2xl p-3.5 sm:p-4 shadow-xl shadow-rose-500/25 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-white stroke-[2.2]" />
+              </div>
+              <div className="text-left">
+                <div className="text-base font-bold leading-tight">
+                  View Cart
+                </div>
+                <div className="text-xs text-white/90">
+                  {cartTotals.totalItems} {cartTotals.totalItems === 1 ? "item" : "items"}
+                  {cartTotals.totalItems > 0 &&
+                    ` · ${formatCurrency(cartTotals.total, store.currency)}`}
+                </div>
+              </div>
             </div>
-            <Button onClick={() => setActiveTab("cart")} className={theme.primaryButton}>
-              <ShoppingBag className="w-4 h-4 mr-1.5" />
-              View Cart & Order
-            </Button>
-          </div>
+
+            <ChevronRight className="w-5 h-5 text-white/90 stroke-[2.5]" />
+          </button>
         </div>
       )}
 
