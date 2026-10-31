@@ -196,13 +196,6 @@ export function validateRedemption(input: RedemptionValidationInput): {
       return { valid: false, error: "This reward is currently out of stock." };
     }
 
-    if (input.pointsRequired < input.minimumRedemptionPoints) {
-      return {
-        valid: false,
-        error: `Minimum redemption threshold is ${input.minimumRedemptionPoints} points.`,
-      };
-    }
-
     if (input.pointsBalance < input.pointsRequired) {
       return {
         valid: false,
