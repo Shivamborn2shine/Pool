@@ -37,6 +37,10 @@ import {
   Copy,
   Cake,
   Check,
+  Lock,
+  Info,
+  Users,
+  Pencil,
 } from "lucide-react";
 import {
   CopyButton,
@@ -140,7 +144,7 @@ interface CardPagePayload {
   claimedBonusTasks?: string[];
 }
 
-function getRewardImage(name: string, fallbackUrl?: string | null) {
+function getRewardImage(name: string, fallbackUrl?: string | null): string {
   if (fallbackUrl && fallbackUrl.startsWith("http")) return fallbackUrl;
   const n = name.toLowerCase();
   if (
@@ -149,9 +153,10 @@ function getRewardImage(name: string, fallbackUrl?: string | null) {
     n.includes("drink") ||
     n.includes("shake") ||
     n.includes("tea") ||
+    n.includes("cooler") ||
     n.includes("frappe")
   ) {
-    return "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80";
+    return "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=80";
   }
   if (
     n.includes("pastry") ||
@@ -162,7 +167,7 @@ function getRewardImage(name: string, fallbackUrl?: string | null) {
     n.includes("bun") ||
     n.includes("spiral")
   ) {
-    return "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80";
+    return "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&auto=format&fit=crop&q=80";
   }
   if (
     n.includes("merchandise") ||
@@ -170,11 +175,13 @@ function getRewardImage(name: string, fallbackUrl?: string | null) {
     n.includes("tote") ||
     n.includes("shirt") ||
     n.includes("tumbler") ||
-    n.includes("mug")
+    n.includes("mug") ||
+    n.includes("pack") ||
+    n.includes("sticker")
   ) {
-    return "https://images.unsplash.com/photo-1598532163257-ae3c6b2524b6?w=400&auto=format&fit=crop&q=80";
+    return "https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?w=500&auto=format&fit=crop&q=80";
   }
-  return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&auto=format&fit=crop&q=80";
+  return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
 }
 
 function CuteCoffeeMascot() {
@@ -978,14 +985,25 @@ export default function CustomerPublicCardPage() {
       {/* Target App Header */}
       <header className="sticky top-0 z-30 bg-[#FAF6F0]/90 dark:bg-[#121110]/90 backdrop-blur-md px-4 py-3 border-b border-rose-100/60 dark:border-zinc-800/60 no-print">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setShowMenuDrawer(true)}
-            aria-label="Open menu navigation"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <Menu className="w-6 h-6 stroke-[2.2]" />
-          </button>
+          {activeTab !== "home" ? (
+            <button
+              type="button"
+              onClick={() => handleTabChange("home")}
+              aria-label="Back to home"
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-rose-50 dark:bg-rose-950/50 text-[#E11D48] dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 hover:bg-rose-100 transition-colors shadow-xs"
+            >
+              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMenuDrawer(true)}
+              aria-label="Open menu navigation"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <Menu className="w-6 h-6 stroke-[2.2]" />
+            </button>
+          )}
 
           <div className="flex flex-col items-center text-center">
             <h1 className="text-xl sm:text-2xl font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-none">
@@ -1297,7 +1315,7 @@ export default function CustomerPublicCardPage() {
         )}
 
         {/* When in other tabs, show breadcrumb back button */}
-        {activeTab !== "home" && activeTab !== "menu" && (
+        {activeTab !== "home" && activeTab !== "menu" && activeTab !== "rewards" && (
           <div className="flex items-center justify-between gap-2 pb-1">
             <button
               type="button"
@@ -1313,8 +1331,8 @@ export default function CustomerPublicCardPage() {
           </div>
         )}
 
-        {/* Navigation Tabs (visible when not in home or menu) */}
-        {activeTab !== "home" && activeTab !== "menu" && (
+        {/* Navigation Tabs (visible when not in home, menu or rewards) */}
+        {activeTab !== "home" && activeTab !== "menu" && activeTab !== "rewards" && (
           <div
             role="tablist"
             aria-label="Card actions and history"
@@ -1322,11 +1340,11 @@ export default function CustomerPublicCardPage() {
           >
             <button
               role="tab"
-              aria-selected={activeTab === "rewards"}
+              aria-selected={(activeTab as string) === "rewards"}
               type="button"
               onClick={() => handleTabChange("rewards")}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded transition-colors ${
-                activeTab === "rewards"
+                (activeTab as string) === "rewards"
                   ? "bg-surface text-foreground shadow-sm border border-border"
                   : "text-muted hover:text-foreground"
               }`}
@@ -1383,7 +1401,7 @@ export default function CustomerPublicCardPage() {
         )}
 
         {/* Phone Last-4 Verification Bar for Write Actions */}
-        {activeTab !== "home" && activeTab !== "menu" && (
+        {activeTab !== "home" && activeTab !== "menu" && activeTab !== "rewards" && (
           <div className="p-3.5 rounded bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
             <div className="flex items-center gap-2 text-xs">
               <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
@@ -1439,467 +1457,557 @@ export default function CustomerPublicCardPage() {
           </section>
         )}
 
-        {/* TAB 1: REWARDS & WALLET CONVERSION */}
+        {/* TAB 1: REWARDS & WALLET CONVERSION — AWARD-WINNING CAFE APP DESIGN */}
         {activeTab === "rewards" && (
-          <section className="space-y-4 no-print">
-            {/* Convert Points -> Store Credit Box */}
-            {rules && (
-              <div className="p-4 rounded bg-surface border border-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <ArrowRightLeft className="w-4 h-4 text-accent" />
-                    <span>Convert Points to Store Credit (₹)</span>
+          <section className="space-y-5 no-print pb-4 animate-in fade-in duration-200">
+            {/* 1. Hero Promo Banner */}
+            <div className="relative rounded-3xl p-5 overflow-hidden bg-gradient-to-br from-[#FFF5EE] via-[#FFF1F2] to-[#FFF0F5] dark:from-zinc-900 dark:via-zinc-900/90 dark:to-zinc-950 border border-rose-200/60 dark:border-zinc-800 shadow-sm">
+              <div className="absolute top-0 right-0 w-44 h-44 bg-rose-200/30 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="flex items-start justify-between gap-3 relative z-10">
+                <div className="space-y-1.5 max-w-[210px] sm:max-w-xs">
+                  <h2 className="text-2xl sm:text-3xl font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.15]">
+                    Your rewards <br />
+                    are{" "}
+                    <span className="text-[#E11D48] italic font-serif">
+                      brewing! 💕 🪄
+                    </span>
+                  </h2>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                    Collect points, unlock treats and make every coffee moment
+                    brighter.
+                  </p>
+                </div>
+
+                {/* Mascot Illustration */}
+                <div className="flex flex-col items-center shrink-0">
+                  <div className="relative">
+                    <span className="text-4xl animate-bounce">☕</span>
+                    <span className="absolute -top-1 -right-1 text-sm">✨</span>
                   </div>
-                  <span className="text-xs font-mono text-muted">
-                    100 pts ={" "}
-                    {formatCurrency(rules.pointsValuePer100, business.currency)}
-                  </span>
-                </div>
-                <p className="text-xs text-muted">
-                  Your Points Wallet ({card.pointsBalance} pts) and Store Credit
-                  Wallet (
-                  {formatCurrency(card.redeemableAmount, business.currency)})
-                  are separate. Convert points into store credit anytime (min{" "}
-                  {rules.minimumRedemptionPoints} pts).
-                </p>
-                <form
-                  onSubmit={handleConvertPoints}
-                  className="flex flex-wrap items-center gap-2"
-                >
-                  <input
-                    type="number"
-                    min={rules.minimumRedemptionPoints}
-                    max={Math.max(
-                      rules.minimumRedemptionPoints,
-                      card.pointsBalance
-                    )}
-                    step={10}
-                    value={pointsToConvert}
-                    onChange={(e) => setPointsToConvert(e.target.value)}
-                    aria-label="Points to convert to store credit"
-                    className="w-28 px-3 py-1.5 text-xs font-mono rounded border border-border bg-background text-foreground"
-                  />
-                  <button
-                    type="submit"
-                    disabled={
-                      convertingPoints ||
-                      !phoneLast4 ||
-                      card.pointsBalance < rules.minimumRedemptionPoints
-                    }
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50"
-                  >
-                    {convertingPoints ? "Converting..." : "Convert to ₹ Credit"}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Request Custom Store Credit Redemption */}
-            {card.redeemableAmount > 0 && (
-              <div className="p-4 rounded bg-surface border border-border space-y-3">
-                <div className="text-sm font-bold text-foreground">
-                  Redeem Store Credit on Current Bill
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={card.redeemableAmount}
-                    value={redeemCreditAmount}
-                    onChange={(e) => setRedeemCreditAmount(e.target.value)}
-                    placeholder={`Up to ₹${card.redeemableAmount}`}
-                    aria-label="Store credit amount to redeem"
-                    className="w-36 px-3 py-1.5 text-xs font-mono rounded border border-border bg-background text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={redeemNotes}
-                    onChange={(e) => setRedeemNotes(e.target.value)}
-                    placeholder="Table # or bill note (optional)"
-                    aria-label="Redemption note"
-                    className="flex-1 min-w-[160px] px-3 py-1.5 text-xs rounded border border-border bg-background text-foreground"
-                  />
-                  <button
-                    type="button"
-                    disabled={
-                      submittingRedeem ||
-                      !phoneLast4 ||
-                      !redeemCreditAmount ||
-                      Number(redeemCreditAmount) <= 0
-                    }
-                    onClick={() =>
-                      handleRequestRewardRedemption("store_credit")
-                    }
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded bg-accent text-white hover:bg-accent-hover disabled:opacity-50"
-                  >
-                    Request Credit Discount
-                  </button>
+                  <div className="mt-1 text-center">
+                    <span className="block text-[10px] font-extrabold text-[#9F1239] dark:text-rose-400 leading-tight">
+                      Good Coffee
+                    </span>
+                    <span className="block text-[10px] font-extrabold text-[#9F1239] dark:text-rose-400 leading-tight">
+                      Brighter Days!
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Special Section: Earn Bonus Points & Social Tasks */}
-            <div className="p-4 rounded bg-surface border border-border space-y-3.5 shadow-xs">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 flex items-center justify-center text-white shrink-0 shadow-xs">
-                    <Sparkles className="w-4 h-4" />
+              {/* Metric Summary Cards */}
+              <div className="grid grid-cols-2 gap-3 mt-4 relative z-10">
+                <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm rounded-2xl p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-xs">
+                    <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5 flex-wrap">
-                      <span>Earn Rewards & Bonus Points</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-extrabold uppercase tracking-wider">
-                        Up to +125 pts
-                      </span>
-                    </h2>
-                    <p className="text-xs text-muted">
-                      Complete quick tasks to boost your loyalty points wallet instantly!
-                    </p>
+                    <div className="text-lg font-black text-zinc-900 dark:text-zinc-100 leading-none">
+                      {card.pointsBalance}
+                    </div>
+                    <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Points
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {bonusTasks.map((task) => {
-                  const isClaimed = (data?.claimedBonusTasks || []).includes(
-                    task.id
-                  );
-                  const isClaiming = claimingTaskId === task.id;
-
-                  return (
-                    <div
-                      key={task.id}
-                      className={`p-3.5 rounded border transition-all flex flex-col justify-between gap-3 ${
-                        isClaimed
-                          ? "bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50"
-                          : "bg-surface-elevated/40 border-border hover:border-zinc-400 dark:hover:border-zinc-700"
-                      }`}
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`w-7 h-7 rounded flex items-center justify-center text-white bg-gradient-to-br ${task.badgeBg} shadow-xs shrink-0`}
-                            >
-                              {task.icon === "instagram" ? (
-                                <Instagram className="w-3.5 h-3.5" />
-                              ) : task.icon === "star" ? (
-                                <Star className="w-3.5 h-3.5 fill-current" />
-                              ) : task.icon === "camera" ? (
-                                <Camera className="w-3.5 h-3.5" />
-                              ) : (
-                                <Share2 className="w-3.5 h-3.5" />
-                              )}
-                            </span>
-                            <div>
-                              <h3 className="text-xs font-bold text-foreground leading-tight">
-                                {task.title}
-                              </h3>
-                              <span className="text-[10px] text-muted font-mono">
-                                {task.handle}
-                              </span>
-                            </div>
-                          </div>
-                          <span
-                            className={`shrink-0 px-2 py-0.5 text-xs font-mono font-bold rounded-xs ${
-                              isClaimed
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200"
-                                : "bg-brand/10 text-brand dark:bg-zinc-800 dark:text-zinc-100 border border-border"
-                            }`}
-                          >
-                            +{task.points} pts
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-muted leading-relaxed">
-                          {task.desc}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-1 border-t border-border/60">
-                        {task.id === "refer_friend" ? (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (navigator.share) {
-                                try {
-                                  await navigator.share({
-                                    title: `Join ${business.name} Loyalty`,
-                                    text: `Check out ${business.name} and get your loyalty card with instant points!`,
-                                    url: task.actionUrl,
-                                  });
-                                } catch {}
-                              } else {
-                                await navigator.clipboard.writeText(
-                                  task.actionUrl
-                                );
-                                setFeedback({
-                                  type: "success",
-                                  text: "Referral link copied to clipboard! Share it with friends.",
-                                });
-                              }
-                            }}
-                            className="flex-1 py-1.5 px-2.5 rounded border border-border bg-surface hover:bg-surface-elevated text-[11px] font-semibold text-foreground flex items-center justify-center gap-1.5"
-                          >
-                            <Share2 className="w-3 h-3 text-muted" />
-                            <span>Share Link</span>
-                          </button>
-                        ) : (
-                          <a
-                            href={task.actionUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-1.5 px-2.5 rounded border border-border bg-surface hover:bg-surface-elevated text-[11px] font-semibold text-foreground flex items-center justify-center gap-1.5"
-                          >
-                            <span>{task.actionLabel}</span>
-                            <ExternalLink className="w-3 h-3 text-muted" />
-                          </a>
-                        )}
-
-                        {isClaimed ? (
-                          <button
-                            type="button"
-                            disabled
-                            className="py-1.5 px-3 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1 cursor-default shrink-0"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Claimed</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedTaskToVerify(task);
-                              setProofHandleInput("");
-                              setReviewStars(5);
-                              setPrivateFeedbackSent(false);
-                            }}
-                            disabled={isClaiming}
-                            className="py-1.5 px-3 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 text-[11px] font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1 shrink-0 active:translate-y-[0.5px]"
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            <span>Claim +{task.points} pts</span>
-                          </button>
-                        )}
-                      </div>
+                <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm rounded-2xl p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 shadow-xs">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-zinc-900 dark:text-zinc-100 leading-none">
+                      {formatCurrency(card.redeemableAmount, business.currency)}
                     </div>
-                  );
-                })}
+                    <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Store Credit
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Birthday Club Card */}
-            <div className="p-4 rounded bg-surface border border-border space-y-3.5 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-rose-400 flex items-center justify-center text-white text-base shadow-xs shrink-0">
-                    🎂
-                  </div>
+            {/* 2. Ready for you 🪄 */}
+            {(() => {
+              const readyReward = rewards.find(
+                (r) => card.pointsBalance >= r.points_required
+              );
+              if (!readyReward) return null;
+
+              return (
+                <div className="space-y-2">
                   <div>
-                    <h3 className="text-sm font-bold text-foreground">
-                      Birthday Club (Free Treat)
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                      <span>Ready for you</span>
+                      <span className="text-amber-500">🪄</span>
                     </h3>
-                    <p className="text-xs text-muted">
-                      Tell us your birthday to receive an exclusive complimentary surprise perk on your special day!
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      You have a reward ready to enjoy!
                     </p>
                   </div>
+
+                  <div className="bg-white dark:bg-zinc-900 rounded-3xl p-3.5 border border-rose-100 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row gap-3.5 items-center">
+                    <div className="w-full sm:w-36 h-36 rounded-2xl overflow-hidden shrink-0 relative bg-zinc-100">
+                      <img
+                        src={getRewardImage(readyReward.name)}
+                        alt={readyReward.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-between h-full space-y-2 w-full">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="text-lg font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-100 uppercase">
+                            {readyReward.name}
+                          </h4>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">
+                            {readyReward.description ||
+                              "Any handcrafted hot or iced coffee, shake or cooler."}
+                          </p>
+                        </div>
+                        <span className="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/60 text-[#E11D48] dark:text-rose-400 border border-rose-200/80 dark:border-rose-900">
+                          {readyReward.points_required} pts
+                        </span>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedReward({
+                              id: readyReward.id,
+                              name: readyReward.name,
+                              points: readyReward.points_required,
+                            })
+                          }
+                          className="px-5 py-2 rounded-full bg-[#E11D48] hover:bg-[#be123c] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-rose-500/25 active:scale-95 transition-all"
+                        >
+                          <span>Redeem Now</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+
+                        <div className="text-xs font-serif italic font-extrabold text-[#E11D48] dark:text-rose-400 -rotate-6 select-none flex items-center gap-1">
+                          <span>Unlocked!</span>
+                          <span>🪄</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 3. More treats to unlock 🪄 */}
+            {(() => {
+              const readyReward = rewards.find(
+                (r) => card.pointsBalance >= r.points_required
+              );
+              const lockedRewards = rewards.filter(
+                (r) => !readyReward || r.id !== readyReward.id
+              );
+              if (lockedRewards.length === 0) return null;
+
+              return (
+                <div className="space-y-2">
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                      <span>More treats to unlock</span>
+                      <span className="text-amber-500">🪄</span>
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Keep collecting points for these delicious rewards!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {lockedRewards.map((r) => {
+                      const pointsNeeded = Math.max(
+                        0,
+                        r.points_required - card.pointsBalance
+                      );
+                      const progressPct = Math.min(
+                        100,
+                        Math.round((card.pointsBalance / r.points_required) * 100)
+                      );
+
+                      return (
+                        <div
+                          key={r.id}
+                          className="bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100 dark:border-zinc-800 shadow-sm flex flex-col justify-between gap-2.5"
+                        >
+                          <div className="space-y-2">
+                            <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-zinc-100">
+                              <img
+                                src={getRewardImage(r.name)}
+                                alt={r.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/95 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 shadow-xs backdrop-blur-xs">
+                                {r.points_required} pts
+                              </span>
+                            </div>
+
+                            <div>
+                              <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                                {r.name}
+                              </h4>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-tight mt-0.5">
+                                {r.description ||
+                                  `Special reward at ${r.points_required} points.`}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 pt-1">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                                <span>
+                                  {card.pointsBalance} / {r.points_required} pts
+                                </span>
+                                <span>{pointsNeeded} to go</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-rose-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-[#E11D48] rounded-full transition-all duration-500"
+                                  style={{ width: `${progressPct}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full py-2 rounded-xl bg-rose-50 dark:bg-zinc-800/80 text-rose-700/80 dark:text-rose-300/80 text-[11px] font-bold border border-rose-200/60 dark:border-zinc-700/60 flex items-center justify-center gap-1.5 cursor-not-allowed"
+                            >
+                              <Lock className="w-3 h-3" />
+                              <span>Keep Earning</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 4. More ways to earn 🪄 */}
+            <div className="space-y-2">
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <span>More ways to earn</span>
+                  <span className="text-amber-500">🪄</span>
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Complete quick tasks to boost your points wallet!
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {/* Card 1: Follow Us */}
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-2.5 border border-rose-100 dark:border-zinc-800 shadow-sm flex flex-col justify-between text-center gap-2">
+                  <div className="flex flex-col items-center">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-xs">
+                      <Instagram className="w-4 h-4" />
+                    </div>
+                    <h4 className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 mt-1.5">
+                      Follow Us
+                    </h4>
+                    <p className="text-[9px] text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-tight mt-0.5">
+                      Follow our Instagram for updates & treats.
+                    </p>
+                    <span className="mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      +25 pts
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold flex items-center justify-center gap-1 cursor-default"
+                  >
+                    <Check className="w-3 h-3" />
+                    <span>Claimed</span>
+                  </button>
+                </div>
+
+                {/* Card 2: Share a Story */}
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-2.5 border border-rose-100 dark:border-zinc-800 shadow-sm flex flex-col justify-between text-center gap-2">
+                  <div className="flex flex-col items-center">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-400 to-rose-500 flex items-center justify-center text-white shadow-xs">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <h4 className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 mt-1.5">
+                      Share a Story
+                    </h4>
+                    <p className="text-[9px] text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-tight mt-0.5">
+                      Snap a photo & tag @Scoop_N_Brew in your Story.
+                    </p>
+                    <span className="mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      +20 pts
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t =
+                        bonusTasks.find((bt) => bt.id === "instagram_story") ||
+                        bonusTasks[0];
+                      setSelectedTaskToVerify(t);
+                    }}
+                    className="w-full py-1 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-zinc-50 transition"
+                  >
+                    <span>Open</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+
+                {/* Card 3: Invite Friends */}
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-2.5 border border-rose-100 dark:border-zinc-800 shadow-sm flex flex-col justify-between text-center gap-2">
+                  <div className="flex flex-col items-center">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-xs">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <h4 className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 mt-1.5">
+                      Invite Friends
+                    </h4>
+                    <p className="text-[9px] text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-tight mt-0.5">
+                      Share your link with friends and earn reward points.
+                    </p>
+                    <span className="mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      +50 pts
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const refTask =
+                        bonusTasks.find((bt) => bt.id === "refer_friend") ||
+                        bonusTasks[0];
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: `Join ${business.name} Loyalty`,
+                            text: `Check out ${business.name} and get your loyalty card with instant points!`,
+                            url: refTask.actionUrl,
+                          });
+                        } catch {}
+                      } else {
+                        await navigator.clipboard.writeText(refTask.actionUrl);
+                        setFeedback({
+                          type: "success",
+                          text: "Referral link copied! Share it with friends.",
+                        });
+                      }
+                    }}
+                    className="w-full py-1 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-zinc-50 transition"
+                  >
+                    <span>Share Link</span>
+                    <Share2 className="w-2.5 h-2.5" />
+                  </button>
                 </div>
               </div>
 
-              {customer.birthdayDay &&
-              customer.birthdayMonth &&
-              !editingBirthday ? (
-                <div className="p-3 rounded bg-surface-elevated border border-border flex items-center justify-between">
-                  <div className="text-xs">
-                    <span className="text-muted">Registered Birthday: </span>
-                    <strong className="text-foreground">
-                      {new Date(
-                        2024,
-                        customer.birthdayMonth - 1,
-                        customer.birthdayDay
-                      ).toLocaleString("default", { month: "long" })}{" "}
-                      {customer.birthdayDay}
-                    </strong>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 pt-0.5">
+                <Info className="w-3 h-3 shrink-0" />
+                <span>Referral points awarded after a verified first purchase.</span>
+              </div>
+            </div>
+
+            {/* 5. Birthday Club */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-3.5 border border-rose-100 dark:border-zinc-800 shadow-sm flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-xl shrink-0">
+                  🎂
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                    Birthday Club
+                  </h4>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug max-w-xs">
+                    A sweet surprise on your birthday! Tell us your birthday to
+                    receive an exclusive complimentary treat on your special day.
+                  </p>
+                </div>
+              </div>
+
+              {editingBirthday ? (
+                <form
+                  onSubmit={handleSaveBirthday}
+                  className="space-y-2 shrink-0"
+                >
+                  <div className="flex gap-1.5">
+                    <select
+                      value={birthdayMonth}
+                      onChange={(e) => setBirthdayMonth(Number(e.target.value))}
+                      className="px-2 py-1 text-xs rounded-lg border border-border bg-background text-foreground"
+                    >
+                      {[
+                        "Jan",
+                        "Feb",
+                        "Mar",
+                        "Apr",
+                        "May",
+                        "Jun",
+                        "Jul",
+                        "Aug",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Dec",
+                      ].map((m, idx) => (
+                        <option key={m} value={idx + 1}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={birthdayDay}
+                      onChange={(e) => setBirthdayDay(Number(e.target.value))}
+                      className="px-2 py-1 text-xs rounded-lg border border-border bg-background text-foreground"
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      type="submit"
+                      disabled={savingBirthday}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-md bg-[#E11D48] text-white"
+                    >
+                      {savingBirthday ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBirthday(false)}
+                      className="px-2 py-1 text-[10px] rounded-md border text-zinc-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 rounded-2xl p-2.5 text-center shrink-0 min-w-[115px]">
+                  <div className="text-[9px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    Registered Birthday
+                  </div>
+                  <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
+                    📅{" "}
+                    {customer.birthdayMonth && customer.birthdayDay
+                      ? `${new Date(
+                          2024,
+                          customer.birthdayMonth - 1,
+                          customer.birthdayDay
+                        ).toLocaleString("default", { month: "long" })} ${
+                          customer.birthdayDay
+                        }`
+                      : "November 14"}
                   </div>
                   <button
                     type="button"
                     onClick={() => setEditingBirthday(true)}
-                    className="text-xs text-accent font-semibold hover:underline"
+                    className="mt-1 text-[10px] font-bold text-[#E11D48] hover:underline flex items-center justify-center gap-1 mx-auto"
                   >
-                    Change
+                    <Pencil className="w-2.5 h-2.5" />
+                    <span>Edit</span>
                   </button>
                 </div>
-              ) : (
-                <form onSubmit={handleSaveBirthday} className="space-y-3 pt-1">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-muted mb-1">
-                        Birth Month
-                      </label>
-                      <select
-                        value={birthdayMonth}
-                        onChange={(e) =>
-                          setBirthdayMonth(Number(e.target.value))
-                        }
-                        className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background text-foreground"
-                      >
-                        {[
-                          "January",
-                          "February",
-                          "March",
-                          "April",
-                          "May",
-                          "June",
-                          "July",
-                          "August",
-                          "September",
-                          "October",
-                          "November",
-                          "December",
-                        ].map((m, idx) => (
-                          <option key={m} value={idx + 1}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-muted mb-1">
-                        Birth Day
-                      </label>
-                      <select
-                        value={birthdayDay}
-                        onChange={(e) => setBirthdayDay(Number(e.target.value))}
-                        className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background text-foreground"
-                      >
-                        {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                          (d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="submit"
-                      disabled={savingBirthday || !phoneLast4}
-                      className="px-3 py-1.5 text-xs font-bold rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50"
-                    >
-                      {savingBirthday ? "Saving..." : "Save Birthday"}
-                    </button>
-                    {editingBirthday && (
-                      <button
-                        type="button"
-                        onClick={() => setEditingBirthday(false)}
-                        className="px-3 py-1.5 text-xs rounded border border-border text-muted"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </form>
               )}
             </div>
 
-            {/* Catalog Rewards List */}
-            <div className="space-y-3">
-              <h2 className="text-xs font-mono uppercase tracking-wider text-muted font-semibold">
-                Available Catalog Rewards ({rewards.length})
-              </h2>
+            {/* 6. Your Wallet 🪄 */}
+            <div className="space-y-2">
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <span>Your Wallet</span>
+                  <span className="text-amber-500">🪄</span>
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Use your store credit to enjoy your next order!
+                </p>
+              </div>
 
-              {rewards.length === 0 ? (
-                <EmptyState
-                  title="No rewards published yet"
-                  description="Check back soon for new loyalty rewards from this business."
-                />
-              ) : (
-                rewards.map((r) => {
-                  const unlocked = card.pointsBalance >= r.points_required;
-                  const pct = Math.min(
-                    100,
-                    Math.round((card.pointsBalance / r.points_required) * 100)
-                  );
-                  const outOfStock =
-                    r.stock_limit !== null &&
-                    r.redeemed_count >= r.stock_limit;
-
-                  return (
-                    <div
-                      key={r.id}
-                      className="p-4 rounded bg-surface border border-border space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-bold text-foreground">
-                            {r.name}
-                          </h3>
-                          {r.description && (
-                            <p className="text-xs text-muted mt-0.5">
-                              {r.description}
-                            </p>
-                          )}
-                        </div>
-                        <span className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold rounded-xs bg-surface-elevated border border-border text-foreground">
-                          {r.points_required} pts
-                        </span>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] text-muted">
-                          <span>
-                            {unlocked
-                              ? "Ready to redeem!"
-                              : `${
-                                  r.points_required - card.pointsBalance
-                                } more points needed`}
-                          </span>
-                          <span>{pct}%</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-surface-elevated rounded-none overflow-hidden">
-                          <div
-                            className="h-full bg-accent transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[11px] text-muted">
-                          Value:{" "}
-                          {formatCurrency(r.monetary_value, business.currency)}
-                          {r.stock_limit !== null &&
-                            ` · ${Math.max(
-                              0,
-                              r.stock_limit - r.redeemed_count
-                            )} left`}
-                        </span>
-
-                        <button
-                          type="button"
-                          disabled={!unlocked || outOfStock || !phoneLast4}
-                          onClick={() =>
-                            setSelectedReward({
-                              id: r.id,
-                              name: r.name,
-                              points: r.points_required,
-                            })
-                          }
-                          className="px-3 py-1.5 text-xs font-semibold rounded bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition-opacity"
-                        >
-                          {outOfStock
-                            ? "Out of Stock"
-                            : unlocked
-                            ? "Request Redemption"
-                            : "Locked"}
-                        </button>
-                      </div>
+              <div className="bg-white dark:bg-zinc-900 rounded-3xl p-4 border border-rose-100 dark:border-zinc-800 shadow-sm space-y-3.5">
+                {/* Balance & Use Credit row */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        {card.pointsBalance}
+                      </span>
+                      <span className="text-[11px] text-zinc-500">Points</span>
                     </div>
-                  );
-                })
-              )}
+
+                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
+
+                    <div className="flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-rose-500" />
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        {formatCurrency(
+                          card.redeemableAmount,
+                          business.currency
+                        )}
+                      </span>
+                      <span className="text-[11px] text-zinc-500">
+                        Store Credit
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCreditModal(true)}
+                    className="px-4 py-2 rounded-full bg-[#E11D48] hover:bg-[#be123c] text-white text-xs font-bold inline-flex items-center gap-1 shadow-md shadow-rose-500/20 active:scale-95 transition-all shrink-0"
+                  >
+                    <span>Use Credit on Your Bill</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <hr className="border-rose-100 dark:border-zinc-800" />
+
+                {/* Conversion row */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    <span>
+                      Convert points to store credit (100 points = ₹100 store
+                      credit)
+                    </span>
+                  </div>
+
+                  {card.pointsBalance >= 100 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCreditModal(true)}
+                      className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-[#E11D48] text-xs font-bold border border-rose-200/80 shrink-0 transition"
+                    >
+                      Convert to ₹ Credit &gt;
+                    </button>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 text-xs font-medium shrink-0">
+                      Available at 100 pts
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-[10px] text-zinc-400 dark:text-zinc-500 flex items-center gap-1 pt-1 border-t border-rose-100/50 dark:border-zinc-800/50">
+                  <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
+                  <span>
+                    PIN verification required when redeeming rewards or using
+                    store credit.
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
         )}
@@ -2285,17 +2393,65 @@ export default function CustomerPublicCardPage() {
       </main>
 
       {/* Reward Redemption Confirmation Modal */}
-      <ConfirmModal
-        open={Boolean(selectedReward)}
-        title="Confirm Reward Redemption Request"
-        description={`This will immediately deduct ${selectedReward?.points} points from your balance and notify counter staff. If cancelled, your points are automatically restored.`}
-        recordName={selectedReward?.name}
-        confirmLabel="Redeem Reward Now"
-        variant="primary"
-        loading={submittingRedeem}
-        onConfirm={() => handleRequestRewardRedemption("reward")}
-        onClose={() => setSelectedReward(null)}
-      />
+      {selectedReward && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 p-6 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95">
+            <button
+              type="button"
+              onClick={() => setSelectedReward(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-200 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto shadow-md mb-2 bg-zinc-100">
+                <img
+                  src={getRewardImage(selectedReward.name)}
+                  alt={selectedReward.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-50">
+                Redeem {selectedReward.name}
+              </h3>
+              <div className="text-xs font-bold text-[#E11D48] mt-1">
+                {selectedReward.points} points required · You have {card.pointsBalance} pts
+              </div>
+              <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+                This will deduct {selectedReward.points} points from your balance and notify counter staff to prepare your treat.
+              </p>
+            </div>
+
+            {/* Quick PIN input */}
+            <div>
+              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">
+                Security PIN (Last 4 digits of {customer.maskedPhone})
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={phoneLast4}
+                onChange={(e) =>
+                  setPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                placeholder="4 digits"
+                className="w-full px-3 py-2 text-sm font-mono text-center rounded-xl border border-border bg-background text-foreground tracking-widest"
+              />
+            </div>
+
+            <button
+              type="button"
+              disabled={submittingRedeem || phoneLast4.length < 4}
+              onClick={() => handleRequestRewardRedemption("reward")}
+              className="w-full py-2.5 rounded-full bg-[#E11D48] hover:bg-[#be123c] text-white text-xs font-bold shadow-md shadow-rose-500/25 disabled:opacity-50 transition"
+            >
+              {submittingRedeem ? "Redeeming..." : "Confirm & Redeem Treat"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* DPDP Data Deletion Confirmation Modal */}
       <ConfirmModal

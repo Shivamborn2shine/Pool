@@ -658,27 +658,36 @@ export default function StoreOrderingView({
   const storageKey = `loopa_store_session_${storeSlug}`;
 
   const loadStoreData = useCallback(
-    async (isInitial = true) => {
-      if (isInitial) {
+    async (isInitial = true, retryCount = 0) => {
+      if (isInitial && retryCount === 0) {
         setLoading(true);
       }
       setError(null);
       try {
         const res = await fetch(`/api/s/${storeSlug}`, { cache: "no-store" });
-        const data = await res.json();
         if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (retryCount < 2 && res.status >= 500) {
+            await new Promise((r) => setTimeout(r, 1000));
+            return loadStoreData(isInitial, retryCount + 1);
+          }
           setError(data.error || "Unable to load store.");
           return;
         }
+        const data = await res.json();
         setStore(data.store);
         setLoyaltyOffer(data.loyaltyOffer);
         setCategories(data.categories || []);
         setItems(data.items || []);
         setStoreRewards(data.rewards || []);
       } catch {
+        if (retryCount < 2) {
+          await new Promise((r) => setTimeout(r, 1000));
+          return loadStoreData(isInitial, retryCount + 1);
+        }
         setError("Network error while loading store menu.");
       } finally {
-        if (isInitial) {
+        if (isInitial && retryCount === 0) {
           setLoading(false);
         }
       }
@@ -3246,15 +3255,30 @@ export default function StoreOrderingView({
               </div>
 
               {/* Unlock Your Rewards Button */}
-              <Link
-                href={`/card/${customer.cardPublicId}`}
-                target="_blank"
-                className={`w-full py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all hover:opacity-90 active:scale-[0.99] ${theme.loyaltyChip}`}
-              >
-                <Gift className="w-4 h-4 shrink-0" />
-                <span>Unlock Your Rewards</span>
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0 opacity-80" />
-              </Link>
+              {embedded && onNavigateTab ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAccountDrawer(false);
+                    onNavigateTab("rewards");
+                  }}
+                  className={`w-full py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all hover:opacity-90 active:scale-[0.99] ${theme.loyaltyChip}`}
+                >
+                  <Gift className="w-4 h-4 shrink-0" />
+                  <span>Unlock Your Rewards</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                </button>
+              ) : (
+                <Link
+                  href={`/card/${customer.cardPublicId}?tab=rewards`}
+                  target="_blank"
+                  className={`w-full py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all hover:opacity-90 active:scale-[0.99] ${theme.loyaltyChip}`}
+                >
+                  <Gift className="w-4 h-4 shrink-0" />
+                  <span>Unlock Your Rewards</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                </Link>
+              )}
 
               {/* Past Orders Section */}
               <div className="space-y-2.5 pt-2">
