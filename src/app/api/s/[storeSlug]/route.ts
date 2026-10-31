@@ -125,6 +125,7 @@ export async function GET(
         order_prefix: business.order_prefix || "SC",
         order_expiry_minutes: Number(business.order_expiry_minutes ?? 20),
         require_table_number: Boolean(business.require_table_number ?? false),
+        theme_preset: business.theme_preset || "rose",
       },
       loyaltyOffer: rules
         ? {

@@ -5,6 +5,102 @@ import { checkRateLimit, getClientContext } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validation";
 import { resolveCustomerDisplayName } from "@/lib/loyalty";
 
+export async function GET(
+  request: Request,
+  { params }: { params: { storeSlug: string } }
+) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const cardPublicId = searchParams.get("cardPublicId");
+    const orderIdsParam = searchParams.get("orderIds");
+
+    if (!cardPublicId && !orderIdsParam) {
+      return NextResponse.json({ orders: [] });
+    }
+
+    const qrMatches = await sql`
+      SELECT b.id FROM public.store_qr_codes q
+      JOIN public.businesses b ON b.id = q.business_id
+      WHERE q.slug = ${params.storeSlug} AND q.status = 'active'
+      LIMIT 1
+    `;
+    const biz =
+      qrMatches.length > 0
+        ? qrMatches[0]
+        : (
+            await sql`
+              SELECT id FROM public.businesses
+              WHERE slug = ${params.storeSlug}
+              LIMIT 1
+            `
+          )[0];
+
+    if (!biz) {
+      return NextResponse.json({ error: "Store not found." }, { status: 404 });
+    }
+
+    let orders: Record<string, unknown>[] = [];
+    if (cardPublicId) {
+      orders = await sql`
+        SELECT o.*
+        FROM public.orders o
+        JOIN public.loyalty_cards lc ON lc.id = o.card_id
+        WHERE o.business_id = ${biz.id}
+          AND lc.public_id = ${cardPublicId}
+        ORDER BY o.created_at DESC
+        LIMIT 15
+      `;
+    } else if (orderIdsParam) {
+      const ids = orderIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length > 0) {
+        orders = await sql`
+          SELECT * FROM public.orders
+          WHERE business_id = ${biz.id} AND id IN ${sql(ids)}
+          ORDER BY created_at DESC
+          LIMIT 15
+        `;
+      }
+    }
+
+    if (orders.length === 0) {
+      return NextResponse.json({ orders: [] });
+    }
+
+    const orderIds = orders.map((o) => o.id as string);
+    const items = await sql`
+      SELECT * FROM public.order_items
+      WHERE order_id IN ${sql(orderIds)}
+      ORDER BY created_at ASC
+    `;
+
+    const enriched = orders.map((o) => ({
+      ...o,
+      subtotal: Number(o.subtotal),
+      tax_total: Number(o.tax_total),
+      discount_total: Number(o.discount_total),
+      total: Number(o.total),
+      points_earned: Number(o.points_earned || 0),
+      reward_points_used: Number(o.reward_points_used || 0),
+      reward_value_used: Number(o.reward_value_used || 0),
+      items: items
+        .filter((it) => it.order_id === o.id)
+        .map((it) => ({
+          ...it,
+          unit_price: Number(it.unit_price),
+          total_price: Number(it.total_price),
+        })),
+    }));
+
+    return NextResponse.json({ orders: enriched });
+  } catch (err) {
+    console.error("GET /api/s/[storeSlug]/orders error:", err);
+    return NextResponse.json(
+      { error: "Failed to load customer orders." },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { storeSlug: string } }

@@ -66,6 +66,7 @@ export interface Business {
   tax_percentage?: number;
   order_expiry_minutes?: number;
   require_table_number?: boolean;
+  theme_preset?: string;
   created_at: string;
   updated_at: string;
 }

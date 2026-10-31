@@ -118,6 +118,105 @@ interface ActiveOrderView {
   }[];
 }
 
+interface ThemeStyle {
+  name: string;
+  pageBg: string;
+  headerBorder: string;
+  bannerBg: string;
+  bannerText: string;
+  bannerAccent: string;
+  primaryButton: string;
+  primaryLightBg: string;
+  primaryText: string;
+  primaryBorder: string;
+  activeTabBorder: string;
+  activeTabText: string;
+  chipActive: string;
+  loyaltyChip: string;
+  counterBadge: string;
+  cardHighlight: string;
+  focusRing: string;
+}
+
+const THEME_STYLES: Record<string, ThemeStyle> = {
+  rose: {
+    name: "Rose Pink (Scoop n Brew)",
+    pageBg: "bg-rose-50/40 dark:bg-zinc-950",
+    headerBorder: "border-rose-100 dark:border-rose-950/40",
+    bannerBg: "bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600",
+    bannerText: "text-white",
+    bannerAccent: "text-pink-100",
+    primaryButton: "bg-rose-600 hover:bg-rose-700 text-white shadow-xs",
+    primaryLightBg: "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900",
+    primaryText: "text-rose-600 dark:text-rose-400",
+    primaryBorder: "border-rose-600",
+    activeTabBorder: "border-rose-600",
+    activeTabText: "text-rose-600 dark:text-rose-400 font-bold",
+    chipActive: "bg-rose-600 text-white border-rose-600 shadow-xs",
+    loyaltyChip: "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300",
+    counterBadge: "bg-rose-600 text-white shadow-xs",
+    cardHighlight: "border-rose-200 dark:border-rose-900/60",
+    focusRing: "focus:ring-rose-500",
+  },
+  terracotta: {
+    name: "Warm Terracotta / Coffee",
+    pageBg: "bg-amber-50/30 dark:bg-zinc-950",
+    headerBorder: "border-amber-100 dark:border-zinc-800",
+    bannerBg: "bg-gradient-to-r from-amber-800 via-terracotta-700 to-terracotta-600",
+    bannerText: "text-white",
+    bannerAccent: "text-amber-200",
+    primaryButton: "bg-terracotta-600 hover:bg-terracotta-700 text-white shadow-xs",
+    primaryLightBg: "bg-terracotta-50 dark:bg-terracotta-950/30 text-terracotta-700 dark:text-terracotta-300 border-terracotta-200 dark:border-terracotta-900",
+    primaryText: "text-terracotta-600 dark:text-terracotta-400",
+    primaryBorder: "border-terracotta-600",
+    activeTabBorder: "border-terracotta-600",
+    activeTabText: "text-terracotta-600 dark:text-terracotta-400 font-bold",
+    chipActive: "bg-terracotta-600 text-white border-terracotta-600 shadow-xs",
+    loyaltyChip: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300",
+    counterBadge: "bg-terracotta-600 text-white shadow-xs",
+    cardHighlight: "border-amber-200 dark:border-amber-900/60",
+    focusRing: "focus:ring-terracotta-500",
+  },
+  mint: {
+    name: "Fresh Mint & Matcha",
+    pageBg: "bg-emerald-50/30 dark:bg-zinc-950",
+    headerBorder: "border-emerald-100 dark:border-zinc-800",
+    bannerBg: "bg-gradient-to-r from-teal-700 via-emerald-600 to-teal-600",
+    bannerText: "text-white",
+    bannerAccent: "text-emerald-100",
+    primaryButton: "bg-teal-600 hover:bg-teal-700 text-white shadow-xs",
+    primaryLightBg: "bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-900",
+    primaryText: "text-teal-600 dark:text-teal-400",
+    primaryBorder: "border-teal-600",
+    activeTabBorder: "border-teal-600",
+    activeTabText: "text-teal-600 dark:text-teal-400 font-bold",
+    chipActive: "bg-teal-600 text-white border-teal-600 shadow-xs",
+    loyaltyChip: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300",
+    counterBadge: "bg-teal-600 text-white shadow-xs",
+    cardHighlight: "border-emerald-200 dark:border-emerald-900/60",
+    focusRing: "focus:ring-teal-500",
+  },
+  mono: {
+    name: "Modern Monochrome",
+    pageBg: "bg-stone-50 dark:bg-zinc-950",
+    headerBorder: "border-stone-200 dark:border-zinc-800",
+    bannerBg: "bg-zinc-900 text-stone-100",
+    bannerText: "text-stone-100",
+    bannerAccent: "text-zinc-300",
+    primaryButton: "bg-zinc-900 hover:bg-black text-white dark:bg-white dark:text-zinc-900 shadow-xs",
+    primaryLightBg: "bg-stone-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-stone-200 dark:border-zinc-700",
+    primaryText: "text-zinc-900 dark:text-zinc-100",
+    primaryBorder: "border-zinc-900 dark:border-zinc-100",
+    activeTabBorder: "border-zinc-900 dark:border-zinc-100",
+    activeTabText: "text-zinc-900 dark:text-zinc-100 font-bold",
+    chipActive: "bg-zinc-900 text-white border-zinc-900 dark:bg-stone-100 dark:text-zinc-900 shadow-xs",
+    loyaltyChip: "bg-stone-100 dark:bg-zinc-800 border-stone-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200",
+    counterBadge: "bg-zinc-900 text-white shadow-xs",
+    cardHighlight: "border-stone-300 dark:border-zinc-700",
+    focusRing: "focus:ring-zinc-800",
+  },
+};
+
 export default function StoreQrOrderingPage() {
   const params = useParams<{ storeSlug: string }>();
   const searchParams = useSearchParams();
@@ -138,6 +237,7 @@ export default function StoreQrOrderingPage() {
     order_prefix: string;
     order_expiry_minutes: number;
     require_table_number?: boolean;
+    theme_preset?: string;
   } | null>(null);
 
   const [loyaltyOffer, setLoyaltyOffer] = useState<{
@@ -188,8 +288,9 @@ export default function StoreQrOrderingPage() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
 
-  // Active order & recent orders
-  const [activeOrder, setActiveOrder] = useState<ActiveOrderView | null>(null);
+  // Multi-order Queue & Active Selection
+  const [orders, setOrders] = useState<ActiveOrderView[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [recentOrders, setRecentOrders] = useState<
     {
       id: string;
@@ -203,6 +304,20 @@ export default function StoreQrOrderingPage() {
   >([]);
   const [refreshingOrder, setRefreshingOrder] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState(false);
+
+  // Resolve current active order view from queue
+  const activeOrder = useMemo(() => {
+    if (selectedOrderId) {
+      const match = orders.find((o) => o.id === selectedOrderId);
+      if (match) return match;
+    }
+    return orders[0] || null;
+  }, [orders, selectedOrderId]);
+
+  // Resolve active theme style
+  const theme = useMemo(() => {
+    return THEME_STYLES[store?.theme_preset || "rose"] || THEME_STYLES.rose;
+  }, [store?.theme_preset]);
 
   const storageKey = `loopa_store_session_${storeSlug}`;
 
@@ -227,6 +342,40 @@ export default function StoreQrOrderingPage() {
     }
   }, [storeSlug]);
 
+  const fetchCustomerOrders = useCallback(
+    async (targetCardPublicId?: string, targetOrderIds?: string[]) => {
+      const cardId = targetCardPublicId || customer?.cardPublicId;
+      const orderIds =
+        targetOrderIds || (orders.length > 0 ? orders.map((o) => o.id) : []);
+      if (!cardId && orderIds.length === 0) return;
+
+      setRefreshingOrder(true);
+      try {
+        const qs = new URLSearchParams();
+        if (cardId) {
+          qs.set("cardPublicId", cardId);
+        } else if (orderIds.length > 0) {
+          qs.set("orderIds", orderIds.join(","));
+        }
+        const res = await fetch(`/api/s/${storeSlug}/orders?${qs.toString()}`);
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.orders) && data.orders.length > 0) {
+          setOrders((prev) => {
+            // Merge newly fetched orders with any existing while preserving order
+            const incomingIds = new Set(data.orders.map((o: ActiveOrderView) => o.id));
+            const retained = prev.filter((o) => !incomingIds.has(o.id));
+            return [...data.orders, ...retained];
+          });
+        }
+      } catch {
+        // Silent background refresh
+      } finally {
+        setRefreshingOrder(false);
+      }
+    },
+    [customer?.cardPublicId, orders, storeSlug]
+  );
+
   const fetchOrderLive = useCallback(
     async (orderId: string, token?: string, cardPublicId?: string) => {
       setRefreshingOrder(true);
@@ -239,7 +388,16 @@ export default function StoreQrOrderingPage() {
         );
         const data = await res.json();
         if (res.ok && data.order) {
-          setActiveOrder(data.order);
+          setOrders((prev) => {
+            const idx = prev.findIndex((o) => o.id === data.order.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = data.order;
+              return next;
+            }
+            return [data.order, ...prev];
+          });
+          setSelectedOrderId(data.order.id);
           if (data.card) {
             setCustomer((prev) =>
               prev
@@ -273,14 +431,45 @@ export default function StoreQrOrderingPage() {
         if (parsed?.recentOrders) {
           setRecentOrders(parsed.recentOrders);
         }
-        if (parsed?.activeOrder) {
-          setActiveOrder(parsed.activeOrder);
+        if (Array.isArray(parsed?.orders) && parsed.orders.length > 0) {
+          setOrders(parsed.orders);
+          if (parsed.selectedOrderId) {
+            setSelectedOrderId(parsed.selectedOrderId);
+          }
+        } else if (parsed?.activeOrder) {
+          setOrders([parsed.activeOrder]);
+          setSelectedOrderId(parsed.activeOrder.id);
         }
       }
     } catch {
       // Ignore storage errors
     }
   }, [loadStoreData, storageKey]);
+
+  // Sync state to local storage so active orders never vanish across page reloads
+  useEffect(() => {
+    if (!customer && orders.length === 0) return;
+    try {
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          customer,
+          orders,
+          selectedOrderId,
+          recentOrders,
+        })
+      );
+    } catch {
+      // Ignore storage errors
+    }
+  }, [customer, orders, selectedOrderId, recentOrders, storageKey]);
+
+  // Refresh customer orders once customer session is established
+  useEffect(() => {
+    if (customer?.cardPublicId) {
+      fetchCustomerOrders(customer.cardPublicId);
+    }
+  }, [customer?.cardPublicId, fetchCustomerOrders]);
 
   // Support direct link to order status via ?orderId=...&token=...
   useEffect(() => {
@@ -292,9 +481,9 @@ export default function StoreQrOrderingPage() {
     }
   }, [searchParams, fetchOrderLive]);
 
-  // Poll active order every 6 seconds while in non-terminal state
+  // Poll all queued orders every 5 seconds while any order is in a non-terminal state
   useEffect(() => {
-    if (!activeOrder) return;
+    if (orders.length === 0) return;
     const terminalStates = [
       "served",
       "cancelled",
@@ -302,18 +491,20 @@ export default function StoreQrOrderingPage() {
       "expired",
       "refunded",
     ];
-    if (terminalStates.includes(activeOrder.status)) return;
+    const hasActiveOrders = orders.some(
+      (o) => !terminalStates.includes(o.status)
+    );
+    if (!hasActiveOrders) return;
 
     const timer = setInterval(() => {
-      fetchOrderLive(
-        activeOrder.id,
-        activeOrder.public_token,
-        customer?.cardPublicId
+      fetchCustomerOrders(
+        customer?.cardPublicId,
+        orders.map((o) => o.id)
       );
-    }, 6000);
+    }, 5000);
 
     return () => clearInterval(timer);
-  }, [activeOrder, customer?.cardPublicId, fetchOrderLive]);
+  }, [orders, customer?.cardPublicId, fetchCustomerOrders]);
 
   const handleRegisterCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -352,18 +543,8 @@ export default function StoreQrOrderingPage() {
       setRecentOrders(data.recentOrders || []);
       setShowAuthModal(false);
 
-      try {
-        window.localStorage.setItem(
-          storageKey,
-          JSON.stringify({
-            customer: sess,
-            recentOrders: data.recentOrders || [],
-            activeOrder,
-          })
-        );
-      } catch {
-        // Ignore storage error
-      }
+      // Immediately fetch all previous & active orders for this card
+      fetchCustomerOrders(data.card.public_id);
     } catch {
       setRegError("Network error. Please try again.");
     } finally {
@@ -556,7 +737,11 @@ export default function StoreQrOrderingPage() {
       setCart([]);
       setOrderNotes("");
       setRedeemPointsToggle(false);
-      setActiveOrder(data.order);
+      setOrders((prev) => {
+        const withoutCurrent = prev.filter((o) => o.id !== data.order.id);
+        return [data.order, ...withoutCurrent];
+      });
+      setSelectedOrderId(data.order.id);
       setActiveTab("order");
 
       await fetchOrderLive(
@@ -564,6 +749,7 @@ export default function StoreQrOrderingPage() {
         data.order.public_token,
         customer.cardPublicId
       );
+      fetchCustomerOrders(customer.cardPublicId);
     } catch {
       setOrderError("Network error while placing order. Please try again.");
     } finally {
@@ -589,11 +775,18 @@ export default function StoreQrOrderingPage() {
         alert(data.error || "Unable to cancel order.");
         return;
       }
-      await fetchOrderLive(
-        activeOrder.id,
-        activeOrder.public_token,
-        customer?.cardPublicId
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === activeOrder.id
+            ? {
+                ...o,
+                status: "cancelled",
+                cancellation_reason: "Cancelled by customer from order screen",
+              }
+            : o
+        )
       );
+      await fetchCustomerOrders(customer?.cardPublicId);
     } finally {
       setCancellingOrder(false);
     }
@@ -648,14 +841,18 @@ export default function StoreQrOrderingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 pb-28">
+    <div className={`min-h-screen ${theme.pageBg} text-zinc-900 dark:text-zinc-100 pb-28`}>
       {/* Store Header */}
-      <header className="border-b border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-30">
+      <header className={`border-b ${theme.headerBorder} bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs sticky top-0 z-30`}>
         <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-10 h-10 rounded-sm flex items-center justify-center text-white font-bold text-lg shrink-0"
-              style={{ backgroundColor: store.primary_color || "#18181B" }}
+              className="w-10 h-10 rounded-sm flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs"
+              style={{
+                backgroundColor:
+                  store.primary_color ||
+                  (store.theme_preset === "rose" ? "#E11D48" : "#18181B"),
+              }}
             >
               {store.name.slice(0, 1).toUpperCase()}
             </div>
@@ -671,9 +868,9 @@ export default function StoreQrOrderingPage() {
             <div className="flex items-center gap-2 shrink-0">
               <Link
                 href={`/card/${customer.cardPublicId}`}
-                className="px-2.5 py-1.5 rounded-sm bg-stone-100 dark:bg-zinc-800 border border-stone-200 dark:border-zinc-700 text-xs font-medium flex items-center gap-1.5 hover:border-terracotta-600 transition-colors"
+                className={`px-2.5 py-1.5 rounded-sm border text-xs font-medium flex items-center gap-1.5 transition-colors ${theme.loyaltyChip}`}
               >
-                <Award className="w-3.5 h-3.5 text-terracotta-600" />
+                <Award className={`w-3.5 h-3.5 ${theme.primaryText}`} />
                 <span className="tabular-nums font-bold">
                   {customer.pointsBalance} pts
                 </span>
@@ -693,10 +890,10 @@ export default function StoreQrOrderingPage() {
 
         {/* Loyalty Offer Banner */}
         {loyaltyOffer && (
-          <div className="bg-zinc-900 text-stone-100 px-4 py-2 text-xs">
+          <div className={`${theme.bannerBg} ${theme.bannerText} px-4 py-2 text-xs`}>
             <div className="max-w-xl mx-auto flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 truncate">
-                <Sparkles className="w-3.5 h-3.5 text-terracotta-500 shrink-0" />
+                <Sparkles className={`w-3.5 h-3.5 ${theme.bannerAccent} shrink-0`} />
                 <span>
                   Earn{" "}
                   <strong>
@@ -713,7 +910,7 @@ export default function StoreQrOrderingPage() {
                 <button
                   type="button"
                   onClick={() => setShowAuthModal(true)}
-                  className="text-terracotta-400 font-semibold underline shrink-0"
+                  className={`${theme.bannerAccent} font-semibold underline shrink-0`}
                 >
                   +{loyaltyOffer.signup_bonus_points} pts bonus
                 </button>
@@ -723,13 +920,13 @@ export default function StoreQrOrderingPage() {
         )}
 
         {/* Navigation Tabs */}
-        <div className="max-w-xl mx-auto px-4 flex border-t border-stone-200 dark:border-zinc-800 bg-stone-50/70 dark:bg-zinc-900">
+        <div className={`max-w-xl mx-auto px-4 flex border-t ${theme.headerBorder} bg-stone-50/70 dark:bg-zinc-900`}>
           <button
             type="button"
             onClick={() => setActiveTab("menu")}
             className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
               activeTab === "menu"
-                ? "border-terracotta-600 text-terracotta-600"
+                ? `${theme.activeTabBorder} ${theme.activeTabText}`
                 : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
@@ -740,7 +937,7 @@ export default function StoreQrOrderingPage() {
             onClick={() => setActiveTab("cart")}
             className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
               activeTab === "cart"
-                ? "border-terracotta-600 text-terracotta-600"
+                ? `${theme.activeTabBorder} ${theme.activeTabText}`
                 : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
@@ -751,11 +948,25 @@ export default function StoreQrOrderingPage() {
             onClick={() => setActiveTab("order")}
             className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
               activeTab === "order"
-                ? "border-terracotta-600 text-terracotta-600"
+                ? `${theme.activeTabBorder} ${theme.activeTabText}`
                 : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
-            {activeOrder ? `Order ${activeOrder.order_number}` : "Order Status"}
+            <span className="flex items-center justify-center gap-1.5">
+              {orders.some((o) => o.status === "ready") && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              )}
+              <span>
+                {orders.length === 0
+                  ? "Order Status"
+                  : orders.length === 1
+                  ? `Order ${orders[0].order_number}`
+                  : `Orders (${orders.length})`}
+              </span>
+            </span>
           </button>
         </div>
       </header>
@@ -763,7 +974,7 @@ export default function StoreQrOrderingPage() {
       <main className="max-w-xl mx-auto px-4 pt-4 space-y-5">
         {/* Customer Quick Registration Banner if not logged in */}
         {!customer && activeTab === "menu" && (
-          <Card className="p-4 border-l-4 border-l-terracotta-600 flex items-center justify-between gap-3">
+          <Card className={`p-4 border-l-4 ${theme.primaryBorder} flex items-center justify-between gap-3`}>
             <div>
               <p className="text-sm font-semibold">
                 Register with your phone number in 5 seconds
@@ -772,7 +983,7 @@ export default function StoreQrOrderingPage() {
                 No app download or OTP required. Place your order and earn automatic loyalty rewards on payment.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowAuthModal(true)}>
+            <Button size="sm" onClick={() => setShowAuthModal(true)} className={theme.primaryButton}>
               Enter Phone
             </Button>
           </Card>
@@ -790,7 +1001,7 @@ export default function StoreQrOrderingPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search filter coffee, croissants, cold brew..."
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta-600"
+                  className={`w-full pl-9 pr-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 ${theme.focusRing}`}
                 />
               </div>
 
@@ -800,7 +1011,7 @@ export default function StoreQrOrderingPage() {
                   onClick={() => setSelectedCategory("all")}
                   className={`px-3 py-1.5 rounded-sm text-xs font-semibold whitespace-nowrap border transition-colors ${
                     selectedCategory === "all"
-                      ? "bg-zinc-900 text-white border-zinc-900 dark:bg-stone-100 dark:text-zinc-900"
+                      ? theme.chipActive
                       : "bg-white dark:bg-zinc-900 border-stone-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                   }`}
                 >
@@ -813,7 +1024,7 @@ export default function StoreQrOrderingPage() {
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-3 py-1.5 rounded-sm text-xs font-semibold whitespace-nowrap border transition-colors ${
                       selectedCategory === cat.id
-                        ? "bg-zinc-900 text-white border-zinc-900 dark:bg-stone-100 dark:text-zinc-900"
+                        ? theme.chipActive
                         : "bg-white dark:bg-zinc-900 border-stone-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
@@ -881,6 +1092,7 @@ export default function StoreQrOrderingPage() {
                           size="sm"
                           disabled={!item.is_available}
                           onClick={() => handleAddItemClick(item)}
+                          className={theme.primaryButton}
                         >
                           <Plus className="w-3.5 h-3.5 mr-1" />
                           {inCartQty > 0 ? `Add (${inCartQty})` : "Add"}
@@ -1016,7 +1228,7 @@ export default function StoreQrOrderingPage() {
                           onClick={() => setOrderType(val)}
                           className={`p-3 rounded-sm text-left border transition-all ${
                             orderType === val
-                              ? "bg-zinc-900 text-white border-zinc-900 dark:bg-stone-100 dark:text-zinc-900 shadow-sm ring-1 ring-zinc-900 dark:ring-stone-100"
+                              ? `${theme.chipActive} shadow-sm ring-1 ${theme.primaryBorder}`
                               : "border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-700"
                           }`}
                         >
@@ -1029,7 +1241,7 @@ export default function StoreQrOrderingPage() {
                           <p
                             className={`text-[11px] mt-1 leading-snug ${
                               orderType === val
-                                ? "text-zinc-300 dark:text-zinc-600"
+                                ? "text-white/80 dark:text-zinc-900/80"
                                 : "text-zinc-500"
                             }`}
                           >
@@ -1071,7 +1283,7 @@ export default function StoreQrOrderingPage() {
                   loyaltyOffer &&
                   customer.pointsBalance >=
                     loyaltyOffer.minimum_redemption_points && (
-                    <Card className="p-4 border-terracotta-600/40 bg-terracotta-50/40 dark:bg-terracotta-950/20 flex items-center justify-between gap-3">
+                    <Card className={`p-4 ${theme.cardHighlight} ${theme.primaryLightBg} flex items-center justify-between gap-3`}>
                       <div>
                         <p className="text-sm font-semibold">
                           Redeem {loyaltyOffer.minimum_redemption_points} Loyalty Points
@@ -1092,7 +1304,14 @@ export default function StoreQrOrderingPage() {
                         onChange={(e) =>
                           setRedeemPointsToggle(e.target.checked)
                         }
-                        className="w-5 h-5 accent-terracotta-600"
+                        className="w-5 h-5"
+                        style={{
+                          accentColor:
+                            store?.primary_color ||
+                            (store?.theme_preset === "rose"
+                              ? "#E11D48"
+                              : "#18181B"),
+                        }}
                       />
                     </Card>
                   )}
@@ -1127,7 +1346,7 @@ export default function StoreQrOrderingPage() {
                       {formatCurrency(cartTotals.total, store.currency)}
                     </span>
                   </div>
-                  <div className="pt-1 flex items-center justify-between text-xs text-terracotta-600 font-medium">
+                  <div className={`pt-1 flex items-center justify-between text-xs ${theme.primaryText} font-medium`}>
                     <span>Points credited automatically after payment</span>
                     <span className="tabular-nums font-bold">
                       +{cartTotals.estimatedPoints} pts
@@ -1142,7 +1361,7 @@ export default function StoreQrOrderingPage() {
                 )}
 
                 <Button
-                  className="w-full py-3 text-base"
+                  className={`w-full py-3 text-base ${theme.primaryButton}`}
                   onClick={handlePlaceOrder}
                   disabled={submittingOrder}
                 >
@@ -1160,6 +1379,125 @@ export default function StoreQrOrderingPage() {
         {/* TAB 3: LIVE ORDER CONFIRMATION & STATUS */}
         {activeTab === "order" && (
           <div className="space-y-4">
+            {/* Orders Queue Switcher (multi-order support so previous orders never vanish) */}
+            {orders.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                      Your Orders ({orders.length})
+                    </span>
+                    {orders.filter(
+                      (o) =>
+                        ![
+                          "served",
+                          "cancelled",
+                          "rejected",
+                          "expired",
+                          "refunded",
+                        ].includes(o.status)
+                    ).length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse">
+                        {
+                          orders.filter(
+                            (o) =>
+                              ![
+                                "served",
+                                "cancelled",
+                                "rejected",
+                                "expired",
+                                "refunded",
+                              ].includes(o.status)
+                          ).length
+                        }{" "}
+                        active
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("menu")}
+                    className={`text-xs font-semibold flex items-center gap-1 ${theme.primaryText} hover:underline`}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Order More Items
+                  </button>
+                </div>
+
+                {/* Queue Cards Horizontal Carousel / Scroller */}
+                <div className="flex gap-2.5 overflow-x-auto pb-1.5 no-scrollbar">
+                  {orders.map((ord) => {
+                    const isSelected = ord.id === activeOrder?.id;
+                    const isReady = ord.status === "ready";
+                    const isTerminal = [
+                      "served",
+                      "cancelled",
+                      "rejected",
+                      "expired",
+                      "refunded",
+                    ].includes(ord.status);
+
+                    return (
+                      <button
+                        key={ord.id}
+                        type="button"
+                        onClick={() => setSelectedOrderId(ord.id)}
+                        className={`flex-shrink-0 text-left p-2.5 rounded-sm border transition-all min-w-[175px] relative ${
+                          isSelected
+                            ? `${theme.cardHighlight} bg-white dark:bg-zinc-900 shadow-md ring-2 ${theme.primaryBorder}`
+                            : "bg-white/80 dark:bg-zinc-900/70 border-stone-200 dark:border-zinc-800 hover:bg-white dark:hover:bg-zinc-900 opacity-85 hover:opacity-100"
+                        } ${
+                          isReady
+                            ? "ring-2 ring-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.6)] animate-pulse bg-emerald-50/50 dark:bg-emerald-950/20"
+                            : ""
+                        }`}
+                      >
+                        {isReady && (
+                          <span className="absolute -top-2 right-2 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider shadow-sm flex items-center gap-0.5 animate-bounce">
+                            <Sparkles className="w-2.5 h-2.5" /> Ready!
+                          </span>
+                        )}
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-extrabold text-sm tracking-tight">
+                            {ord.order_number}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                              isReady
+                                ? "bg-emerald-600 text-white"
+                                : isTerminal
+                                ? "bg-stone-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                                : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                            }`}
+                          >
+                            {ord.status.replace("_", " ")}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-zinc-500">
+                          <span className="truncate max-w-[95px]">
+                            {ord.items?.length || 0}{" "}
+                            {ord.items?.length === 1 ? "item" : "items"}
+                          </span>
+                          <span className="font-bold tabular-nums text-zinc-800 dark:text-zinc-200">
+                            {formatCurrency(
+                              ord.total,
+                              ord.currency || store.currency
+                            )}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <div
+                            className={`mt-1.5 text-[10px] font-semibold ${theme.primaryText} flex items-center gap-1`}
+                          >
+                            <span>● Viewing this token</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {!activeOrder ? (
               <Card className="p-8 text-center space-y-3">
                 <Utensils className="w-10 h-10 text-zinc-400 mx-auto" />
@@ -1167,15 +1505,15 @@ export default function StoreQrOrderingPage() {
                 <p className="text-xs text-zinc-500">
                   Place an order from the menu to receive your counter token and track live preparation status.
                 </p>
-                <Button onClick={() => setActiveTab("menu")}>
+                <Button onClick={() => setActiveTab("menu")} className={theme.primaryButton}>
                   Go to Menu
                 </Button>
               </Card>
             ) : (
               <>
                 {/* Prominent Counter Confirmation Card (ORD-07, ORD-08) */}
-                <Card className="p-6 text-center space-y-3 border-2 border-zinc-900 dark:border-stone-200">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-terracotta-600 text-white text-xs font-bold uppercase tracking-wider">
+                <Card className={`p-6 text-center space-y-3 border-2 ${theme.cardHighlight} bg-white dark:bg-zinc-900 shadow-sm`}>
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-sm ${theme.counterBadge} text-xs font-bold uppercase tracking-wider`}>
                     <QrCode className="w-3.5 h-3.5" />
                     Show this screen at the counter
                   </div>
@@ -1229,7 +1567,7 @@ export default function StoreQrOrderingPage() {
                     </div>
                   ) : null}
 
-                  <div className="pt-2 flex items-center justify-center gap-2">
+                  <div className="pt-2 flex items-center justify-center gap-2 flex-wrap">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -1247,7 +1585,7 @@ export default function StoreQrOrderingPage() {
                           refreshingOrder ? "animate-spin" : ""
                         }`}
                       />
-                      Refresh Live Status
+                      Refresh Status
                     </Button>
 
                     {(activeOrder.status === "created" ||
@@ -1261,12 +1599,21 @@ export default function StoreQrOrderingPage() {
                         {cancellingOrder ? "Cancelling..." : "Cancel Order"}
                       </Button>
                     )}
+
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setActiveTab("menu")}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Order More Items
+                    </Button>
                   </div>
                 </Card>
 
                 {/* Glowing Ready for Pickup Announcement Banner */}
                 {activeOrder.status === "ready" && (
-                  <div className="p-4 rounded-sm bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-white shadow-[0_0_25px_rgba(16,185,129,0.7)] animate-pulse border-2 border-emerald-300 text-center space-y-1">
+                  <div className="p-4 rounded-sm bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-white shadow-[0_0_30px_rgba(16,185,129,0.85)] animate-pulse border-2 border-emerald-300 text-center space-y-1">
                     <div className="flex items-center justify-center gap-2 font-black text-sm uppercase tracking-wider">
                       <Sparkles className="w-4 h-4 animate-spin text-amber-300" />
                       <span>Ready at Counter for Pickup!</span>
@@ -1282,7 +1629,7 @@ export default function StoreQrOrderingPage() {
                   </div>
                 )}
 
-                {/* Live Fulfilment Stepper */}
+                {/* Live Fulfilment Stepper with Super Glowing Step 5 */}
                 <Card className="p-4 space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
                     Live Order Progress
@@ -1358,11 +1705,11 @@ export default function StoreQrOrderingPage() {
                           key={step.key}
                           className={`p-2.5 rounded-sm border text-xs flex items-center justify-between gap-2 transition-all ${
                             isReadyStep
-                              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.85)] ring-2 ring-emerald-400 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 animate-pulse font-extrabold scale-[1.03] z-10"
+                              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.95)] ring-4 ring-emerald-400 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 animate-pulse font-extrabold scale-[1.03] z-10"
                               : step.done
                               ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-medium"
                               : step.current
-                              ? "bg-terracotta-50 dark:bg-terracotta-950/30 border-terracotta-600 text-terracotta-700 dark:text-terracotta-300 font-bold"
+                              ? `${theme.primaryLightBg} ${theme.primaryBorder} font-bold`
                               : "border-stone-200 dark:border-zinc-800 text-zinc-400 font-medium"
                           }`}
                         >
@@ -1474,12 +1821,12 @@ export default function StoreQrOrderingPage() {
               </p>
               <p className="text-base font-bold tabular-nums">
                 {formatCurrency(cartTotals.total, store.currency)}{" "}
-                <span className="text-xs font-normal text-terracotta-600">
+                <span className={`text-xs font-normal ${theme.primaryText}`}>
                   (+{cartTotals.estimatedPoints} pts)
                 </span>
               </p>
             </div>
-            <Button onClick={() => setActiveTab("cart")}>
+            <Button onClick={() => setActiveTab("cart")} className={theme.primaryButton}>
               <ShoppingBag className="w-4 h-4 mr-1.5" />
               View Cart & Order
             </Button>
@@ -1525,7 +1872,13 @@ export default function StoreQrOrderingPage() {
                           name="variant"
                           checked={chosenVariantId === v.id}
                           onChange={() => setChosenVariantId(v.id)}
-                          className="accent-terracotta-600"
+                          style={{
+                            accentColor:
+                              store?.primary_color ||
+                              (store?.theme_preset === "rose"
+                                ? "#E11D48"
+                                : "#18181B"),
+                          }}
                         />
                         <span className="font-medium">{v.name}</span>
                       </span>
@@ -1566,7 +1919,13 @@ export default function StoreQrOrderingPage() {
                                 );
                               }
                             }}
-                            className="accent-terracotta-600"
+                            style={{
+                              accentColor:
+                                store?.primary_color ||
+                                (store?.theme_preset === "rose"
+                                  ? "#E11D48"
+                                  : "#18181B"),
+                            }}
                           />
                           <span className="font-medium">{a.name}</span>
                         </span>
@@ -1596,7 +1955,7 @@ export default function StoreQrOrderingPage() {
                 Cancel
               </Button>
               <Button
-                className="flex-1"
+                className={`flex-1 ${theme.primaryButton}`}
                 onClick={() => {
                   const v =
                     customizingItem.variants?.find(
@@ -1668,7 +2027,14 @@ export default function StoreQrOrderingPage() {
                   checked={regLoyaltyConsent}
                   onChange={(e) => setRegLoyaltyConsent(e.target.checked)}
                   required
-                  className="mt-0.5 accent-terracotta-600"
+                  className="mt-0.5"
+                  style={{
+                    accentColor:
+                      store?.primary_color ||
+                      (store?.theme_preset === "rose"
+                        ? "#E11D48"
+                        : "#18181B"),
+                  }}
                 />
                 <span>
                   I consent to loyalty points tracking and agree to the{" "}
@@ -1688,7 +2054,14 @@ export default function StoreQrOrderingPage() {
                   type="checkbox"
                   checked={regMarketingConsent}
                   onChange={(e) => setRegMarketingConsent(e.target.checked)}
-                  className="mt-0.5 accent-terracotta-600"
+                  className="mt-0.5"
+                  style={{
+                    accentColor:
+                      store?.primary_color ||
+                      (store?.theme_preset === "rose"
+                        ? "#E11D48"
+                        : "#18181B"),
+                  }}
                 />
                 <span>
                   Send me occasional seasonal menu & bonus point offers (Optional).
@@ -1699,7 +2072,11 @@ export default function StoreQrOrderingPage() {
                 <p className="text-xs text-red-600 font-medium">{regError}</p>
               )}
 
-              <Button type="submit" className="w-full" disabled={regLoading}>
+              <Button
+                type="submit"
+                className={`w-full ${theme.primaryButton}`}
+                disabled={regLoading}
+              >
                 {regLoading ? "Signing In..." : "Continue to Order"}
               </Button>
             </form>

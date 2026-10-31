@@ -71,6 +71,8 @@ export default function AdminMenuAndQrPage() {
     tax_percentage?: number;
     order_expiry_minutes?: number;
     require_table_number?: boolean;
+    primary_color?: string;
+    theme_preset?: string;
   } | null>(null);
   const [orderStats, setOrderStats] = useState<{
     totalOrders: number;
@@ -87,6 +89,8 @@ export default function AdminMenuAndQrPage() {
   const [taxPercentage, setTaxPercentage] = useState("5");
   const [orderExpiryMinutes, setOrderExpiryMinutes] = useState("20");
   const [requireTableNumber, setRequireTableNumber] = useState(false);
+  const [themePreset, setThemePreset] = useState("rose");
+  const [primaryColor, setPrimaryColor] = useState("#E11D48");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const settingsDirtyRef = React.useRef(false);
@@ -190,6 +194,18 @@ export default function AdminMenuAndQrPage() {
         ) {
           setRequireTableNumber(Boolean(qrData.business.require_table_number));
         }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.theme_preset !== undefined
+        ) {
+          setThemePreset(qrData.business.theme_preset);
+        }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.primary_color !== undefined
+        ) {
+          setPrimaryColor(qrData.business.primary_color);
+        }
       }
       if (repRes.ok && repData.summary) {
         setOrderStats({
@@ -219,6 +235,8 @@ export default function AdminMenuAndQrPage() {
           taxPercentage: Number(taxPercentage),
           orderExpiryMinutes: Number(orderExpiryMinutes),
           requireTableNumber,
+          themePreset,
+          primaryColor,
         }),
       });
       const data = await res.json();
@@ -232,6 +250,12 @@ export default function AdminMenuAndQrPage() {
           }
           if (data.business.require_table_number !== undefined) {
             setRequireTableNumber(Boolean(data.business.require_table_number));
+          }
+          if (data.business.theme_preset !== undefined) {
+            setThemePreset(data.business.theme_preset);
+          }
+          if (data.business.primary_color !== undefined) {
+            setPrimaryColor(data.business.primary_color);
           }
         }
         setTimeout(() => setSettingsSaved(false), 3000);
@@ -785,6 +809,57 @@ export default function AdminMenuAndQrPage() {
                     When unchecked, customers can place Dine-In orders without being forced to enter a table number.
                   </span>
                 </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-2">
+                  Customer Ordering Page Theme
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {
+                      id: "rose",
+                      name: "Rose Pink (Scoop n Brew)",
+                      color: "#E11D48",
+                    },
+                    {
+                      id: "coffee",
+                      name: "Warm Terracotta / Coffee",
+                      color: "#C2410C",
+                    },
+                    {
+                      id: "mint",
+                      name: "Fresh Mint & Matcha",
+                      color: "#059669",
+                    },
+                    {
+                      id: "mono",
+                      name: "Modern Monochrome",
+                      color: "#18181B",
+                    },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        settingsDirtyRef.current = true;
+                        setThemePreset(preset.id);
+                        setPrimaryColor(preset.color);
+                      }}
+                      className={`p-2.5 rounded-sm border text-left flex items-center gap-2 transition-all text-xs ${
+                        themePreset === preset.id
+                          ? "ring-2 ring-zinc-900 dark:ring-white border-zinc-900 dark:border-white font-bold bg-stone-50 dark:bg-zinc-800"
+                          : "border-stone-200 dark:border-zinc-800 hover:border-zinc-400 bg-white dark:bg-zinc-900"
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm border border-black/10"
+                        style={{ backgroundColor: preset.color }}
+                      />
+                      <span className="truncate">{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-1 flex items-center justify-between">

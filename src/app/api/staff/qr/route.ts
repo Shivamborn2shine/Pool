@@ -98,6 +98,8 @@ export async function GET(request: Request) {
               ? Number(freshBiz.order_expiry_minutes)
               : 20,
           require_table_number: Boolean(freshBiz.require_table_number ?? false),
+          theme_preset: freshBiz.theme_preset || "rose",
+          primary_color: freshBiz.primary_color || "#E11D48",
         }
       : ctx.business,
   });
@@ -133,6 +135,12 @@ export async function PATCH(request: Request) {
       body.requireTableNumber !== undefined
         ? Boolean(body.requireTableNumber)
         : undefined;
+    const themePreset = body.themePreset
+      ? String(body.themePreset).trim().toLowerCase()
+      : undefined;
+    const primaryColor = body.primaryColor
+      ? String(body.primaryColor).trim()
+      : undefined;
 
     if (label) {
       await sql`
@@ -147,10 +155,12 @@ export async function PATCH(request: Request) {
       orderPrefix ||
       taxPercentage !== undefined ||
       orderExpiryMinutes !== undefined ||
-      requireTableNumber !== undefined
+      requireTableNumber !== undefined ||
+      themePreset !== undefined ||
+      primaryColor !== undefined
     ) {
       const [bRow] = await sql`
-        SELECT order_prefix, tax_percentage, order_expiry_minutes, require_table_number
+        SELECT order_prefix, tax_percentage, order_expiry_minutes, require_table_number, theme_preset, primary_color
         FROM public.businesses
         WHERE id = ${ctx.business.id}
       `;
@@ -174,6 +184,8 @@ export async function PATCH(request: Request) {
               ? requireTableNumber
               : Boolean(bRow.require_table_number ?? false)
           },
+          theme_preset = ${themePreset || bRow.theme_preset || "rose"},
+          primary_color = ${primaryColor || bRow.primary_color || "#E11D48"},
           updated_at = NOW()
         WHERE id = ${ctx.business.id}
         RETURNING *
@@ -188,7 +200,15 @@ export async function PATCH(request: Request) {
       action: "store_qr.settings_updated",
       entityType: "store_qr",
       entityId: ctx.business.id,
-      afterState: { label, orderPrefix, taxPercentage, orderExpiryMinutes, requireTableNumber },
+      afterState: {
+        label,
+        orderPrefix,
+        taxPercentage,
+        orderExpiryMinutes,
+        requireTableNumber,
+        themePreset,
+        primaryColor,
+      },
     });
 
     return NextResponse.json({
