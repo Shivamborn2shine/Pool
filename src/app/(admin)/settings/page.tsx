@@ -8,6 +8,9 @@ import {
   MapPin,
   ShieldCheck,
   Loader2,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   CopyButton,
@@ -40,6 +43,44 @@ export default function SettingsAndRulesPage() {
   // Add branch location state (BIZ-07)
   const [locName, setLocName] = useState("");
   const [locAddress, setLocAddress] = useState("");
+
+  // Business logo upload state
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+
+  async function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    setLogoUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("bucket", "business-assets");
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLogoUploadError(data.error || "Failed to upload logo.");
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setBizData((prev: any) => ({
+          ...prev,
+          business: { ...prev.business, logo_url: data.url },
+        }));
+        setFeedback({
+          type: "success",
+          text: "Logo uploaded! Click 'Update Business Profile' below to save changes permanently.",
+        });
+      }
+    } catch {
+      setLogoUploadError("Network error uploading logo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -520,6 +561,79 @@ export default function SettingsAndRulesPage() {
             <span>Business Profile & Card Branding</span>
           </div>
 
+          {/* Business Logo Branding Card */}
+          <div className="p-4 rounded border border-border bg-surface-elevated/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="relative w-16 h-16 rounded border border-border bg-surface flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                {business.logo_url ? (
+                  <img
+                    src={business.logo_url}
+                    alt={business.name || "Business Logo"}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="w-full h-full flex items-center justify-center text-white font-bold text-xl uppercase"
+                    style={{
+                      backgroundColor: business.primary_color || "#18181B",
+                    }}
+                  >
+                    {(business.name || "B").slice(0, 1)}
+                  </span>
+                )}
+                {uploadingLogo && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-accent" />
+                  <span>Personalized Business Logo</span>
+                </div>
+                <p className="text-[11px] text-muted max-w-md leading-relaxed">
+                  Upload your brand logo. Appears on the top admin shell, customer loyalty pass, and store QR order menu. PNG, JPG, WebP, or SVG (max 5MB).
+                </p>
+                {logoUploadError && (
+                  <p className="text-[11px] text-red-600 font-medium">
+                    {logoUploadError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold cursor-pointer text-xs hover:opacity-90 transition-opacity">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{business.logo_url ? "Change Logo" : "Upload Logo"}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  onChange={handleLogoFileChange}
+                  disabled={uploadingLogo}
+                  className="hidden"
+                />
+              </label>
+
+              {business.logo_url && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBizData({
+                      ...bizData,
+                      business: { ...business, logo_url: "" },
+                    });
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-medium text-xs hover:bg-red-50 dark:hover:bg-red-950/40"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label
@@ -644,6 +758,28 @@ export default function SettingsAndRulesPage() {
                 className="mt-1 w-full px-3 py-2 text-sm rounded border border-border bg-background"
               />
             </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="biz-logo-url"
+              className="block font-semibold uppercase text-foreground"
+            >
+              Logo Image CDN URL (Optional Direct Link)
+            </label>
+            <input
+              id="biz-logo-url"
+              type="url"
+              placeholder="https://.../logo.png"
+              value={business.logo_url || ""}
+              onChange={(e) =>
+                setBizData({
+                  ...bizData,
+                  business: { ...business, logo_url: e.target.value },
+                })
+              }
+              className="mt-1 w-full px-3 py-2 text-sm rounded border border-border bg-background font-mono text-xs"
+            />
           </div>
 
           <div className="flex justify-end">

@@ -18,6 +18,9 @@ import {
   ExternalLink,
   Utensils,
   QrCode,
+  Camera,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -26,6 +29,8 @@ import type { UserRole } from "@/types";
 interface AdminShellProps {
   businessName: string;
   businessSlug: string;
+  businessLogoUrl?: string | null;
+  businessPrimaryColor?: string | null;
   userName: string;
   userEmail: string;
   role: UserRole;
@@ -38,6 +43,8 @@ interface AdminShellProps {
 export function AdminShell({
   businessName,
   businessSlug,
+  businessLogoUrl,
+  businessPrimaryColor,
   userName,
   role,
   isPlatformAdmin,
@@ -48,6 +55,18 @@ export function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(
+    businessLogoUrl || null
+  );
+  const [showLogoModal, setShowLogoModal] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentLogoUrl(businessLogoUrl || null);
+  }, [businessLogoUrl]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -126,6 +145,82 @@ export function AdminShell({
     router.refresh();
   }
 
+  async function handleUploadLogo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedFile) return;
+    setUploadingLogo(true);
+    setLogoError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      fd.append("bucket", "business-assets");
+      const upRes = await fetch("/api/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const upData = await upRes.json();
+      if (!upRes.ok) {
+        setLogoError(upData.error || "Failed to upload logo.");
+        return;
+      }
+
+      const newLogoUrl = upData.url;
+      const patchRes = await fetch("/api/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: businessName,
+          logoUrl: newLogoUrl,
+          primaryColor: businessPrimaryColor || "#18181B",
+        }),
+      });
+      const patchData = await patchRes.json();
+      if (!patchRes.ok) {
+        setLogoError(
+          patchData.error || "Failed to save logo to business profile."
+        );
+        return;
+      }
+
+      setCurrentLogoUrl(newLogoUrl);
+      setShowLogoModal(false);
+      setSelectedFile(null);
+      setLogoPreview(null);
+      router.refresh();
+    } catch {
+      setLogoError("Network error uploading logo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function handleRemoveLogo() {
+    setUploadingLogo(true);
+    setLogoError(null);
+    try {
+      const patchRes = await fetch("/api/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: businessName,
+          logoUrl: "",
+          primaryColor: businessPrimaryColor || "#18181B",
+        }),
+      });
+      if (patchRes.ok) {
+        setCurrentLogoUrl(null);
+        setSelectedFile(null);
+        setLogoPreview(null);
+        setShowLogoModal(false);
+        router.refresh();
+      }
+    } catch {
+      setLogoError("Network error removing logo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {isImpersonating && (
@@ -160,21 +255,50 @@ export function AdminShell({
             )}
           </button>
 
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 font-bold text-sm sm:text-base text-foreground"
-          >
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 border-b-2 border-accent font-mono text-xs">
-              L
-            </span>
-            <span className="truncate max-w-[180px] sm:max-w-xs">
-              {businessName}
-            </span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 font-bold text-sm sm:text-base text-foreground group"
+            >
+              {currentLogoUrl ? (
+                <img
+                  src={currentLogoUrl}
+                  alt={businessName}
+                  className="w-7 h-7 rounded object-cover border border-border shadow-2xs shrink-0"
+                />
+              ) : (
+                <span
+                  className="inline-flex items-center justify-center w-7 h-7 rounded text-white font-bold text-xs shrink-0 shadow-2xs uppercase"
+                  style={{ backgroundColor: businessPrimaryColor || "#18181B" }}
+                >
+                  {businessName.slice(0, 1)}
+                </span>
+              )}
+              <span className="truncate max-w-[170px] sm:max-w-xs">
+                {businessName}
+              </span>
+            </Link>
 
-          <span className="px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-xs bg-surface-elevated border border-border text-accent font-semibold">
-            {role}
-          </span>
+            {(role === "owner" || role === "manager") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoModal(true);
+                  setSelectedFile(null);
+                  setLogoPreview(null);
+                  setLogoError(null);
+                }}
+                title="Upload personalized business logo"
+                className="p-1 rounded text-zinc-400 hover:text-foreground hover:bg-surface-elevated transition-colors"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <span className="px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-xs bg-surface-elevated border border-border text-accent font-semibold">
+              {role}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -231,29 +355,79 @@ export function AdminShell({
       <div className="flex-1 flex">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-border bg-surface p-3 justify-between no-print">
-          <nav aria-label="Merchant workspace navigation" className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded transition-colors",
-                    active
-                      ? "bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold"
-                      : "text-muted hover:text-foreground hover:bg-surface-elevated"
-                  )}
+          <div>
+            <div className="flex items-center justify-between gap-2 p-2 mb-2.5 rounded bg-surface-elevated/70 border border-border">
+              <div className="flex items-center gap-2 min-w-0">
+                {currentLogoUrl ? (
+                  <img
+                    src={currentLogoUrl}
+                    alt={businessName}
+                    className="w-7 h-7 rounded object-cover border border-border shadow-2xs shrink-0"
+                  />
+                ) : (
+                  <span
+                    className="inline-flex items-center justify-center w-7 h-7 rounded text-white font-bold text-xs shrink-0 shadow-2xs uppercase"
+                    style={{
+                      backgroundColor: businessPrimaryColor || "#18181B",
+                    }}
+                  >
+                    {businessName.slice(0, 1)}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="font-bold text-xs text-foreground truncate">
+                    {businessName}
+                  </p>
+                  <span className="text-[10px] font-mono uppercase text-accent font-semibold">
+                    {role}
+                  </span>
+                </div>
+              </div>
+              {(role === "owner" || role === "manager") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLogoModal(true);
+                    setSelectedFile(null);
+                    setLogoPreview(null);
+                    setLogoError(null);
+                  }}
+                  title="Upload personalized business logo"
+                  className="p-1 rounded text-zinc-400 hover:text-foreground hover:bg-surface transition-colors"
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <nav
+              aria-label="Merchant workspace navigation"
+              className="space-y-1"
+            >
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active =
+                  pathname === item.href ||
+                  (item.href !== "/dashboard" &&
+                    pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded transition-colors",
+                      active
+                        ? "bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold"
+                        : "text-muted hover:text-foreground hover:bg-surface-elevated"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
 
           <div className="p-3 rounded bg-surface-elevated border border-border text-xs space-y-1.5">
             <div className="font-semibold text-foreground">
@@ -283,8 +457,43 @@ export function AdminShell({
               className="w-64 h-full bg-surface border-r border-border p-4 space-y-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="pb-3 mb-2 border-b border-border font-bold text-sm">
-                {businessName}
+              <div className="pb-3 mb-2 border-b border-border flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {currentLogoUrl ? (
+                    <img
+                      src={currentLogoUrl}
+                      alt={businessName}
+                      className="w-7 h-7 rounded object-cover border border-border shadow-2xs shrink-0"
+                    />
+                  ) : (
+                    <span
+                      className="inline-flex items-center justify-center w-7 h-7 rounded text-white font-bold text-xs shrink-0 shadow-2xs uppercase"
+                      style={{
+                        backgroundColor: businessPrimaryColor || "#18181B",
+                      }}
+                    >
+                      {businessName.slice(0, 1)}
+                    </span>
+                  )}
+                  <span className="font-bold text-sm truncate">
+                    {businessName}
+                  </span>
+                </div>
+                {(role === "owner" || role === "manager") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLogoModal(true);
+                      setSelectedFile(null);
+                      setLogoPreview(null);
+                      setLogoError(null);
+                    }}
+                    title="Upload personalized business logo"
+                    className="p-1 rounded text-zinc-400 hover:text-foreground"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -320,6 +529,115 @@ export function AdminShell({
           {children}
         </main>
       </div>
+
+      {/* Personalized Logo Upload Modal */}
+      {showLogoModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded bg-surface border border-border p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-accent" />
+                <h3 className="font-bold text-sm text-foreground">
+                  Personalized Business Logo
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoModal(false);
+                  setSelectedFile(null);
+                  setLogoPreview(null);
+                  setLogoError(null);
+                }}
+                className="text-xs text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            {logoError && (
+              <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 p-2 rounded border border-red-200 dark:border-red-800">
+                {logoError}
+              </p>
+            )}
+
+            <div className="flex flex-col items-center justify-center gap-2.5 py-2">
+              <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-surface-elevated shadow-xs">
+                {logoPreview ? (
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : currentLogoUrl ? (
+                  <img
+                    src={currentLogoUrl}
+                    alt={businessName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="w-full h-full flex items-center justify-center text-white font-bold text-2xl uppercase"
+                    style={{
+                      backgroundColor: businessPrimaryColor || "#18181B",
+                    }}
+                  >
+                    {businessName.slice(0, 1)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted text-center leading-relaxed">
+                Upload your official store logo. Appears on customer digital passes, menu headers, and admin workspace.
+              </p>
+            </div>
+
+            <form onSubmit={handleUploadLogo} className="space-y-3">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    setSelectedFile(f);
+                    setLogoPreview(URL.createObjectURL(f));
+                  }
+                }}
+                className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-border file:text-xs file:font-semibold file:bg-surface hover:file:bg-surface-elevated text-muted cursor-pointer"
+              />
+
+              <div className="flex gap-2 pt-2 border-t border-border">
+                {currentLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    disabled={uploadingLogo}
+                    className="py-1.5 px-3 rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={!selectedFile || uploadingLogo}
+                  className="flex-1 py-1.5 px-3 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  {uploadingLogo ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Logo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload & Apply</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

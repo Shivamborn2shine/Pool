@@ -19,6 +19,8 @@ export default async function AdminGroupLayout({
     <AdminShell
       businessName={ctx.business.name}
       businessSlug={ctx.business.slug}
+      businessLogoUrl={ctx.business.logo_url}
+      businessPrimaryColor={ctx.business.primary_color}
       userName={ctx.user.full_name}
       userEmail={ctx.user.email}
       role={ctx.role}

@@ -946,16 +946,24 @@ export default function StoreQrOrderingPage() {
       <header className={`border-b ${theme.headerBorder} bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs sticky top-0 z-30`}>
         <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-10 h-10 rounded-sm flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs"
-              style={{
-                backgroundColor:
-                  store.primary_color ||
-                  (store.theme_preset === "rose" ? "#E11D48" : "#18181B"),
-              }}
-            >
-              {store.name.slice(0, 1).toUpperCase()}
-            </div>
+            {store.logo_url ? (
+              <img
+                src={store.logo_url}
+                alt={store.name}
+                className="w-10 h-10 rounded-sm object-cover border border-zinc-200 dark:border-zinc-700 shrink-0 shadow-xs"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-sm flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs uppercase"
+                style={{
+                  backgroundColor:
+                    store.primary_color ||
+                    (store.theme_preset === "rose" ? "#E11D48" : "#18181B"),
+                }}
+              >
+                {store.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <h1 className="font-bold text-base truncate">{store.name}</h1>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -2158,13 +2166,22 @@ export default function StoreQrOrderingPage() {
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <Card className="w-full max-w-md p-6 space-y-4 bg-white dark:bg-zinc-900">
             <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold">
-                  Join {store.name} Loyalty & Order
-                </h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Phone number is the only required field. Returning customers are signed in automatically.
-                </p>
+              <div className="flex items-center gap-3">
+                {store.logo_url && (
+                  <img
+                    src={store.logo_url}
+                    alt={store.name}
+                    className="w-10 h-10 rounded-sm object-cover border border-zinc-200 dark:border-zinc-700 shrink-0 shadow-xs"
+                  />
+                )}
+                <div>
+                  <h2 className="text-lg font-bold">
+                    Join {store.name} Loyalty & Order
+                  </h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Phone number is the only required field. Returning customers are signed in automatically.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"

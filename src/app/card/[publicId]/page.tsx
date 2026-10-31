@@ -649,12 +649,20 @@ export default function CustomerPublicCardPage() {
       <header className="border-b border-border bg-surface px-4 py-3 no-print">
         <div className="max-w-lg mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded flex items-center justify-center text-white font-bold text-sm"
-              style={{ backgroundColor: business.primaryColor || "#18181B" }}
-            >
-              {business.name.slice(0, 1).toUpperCase()}
-            </div>
+            {business.logoUrl ? (
+              <img
+                src={business.logoUrl}
+                alt={business.name}
+                className="w-8 h-8 rounded object-cover border border-border shadow-2xs shrink-0"
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded flex items-center justify-center text-white font-bold text-sm shrink-0"
+                style={{ backgroundColor: business.primaryColor || "#18181B" }}
+              >
+                {business.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
             <div>
               <div className="text-sm font-bold text-foreground leading-tight">
                 {business.name}
@@ -700,17 +708,26 @@ export default function CustomerPublicCardPage() {
             className="px-5 py-4 text-white flex items-start justify-between gap-4"
             style={{ backgroundColor: business.primaryColor || "#18181B" }}
           >
-            <div>
-              <div className="text-[11px] font-mono uppercase tracking-widest opacity-80">
-                {business.name}
-              </div>
-              <h1 className="mt-1 text-xl font-bold tracking-tight">
-                {customer.fullName}
-              </h1>
-              <div className="mt-1 flex items-center gap-2 text-xs font-mono opacity-90">
-                <span>{card.cardNumber}</span>
-                <span>·</span>
-                <span>{customer.maskedPhone}</span>
+            <div className="flex items-center gap-3.5 min-w-0">
+              {business.logoUrl && (
+                <img
+                  src={business.logoUrl}
+                  alt={business.name}
+                  className="w-12 h-12 rounded object-cover bg-white p-0.5 border border-white/20 shadow-xs shrink-0"
+                />
+              )}
+              <div className="min-w-0">
+                <div className="text-[11px] font-mono uppercase tracking-widest opacity-80 truncate">
+                  {business.name}
+                </div>
+                <h1 className="mt-0.5 text-xl font-bold tracking-tight truncate">
+                  {customer.fullName}
+                </h1>
+                <div className="mt-1 flex items-center gap-2 text-xs font-mono opacity-90">
+                  <span>{card.cardNumber}</span>
+                  <span>·</span>
+                  <span>{customer.maskedPhone}</span>
+                </div>
               </div>
             </div>
             <StatusBadge status={card.status} />
