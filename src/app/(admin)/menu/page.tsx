@@ -82,11 +82,12 @@ export default function AdminMenuAndQrPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
 
   // Order & QR settings form
-  const [orderPrefix, setOrderPrefix] = useState("ARK");
+  const [orderPrefix, setOrderPrefix] = useState("");
   const [taxPercentage, setTaxPercentage] = useState("5");
   const [orderExpiryMinutes, setOrderExpiryMinutes] = useState("20");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const settingsDirtyRef = React.useRef(false);
 
   // New Category Modal
   const [showCatModal, setShowCatModal] = useState(false);
@@ -157,18 +158,30 @@ export default function AdminMenuAndQrPage() {
       if (menuRes.ok) {
         setCategories(menuData.categories || []);
         setItems(menuData.items || []);
-        if (menuData.categories?.length > 0 && !itemCategoryId) {
-          setItemCategoryId(menuData.categories[0].id);
+        if (menuData.categories?.length > 0) {
+          setItemCategoryId((prev) => prev || menuData.categories[0].id);
         }
       }
-      if (qrRes.ok) {
+      if (qrRes.ok && qrData.business) {
         setQrInfo(qrData.qr);
         setBusiness(qrData.business);
-        setOrderPrefix(qrData.business?.order_prefix || "ARK");
-        setTaxPercentage(String(qrData.business?.tax_percentage ?? 5));
-        setOrderExpiryMinutes(
-          String(qrData.business?.order_expiry_minutes ?? 20)
-        );
+        if (!settingsDirtyRef.current && qrData.business.order_prefix) {
+          setOrderPrefix(qrData.business.order_prefix);
+        }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.tax_percentage !== undefined
+        ) {
+          setTaxPercentage(String(qrData.business.tax_percentage));
+        }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.order_expiry_minutes !== undefined
+        ) {
+          setOrderExpiryMinutes(
+            String(qrData.business.order_expiry_minutes)
+          );
+        }
       }
       if (repRes.ok && repData.summary) {
         setOrderStats({
@@ -179,7 +192,7 @@ export default function AdminMenuAndQrPage() {
     } finally {
       setLoading(false);
     }
-  }, [itemCategoryId]);
+  }, []);
 
   useEffect(() => {
     loadAll();
@@ -199,8 +212,16 @@ export default function AdminMenuAndQrPage() {
           orderExpiryMinutes: Number(orderExpiryMinutes),
         }),
       });
+      const data = await res.json();
       if (res.ok) {
+        settingsDirtyRef.current = false;
         setSettingsSaved(true);
+        if (data.business) {
+          setBusiness((prev) => ({ ...prev, ...data.business }));
+          if (data.business.order_prefix) {
+            setOrderPrefix(data.business.order_prefix);
+          }
+        }
         setTimeout(() => setSettingsSaved(false), 3000);
       }
     } finally {
@@ -689,15 +710,23 @@ export default function AdminMenuAndQrPage() {
                 Counter Token & Tax Configuration
               </h3>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Configure how order tokens (e.g. ARK-1001) and taxes are calculated server-side.
+                Configure how order tokens (e.g. {orderPrefix || business?.order_prefix || "SNB"}-1001) and taxes are calculated server-side.
               </p>
             </div>
             <form onSubmit={handleSaveOrderSettings} className="space-y-3.5">
               <Input
                 label="Order Number Prefix (2–5 chars)"
                 value={orderPrefix}
-                onChange={(e) => setOrderPrefix(e.target.value.toUpperCase())}
-                placeholder="ARK"
+                onChange={(e) => {
+                  settingsDirtyRef.current = true;
+                  setOrderPrefix(
+                    e.target.value
+                      .replace(/[^a-zA-Z0-9]/g, "")
+                      .toUpperCase()
+                      .slice(0, 5)
+                  );
+                }}
+                placeholder={business?.order_prefix || "e.g. SNB"}
                 required
               />
               <Input
@@ -705,14 +734,20 @@ export default function AdminMenuAndQrPage() {
                 type="number"
                 step="0.01"
                 value={taxPercentage}
-                onChange={(e) => setTaxPercentage(e.target.value)}
+                onChange={(e) => {
+                  settingsDirtyRef.current = true;
+                  setTaxPercentage(e.target.value);
+                }}
                 required
               />
               <Input
                 label="Unconfirmed Order Expiry Window (Minutes)"
                 type="number"
                 value={orderExpiryMinutes}
-                onChange={(e) => setOrderExpiryMinutes(e.target.value)}
+                onChange={(e) => {
+                  settingsDirtyRef.current = true;
+                  setOrderExpiryMinutes(e.target.value);
+                }}
                 required
               />
               <div className="pt-1 flex items-center justify-between">

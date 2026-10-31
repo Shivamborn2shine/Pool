@@ -276,7 +276,7 @@ export default function StaffOrdersQueuePage() {
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by Order # (ARK-1001), customer name, or phone..."
+          placeholder="Search by Order #, customer name, or phone..."
           className="w-full pl-9 pr-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta-600"
         />
       </div>

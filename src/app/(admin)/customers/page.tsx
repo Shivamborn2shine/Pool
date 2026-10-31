@@ -141,7 +141,7 @@ export default function CustomersPage() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search customer by phone (+91...), name, email, or card number (ARK-...)"
+          placeholder="Search customer by phone (+91...), name, email, or card number..."
           aria-label="Search customers"
           className="w-full pl-10 pr-4 py-2.5 text-sm rounded border border-border bg-surface text-foreground"
         />

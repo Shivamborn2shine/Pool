@@ -230,6 +230,10 @@ export async function getSessionContext(): Promise<AuthenticatedContext | null> 
       email: bRow.email,
       status: bRow.status,
       subscription_plan: bRow.subscription_plan,
+      order_prefix: bRow.order_prefix || undefined,
+      order_sequence: bRow.order_sequence !== null ? Number(bRow.order_sequence) : undefined,
+      tax_percentage: bRow.tax_percentage !== null ? Number(bRow.tax_percentage) : 5,
+      order_expiry_minutes: bRow.order_expiry_minutes !== null ? Number(bRow.order_expiry_minutes) : 20,
       created_at: bRow.created_at,
       updated_at: bRow.updated_at,
     };

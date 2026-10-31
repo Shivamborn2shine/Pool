@@ -71,13 +71,34 @@ export async function GET(request: Request) {
     ctx.business.primary_color
   );
 
+  const [freshBiz] = await sql`
+    SELECT * FROM public.businesses WHERE id = ${ctx.business.id} LIMIT 1
+  `;
+
   return NextResponse.json({
     qr: {
       ...qr,
       publicUrl: getStoreQrUrl(slug),
       qrDataUrl,
     },
-    business: ctx.business,
+    business: freshBiz
+      ? {
+          ...ctx.business,
+          order_prefix: freshBiz.order_prefix || undefined,
+          order_sequence:
+            freshBiz.order_sequence !== null
+              ? Number(freshBiz.order_sequence)
+              : undefined,
+          tax_percentage:
+            freshBiz.tax_percentage !== null
+              ? Number(freshBiz.tax_percentage)
+              : 5,
+          order_expiry_minutes:
+            freshBiz.order_expiry_minutes !== null
+              ? Number(freshBiz.order_expiry_minutes)
+              : 20,
+        }
+      : ctx.business,
   });
 }
 
@@ -116,6 +137,7 @@ export async function PATCH(request: Request) {
       `;
     }
 
+    let updatedBusiness: Record<string, unknown> | null = null;
     if (
       orderPrefix ||
       taxPercentage !== undefined ||
@@ -126,7 +148,7 @@ export async function PATCH(request: Request) {
         FROM public.businesses
         WHERE id = ${ctx.business.id}
       `;
-      await sql`
+      const [updated] = await sql`
         UPDATE public.businesses
         SET
           order_prefix = ${orderPrefix || bRow.order_prefix || "SC"},
@@ -143,7 +165,9 @@ export async function PATCH(request: Request) {
           },
           updated_at = NOW()
         WHERE id = ${ctx.business.id}
+        RETURNING *
       `;
+      updatedBusiness = updated;
     }
 
     await writeAuditLog({
@@ -156,7 +180,10 @@ export async function PATCH(request: Request) {
       afterState: { label, orderPrefix, taxPercentage, orderExpiryMinutes },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      business: updatedBusiness || ctx.business,
+    });
   } catch (err) {
     console.error("PATCH /api/staff/qr error:", err);
     return NextResponse.json(

@@ -227,3 +227,4 @@ Rules:
 2. "price" must be the base numeric price (e.g. 99).
 3. If an item has slash pricing like "Coffee (plain / caramel / butterscotch) 39/49/49", set "price": 39 and add "variants" with "priceDelta" as the difference from base price (0, 10, 10).
 4. If a category or item has an extra option like "With Kulhad +10", include it in "addons": [{ "name": "With Kulhad", "price": 10 }].`;
+
