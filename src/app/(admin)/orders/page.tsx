@@ -368,6 +368,11 @@ export default function StaffOrdersQueuePage() {
                               ? "danger"
                               : "neutral"
                           }
+                          className={
+                            isReady
+                              ? "shadow-[0_0_12px_rgba(16,185,129,0.7)] ring-1 ring-emerald-400 font-extrabold animate-pulse"
+                              : ""
+                          }
                         >
                           {order.status.replace(/_/g, " ").toUpperCase()}
                         </Badge>

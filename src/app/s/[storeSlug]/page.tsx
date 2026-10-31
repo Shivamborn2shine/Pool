@@ -1264,6 +1264,24 @@ export default function StoreQrOrderingPage() {
                   </div>
                 </Card>
 
+                {/* Glowing Ready for Pickup Announcement Banner */}
+                {activeOrder.status === "ready" && (
+                  <div className="p-4 rounded-sm bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-white shadow-[0_0_25px_rgba(16,185,129,0.7)] animate-pulse border-2 border-emerald-300 text-center space-y-1">
+                    <div className="flex items-center justify-center gap-2 font-black text-sm uppercase tracking-wider">
+                      <Sparkles className="w-4 h-4 animate-spin text-amber-300" />
+                      <span>Ready at Counter for Pickup!</span>
+                      <Sparkles className="w-4 h-4 animate-spin text-amber-300" />
+                    </div>
+                    <p className="text-xs text-emerald-50 font-medium">
+                      Your order is freshly prepared. Head to the counter and show Token{" "}
+                      <strong className="text-white underline font-bold text-sm">
+                        {activeOrder.order_number}
+                      </strong>{" "}
+                      to collect your food!
+                    </p>
+                  </div>
+                )}
+
                 {/* Live Fulfilment Stepper */}
                 <Card className="p-4 space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
@@ -1332,25 +1350,43 @@ export default function StoreQrOrderingPage() {
                         done: activeOrder.status === "served",
                         current: false,
                       },
-                    ].map((step) => (
-                      <div
-                        key={step.key}
-                        className={`p-2.5 rounded-sm border text-xs font-medium flex items-center gap-2 ${
-                          step.done
-                            ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-                            : step.current
-                            ? "bg-terracotta-50 dark:bg-terracotta-950/30 border-terracotta-600 text-terracotta-700 dark:text-terracotta-300 font-bold"
-                            : "border-stone-200 dark:border-zinc-800 text-zinc-400"
-                        }`}
-                      >
-                        {step.done ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                        ) : (
-                          <Clock className="w-3.5 h-3.5 shrink-0" />
-                        )}
-                        <span>{step.label}</span>
-                      </div>
-                    ))}
+                    ].map((step) => {
+                      const isReadyStep =
+                        step.key === "ready" && step.current;
+                      return (
+                        <div
+                          key={step.key}
+                          className={`p-2.5 rounded-sm border text-xs flex items-center justify-between gap-2 transition-all ${
+                            isReadyStep
+                              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.85)] ring-2 ring-emerald-400 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 animate-pulse font-extrabold scale-[1.03] z-10"
+                              : step.done
+                              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-medium"
+                              : step.current
+                              ? "bg-terracotta-50 dark:bg-terracotta-950/30 border-terracotta-600 text-terracotta-700 dark:text-terracotta-300 font-bold"
+                              : "border-stone-200 dark:border-zinc-800 text-zinc-400 font-medium"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isReadyStep ? (
+                              <span className="relative flex h-3 w-3 shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-90"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                              </span>
+                            ) : step.done ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5 shrink-0" />
+                            )}
+                            <span className="truncate">{step.label}</span>
+                          </div>
+                          {isReadyStep && (
+                            <span className="px-1.5 py-0.5 rounded bg-white text-emerald-900 text-[10px] font-black uppercase tracking-wider shrink-0 animate-bounce shadow-sm">
+                              Ready!
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </Card>
 
