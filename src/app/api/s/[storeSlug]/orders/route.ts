@@ -356,7 +356,45 @@ export async function POST(
         );
       }
 
-      const discountTotal = rewardValueUsed;
+      // Optional Store Credit deduction on current bill
+      let storeCreditUsed = 0;
+      if (data.storeCreditToApply && data.storeCreditToApply > 0) {
+        const availableCredit = Number(card.redeemable_amount || 0);
+        const maxCredit = Math.max(0, subtotal + taxTotal - rewardValueUsed);
+        storeCreditUsed = Math.min(
+          availableCredit,
+          Math.min(Number(data.storeCreditToApply), maxCredit)
+        );
+        if (storeCreditUsed > 0) {
+          await tx`
+            UPDATE public.cards
+            SET redeemable_amount = GREATEST(0, redeemable_amount - ${storeCreditUsed})
+            WHERE id = ${card.id}
+          `;
+          await tx`
+            INSERT INTO public.transactions (
+              card_id,
+              type,
+              points_change,
+              amount_change,
+              points_balance_after,
+              redeemable_amount_after,
+              description
+            )
+            VALUES (
+              ${card.id},
+              'redemption',
+              0,
+              -${storeCreditUsed},
+              ${card.points_balance},
+              (SELECT redeemable_amount FROM public.cards WHERE id = ${card.id}),
+              ${`Applied ₹${storeCreditUsed} store credit on order`}
+            )
+          `;
+        }
+      }
+
+      const discountTotal = rewardValueUsed + storeCreditUsed;
       const finalTotal = Math.max(
         0,
         Math.round((subtotal + taxTotal - discountTotal) * 100) / 100

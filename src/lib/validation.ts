@@ -240,6 +240,7 @@ export const createOrderSchema = z.object({
   tableNumber: z.string().max(30).optional().nullable(),
   notes: z.string().max(300).optional().nullable(),
   rewardPointsToRedeem: z.coerce.number().int().min(0).optional().default(0),
+  storeCreditToApply: z.coerce.number().min(0).optional().default(0),
   idempotencyKey: z.string().min(6).max(120).optional(),
   referredByCardPublicId: z.string().max(80).optional().nullable(),
   items: z

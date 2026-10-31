@@ -34,6 +34,9 @@ import {
   Edit3,
   Mail,
   Cake,
+  Wallet,
+  Lock,
+  Info,
 } from "lucide-react";
 import { Badge, Button, Card, Input } from "@/components/ui/primitives";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -437,6 +440,13 @@ export default function StoreQrOrderingPage() {
 
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [items, setItems] = useState<StoreMenuItem[]>([]);
+  const [storeRewards, setStoreRewards] = useState<{
+    id: string;
+    name: string;
+    description: string | null;
+    points_required: number;
+    monetary_value: number;
+  }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -485,6 +495,7 @@ export default function StoreQrOrderingPage() {
   const [tableNumber, setTableNumber] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [redeemPointsToggle, setRedeemPointsToggle] = useState(false);
+  const [applyStoreCreditToggle, setApplyStoreCreditToggle] = useState(false);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
 
@@ -633,6 +644,7 @@ export default function StoreQrOrderingPage() {
         setLoyaltyOffer(data.loyaltyOffer);
         setCategories(data.categories || []);
         setItems(data.items || []);
+        setStoreRewards(data.rewards || []);
       } catch {
         setError("Network error while loading store menu.");
       } finally {
@@ -1139,9 +1151,16 @@ export default function StoreQrOrderingPage() {
       );
     }
 
+    const availableCredit = Number(customer?.redeemableAmount || 0);
+    let storeCreditApplied = 0;
+    if (applyStoreCreditToggle && availableCredit > 0) {
+      const maxApplicable = Math.max(0, subtotal + taxTotal - discountTotal);
+      storeCreditApplied = Math.min(availableCredit, maxApplicable);
+    }
+
     const total = Math.max(
       0,
-      Math.round((subtotal + taxTotal - discountTotal) * 100) / 100
+      Math.round((subtotal + taxTotal - discountTotal - storeCreditApplied) * 100) / 100
     );
 
     let estimatedPoints = 0;
@@ -1161,12 +1180,103 @@ export default function StoreQrOrderingPage() {
       subtotal,
       taxTotal,
       discountTotal,
+      storeCreditApplied,
       pointsToRedeem,
       total,
       totalItems,
       estimatedPoints,
     };
-  }, [cart, customer, loyaltyOffer, redeemPointsToggle, store?.tax_percentage]);
+  }, [
+    cart,
+    customer,
+    loyaltyOffer,
+    redeemPointsToggle,
+    applyStoreCreditToggle,
+    store?.tax_percentage,
+  ]);
+
+  // Next unlockable reward
+  const nextReward = useMemo(() => {
+    if (!storeRewards || storeRewards.length === 0) {
+      return {
+        id: "default_bev",
+        name: "Free Beverage",
+        points_required: 50,
+      };
+    }
+    const sorted = [...storeRewards].sort(
+      (a, b) => a.points_required - b.points_required
+    );
+    const candidate = sorted.find(
+      (r) => r.points_required > (customer?.pointsBalance || 0)
+    );
+    return (
+      candidate ||
+      sorted[0] || {
+        id: "default_bev",
+        name: "Free Beverage",
+        points_required: 50,
+      }
+    );
+  }, [storeRewards, customer?.pointsBalance]);
+
+  // Gamified treat progress calculation
+  const treatProgress = useMemo(() => {
+    const currentPts = customer?.pointsBalance || 0;
+    const cartPts = cartTotals.estimatedPoints;
+    const projectedPts = currentPts + cartPts;
+    const targetPts = nextReward?.points_required || 50;
+    const pointsRemaining = Math.max(0, targetPts - projectedPts);
+    const currencyUnit = loyaltyOffer?.currency_unit || 10;
+    const pointsPerUnit = loyaltyOffer?.points_per_currency_unit || 1;
+    const amountNeeded = Math.ceil(
+      pointsRemaining * (currencyUnit / pointsPerUnit)
+    );
+    const progressPercent = Math.min(
+      100,
+      Math.max(8, Math.round((projectedPts / targetPts) * 100))
+    );
+
+    return {
+      currentPts,
+      cartPts,
+      projectedPts,
+      targetPts,
+      pointsRemaining,
+      amountNeeded,
+      progressPercent,
+    };
+  }, [customer?.pointsBalance, cartTotals.estimatedPoints, nextReward, loyaltyOffer]);
+
+  // Booster / Cross-sell item for treat card
+  const boosterItem = useMemo(() => {
+    const inCartIds = new Set(cart.map((c) => c.menuItem.id));
+    const coffee = items.find(
+      (i) =>
+        i.is_available &&
+        i.name.toLowerCase().includes("hot coffee") &&
+        !inCartIds.has(i.id)
+    );
+    if (coffee) return coffee;
+
+    const notInCart = items.filter(
+      (i) => i.is_available && !inCartIds.has(i.id)
+    );
+    if (notInCart.length > 0) {
+      return (
+        notInCart.find((i) => i.price <= 50) ||
+        notInCart[0]
+      );
+    }
+    return null;
+  }, [items, cart]);
+
+  const boosterPoints = useMemo(() => {
+    if (!boosterItem) return 0;
+    const unit = loyaltyOffer?.currency_unit || 10;
+    const ptsPer = loyaltyOffer?.points_per_currency_unit || 1;
+    return Math.max(1, Math.round((boosterItem.price / unit) * ptsPer));
+  }, [boosterItem, loyaltyOffer]);
 
   const handlePlaceOrder = async () => {
     if (!customer) {
@@ -1207,6 +1317,7 @@ export default function StoreQrOrderingPage() {
           tableNumber: orderType === "dine_in" ? tableNumber.trim() : null,
           notes: orderNotes.trim() || null,
           rewardPointsToRedeem: cartTotals.pointsToRedeem,
+          storeCreditToApply: cartTotals.storeCreditApplied,
           idempotencyKey,
           referredByCardPublicId: referredByCardPublicId || null,
           items: cart.map((c) => ({
@@ -1228,6 +1339,7 @@ export default function StoreQrOrderingPage() {
       setCart([]);
       setOrderNotes("");
       setRedeemPointsToggle(false);
+      setApplyStoreCreditToggle(false);
       setOrders((prev) => {
         const withoutCurrent = prev.filter((o) => o.id !== data.order.id);
         return [data.order, ...withoutCurrent];
@@ -1751,314 +1863,474 @@ export default function StoreQrOrderingPage() {
           </div>
         )}
 
-        {/* TAB 2: CART & CHECKOUT */}
+        {/* TAB 2: CART & CHECKOUT (Matching award-winning target UI) */}
         {activeTab === "cart" && (
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-xl mx-auto pb-20">
             {cart.length === 0 ? (
-              <Card className="p-8 text-center space-y-3">
-                <ShoppingBag className="w-10 h-10 text-zinc-400 mx-auto" />
-                <h2 className="font-bold text-base">Your cart is empty</h2>
-                <p className="text-xs text-zinc-500">
-                  Browse the store menu and add items to place your QR order.
+              <div className="p-8 text-center space-y-3 bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200/80 dark:border-zinc-800 shadow-xs">
+                <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 mx-auto flex items-center justify-center">
+                  <ShoppingBag className="w-8 h-8" />
+                </div>
+                <h2 className="font-extrabold text-lg text-zinc-900 dark:text-zinc-100 font-serif">
+                  Your cart is empty
+                </h2>
+                <p className="text-xs text-zinc-500 max-w-xs mx-auto">
+                  Browse the menu and add your favorite treats to earn loyalty points and redeem rewards!
                 </p>
-                <Button onClick={() => setActiveTab("menu")}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("menu")}
+                  className="mt-2 px-6 py-2.5 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                >
                   Browse Menu
-                </Button>
-              </Card>
+                </button>
+              </div>
             ) : (
               <>
-                <Card className="divide-y divide-stone-200 dark:divide-zinc-800">
-                  {cart.map((entry) => {
-                    const varDelta = entry.selectedVariant?.price_delta || 0;
-                    const addonSum = entry.selectedAddons.reduce(
-                      (s, a) => s + a.price,
-                      0
-                    );
-                    const unitPrice =
-                      entry.menuItem.price + varDelta + addonSum;
-                    return (
-                      <div
-                        key={entry.cartKey}
-                        className="p-4 flex items-start justify-between gap-3"
-                      >
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <p className="font-semibold text-sm">
-                            {entry.menuItem.name}
-                          </p>
-                          {entry.selectedVariant && (
-                            <p className="text-xs text-zinc-500">
-                              Option: {entry.selectedVariant.name}
-                            </p>
-                          )}
-                          {entry.selectedAddons.length > 0 && (
-                            <p className="text-xs text-zinc-500">
-                              Add-ons:{" "}
-                              {entry.selectedAddons
-                                .map((a) => a.name)
-                                .join(", ")}
-                            </p>
-                          )}
-                          {entry.notes && (
-                            <p className="text-xs italic text-zinc-500">
-                              Note: “{entry.notes}”
-                            </p>
-                          )}
-                          <p className="text-xs font-semibold tabular-nums pt-0.5">
-                            {formatCurrency(
-                              unitPrice * entry.quantity,
-                              store.currency
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            aria-label="Decrease quantity"
-                            onClick={() => updateCartQty(entry.cartKey, -1)}
-                            className="w-7 h-7 rounded-sm border border-stone-300 dark:border-zinc-700 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-zinc-800"
-                          >
-                            {entry.quantity === 1 ? (
-                              <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                            ) : (
-                              <Minus className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                          <span className="w-7 text-center text-sm font-bold tabular-nums">
-                            {entry.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            aria-label="Increase quantity"
-                            onClick={() => updateCartQty(entry.cartKey, 1)}
-                            className="w-7 h-7 rounded-sm border border-stone-300 dark:border-zinc-700 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-zinc-800"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </Card>
-
-                {/* Smart Upselling & Add-on Recommendations */}
-                {upsellItems.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Frequently Paired With</span>
+                {/* 1. Gamified Treat Progress Card */}
+                <div className="bg-gradient-to-b from-[#FFF5F7] via-[#FFF5F7] to-[#FFE8EF]/60 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-900 border border-rose-200/80 dark:border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs">
+                  {/* Title & Mascot Row */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight font-serif flex items-center gap-1.5 flex-wrap">
+                        <span>So close</span>
+                        <span className="text-[#E11D48] italic">
+                          to your next free treat!
+                        </span>
+                        <span>☕</span>
+                        <span className="text-rose-400">🪄</span>
+                      </h3>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
+                        {treatProgress.currentPts} points + {treatProgress.cartPts} from this cart ={" "}
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                          {treatProgress.projectedPts}
+                        </span>
                       </p>
-                      <span className="text-[10px] text-zinc-500 font-medium">
-                        Treat yourself
-                      </span>
                     </div>
-                    <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-                      {upsellItems.map((up) => (
-                        <div
-                          key={up.id}
-                          className="min-w-[155px] max-w-[170px] p-2.5 rounded-sm border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between shrink-0 shadow-xs"
-                        >
-                          <div>
-                            <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
-                              {up.name}
-                            </p>
-                            <p className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">
-                              {formatCurrency(
-                                up.price,
-                                store?.currency || "INR"
-                              )}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickAddUpsell(up)}
-                            className={`mt-2 w-full py-1 px-2 text-[11px] font-bold rounded-sm border flex items-center justify-center gap-1 transition-colors ${theme.chipActive}`}
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>Add</span>
-                          </button>
-                        </div>
-                      ))}
+
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 via-rose-600 to-pink-500 text-white flex items-center justify-center shadow-md shadow-rose-500/25 text-2xl shrink-0">
+                      🎁
                     </div>
                   </div>
-                )}
 
-                {/* Order Type & Table Number */}
-                <Card className="p-4 space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Order Type
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      {(
-                        [
-                          {
-                            val: "dine_in" as const,
-                            label: "Dine-In",
-                            desc: "Enjoy your food at the cafe. Served directly to your seat or table.",
-                          },
-                          {
-                            val: "takeaway" as const,
-                            label: "Takeaway",
-                            desc: "Freshly packed parcel to take home or enjoy on the move.",
-                          },
-                          {
-                            val: "pickup" as const,
-                            label: "Counter Pickup",
-                            desc: "Collect from the counter when your token number is ready.",
-                          },
-                        ] as const
-                      ).map(({ val, label, desc }) => (
+                  {/* Progress Bar Row */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-3 rounded-full bg-rose-200/70 dark:bg-zinc-800 overflow-hidden p-0.5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-rose-500 to-[#E11D48] transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.max(6, treatProgress.progressPercent))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 tabular-nums shrink-0">
+                      {treatProgress.projectedPts} / {treatProgress.targetPts}
+                    </span>
+                  </div>
+
+                  {/* Dynamic Helper Note */}
+                  <div className="bg-rose-100/70 dark:bg-rose-950/40 rounded-xl px-3.5 py-2 text-center text-xs font-bold text-rose-950 dark:text-rose-200">
+                    {treatProgress.pointsRemaining > 0
+                      ? `Just ₹${treatProgress.amountNeeded} more in your cart unlocks your ${treatProgress.targetPts}-point reward after payment!`
+                      : `🎉 This order unlocks your ${treatProgress.targetPts}-point ${nextReward.name} reward!`}
+                  </div>
+
+                  {/* Smart Booster Cross-sell Card */}
+                  {boosterItem && (
+                    <div className="bg-white dark:bg-zinc-850 rounded-2xl p-3 border border-rose-100 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-3">
+                      <img
+                        src={getItemImage(boosterItem.name, boosterItem.image_url)}
+                        alt={boosterItem.name}
+                        className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-2xs"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                            🔥 Popular
+                          </span>
+                        </div>
+                        <p className="font-extrabold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate mt-0.5">
+                          Add {boosterItem.name} · {formatCurrency(boosterItem.price, store.currency)}
+                        </p>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                          {boosterItem.description || "A classic to make your day brighter!"}
+                        </p>
+                        <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                          +{boosterPoints} more points, projected {treatProgress.projectedPts + boosterPoints}/{treatProgress.targetPts}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickAddUpsell(boosterItem)}
+                        className="px-3.5 py-2 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all shrink-0 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Add</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Your Cart Section */}
+                <div className="space-y-3 pt-1">
+                  <h3 className="font-extrabold text-lg text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 font-serif tracking-tight">
+                    <span>Your Cart</span>
+                    <span className="text-rose-500">🪄</span>
+                  </h3>
+                  <div className="space-y-2.5">
+                    {cart.map((entry) => {
+                      const varDelta = entry.selectedVariant?.price_delta || 0;
+                      const addonSum = entry.selectedAddons.reduce(
+                        (s, a) => s + a.price,
+                        0
+                      );
+                      const unitPrice =
+                        entry.menuItem.price + varDelta + addonSum;
+                      const linePts = Math.floor(
+                        (unitPrice * entry.quantity) /
+                          (loyaltyOffer?.currency_unit || 10)
+                      ) * (loyaltyOffer?.points_per_currency_unit || 1);
+
+                      return (
+                        <div
+                          key={entry.cartKey}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-3"
+                        >
+                          <img
+                            src={getItemImage(
+                              entry.menuItem.name,
+                              entry.menuItem.image_url
+                            )}
+                            alt={entry.menuItem.name}
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 shadow-2xs"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
+                              {entry.menuItem.name}
+                            </p>
+                            {entry.selectedVariant && (
+                              <p className="text-[11px] text-zinc-500">
+                                Option: {entry.selectedVariant.name}
+                              </p>
+                            )}
+                            {entry.selectedAddons.length > 0 && (
+                              <p className="text-[11px] text-zinc-500">
+                                Add-ons:{" "}
+                                {entry.selectedAddons
+                                  .map((a) => a.name)
+                                  .join(", ")}
+                              </p>
+                            )}
+                            {entry.notes && (
+                              <p className="text-[11px] italic text-zinc-500 truncate">
+                                “{entry.notes}”
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                                {formatCurrency(
+                                  unitPrice * entry.quantity,
+                                  store.currency
+                                )}
+                              </span>
+                              <span className="text-xs font-bold text-amber-500 flex items-center gap-0.5">
+                                ⭐{" "}
+                                <span className="text-rose-600 dark:text-rose-400 font-extrabold">
+                                  +{linePts} pts
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              aria-label="Remove item"
+                              onClick={() =>
+                                setCart((prev) =>
+                                  prev.filter(
+                                    (c) => c.cartKey !== entry.cartKey
+                                  )
+                                )
+                              }
+                              className="w-8 h-8 rounded-xl border border-stone-200 dark:border-zinc-700 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center border border-stone-200 dark:border-zinc-700 rounded-xl overflow-hidden bg-stone-50/50 dark:bg-zinc-800">
+                              <button
+                                type="button"
+                                aria-label="Decrease quantity"
+                                onClick={() => updateCartQty(entry.cartKey, -1)}
+                                className="w-7 h-8 flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:bg-stone-200 dark:hover:bg-zinc-700 cursor-pointer"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="w-7 text-center text-xs font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                                {entry.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                aria-label="Increase quantity"
+                                onClick={() => updateCartQty(entry.cartKey, 1)}
+                                className="w-7 h-8 flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:bg-stone-200 dark:hover:bg-zinc-700 cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. How would you like your order? Section */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="font-extrabold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <span className="text-rose-500">📍</span>
+                    <span>How would you like your order?</span>
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { val: "dine_in" as const, label: "Dine-In", icon: "🪑" },
+                      { val: "takeaway" as const, label: "Takeaway", icon: "🛍️" },
+                      {
+                        val: "pickup" as const,
+                        label: "Counter Pickup",
+                        icon: "🏪",
+                      },
+                    ].map(({ val, label, icon }) => {
+                      const isSelected = orderType === val;
+                      return (
                         <button
                           key={val}
                           type="button"
                           onClick={() => setOrderType(val)}
-                          className={`p-3 rounded-sm text-left border transition-all ${
-                            orderType === val
-                              ? `${theme.chipActive} shadow-sm ring-1 ${theme.primaryBorder}`
-                              : "border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-700"
+                          className={`relative py-3.5 px-2 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                            isSelected
+                              ? "border-[#E11D48] bg-rose-50/60 dark:bg-rose-950/20 shadow-2xs"
+                              : "border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-stone-300"
                           }`}
                         >
-                          <div className="font-bold text-xs flex items-center justify-between">
-                            <span>{label}</span>
-                            {orderType === val && (
-                              <Check className="w-3.5 h-3.5 shrink-0" />
-                            )}
-                          </div>
-                          <p
-                            className={`text-[11px] mt-1 leading-snug ${
-                              orderType === val
-                                ? "text-white/80 dark:text-zinc-900/80"
-                                : "text-zinc-500"
-                            }`}
-                          >
-                            {desc}
-                          </p>
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#E11D48] text-white flex items-center justify-center shadow-xs">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </div>
+                          )}
+                          <span className="text-2xl">{icon}</span>
+                          <span className="text-xs font-extrabold text-zinc-900 dark:text-zinc-100">
+                            {label}
+                          </span>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
 
-                  {orderType === "dine_in" && (
-                    <Input
-                      label={
-                        store?.require_table_number
-                          ? "Table Number (Required)"
-                          : "Table Number (Optional)"
-                      }
-                      placeholder={
-                        store?.require_table_number
-                          ? "e.g., Table 04 or Window Counter"
-                          : "e.g., Table 04 (Leave blank if sitting elsewhere)"
-                      }
-                      value={tableNumber}
-                      onChange={(e) => setTableNumber(e.target.value)}
-                      required={Boolean(store?.require_table_number)}
-                    />
-                  )}
-
-                  <Input
-                    label="Special Instructions / Allergies (Optional)"
-                    placeholder="e.g., Less sugar, serve warm, oat milk..."
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                  />
-                </Card>
-
-                {/* Loyalty Redemption Toggle (CART-10 / LOY-09) */}
-                {customer &&
-                  loyaltyOffer &&
-                  customer.pointsBalance >=
-                    loyaltyOffer.minimum_redemption_points && (
-                    <Card className={`p-4 ${theme.cardHighlight} ${theme.primaryLightBg} flex items-center justify-between gap-3`}>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          Redeem {loyaltyOffer.minimum_redemption_points} Loyalty Points
-                        </p>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                          Save{" "}
-                          {formatCurrency(
-                            (loyaltyOffer.minimum_redemption_points / 100) *
-                              loyaltyOffer.points_value_per_100,
-                            store.currency
-                          )}{" "}
-                          on this order (Available: {customer.pointsBalance} pts)
-                        </p>
+                  <div className="space-y-2.5 pt-1">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                        <span>🪑</span>
+                        <span>
+                          {store?.require_table_number
+                            ? "Table number (required)"
+                            : "Table number (optional)"}
+                        </span>
                       </div>
                       <input
-                        type="checkbox"
-                        checked={redeemPointsToggle}
-                        onChange={(e) =>
-                          setRedeemPointsToggle(e.target.checked)
-                        }
-                        className="w-5 h-5"
-                        style={{
-                          accentColor:
-                            store?.primary_color ||
-                            (store?.theme_preset === "rose"
-                              ? "#E11D48"
-                              : "#18181B"),
-                        }}
+                        type="text"
+                        placeholder="e.g., Table 04 (Leave blank if sitting elsewhere)"
+                        value={tableNumber}
+                        onChange={(e) => setTableNumber(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-[#E11D48] focus:ring-2 focus:ring-rose-100 transition-all"
                       />
-                    </Card>
-                  )}
+                    </div>
 
-                {/* Bill Breakdown */}
-                <Card className="p-4 space-y-2 text-sm">
-                  <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                    <span>Subtotal</span>
-                    <span className="tabular-nums">
-                      {formatCurrency(cartTotals.subtotal, store.currency)}
-                    </span>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                        <span>📝</span>
+                        <span>
+                          Any special instructions or allergies? (optional)
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g., Less sugar, serve warm, oat milk..."
+                        value={orderNotes}
+                        onChange={(e) => setOrderNotes(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-[#E11D48] focus:ring-2 focus:ring-rose-100 transition-all"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                    <span>GST / Taxes ({store.tax_percentage}%)</span>
-                    <span className="tabular-nums">
-                      {formatCurrency(cartTotals.taxTotal, store.currency)}
-                    </span>
+                </div>
+
+                {/* 4. Use your rewards Section */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="font-extrabold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 font-serif">
+                    <span className="text-rose-500">🎁</span>
+                    <span>Use your rewards</span>
+                    <span className="text-rose-500">🪄</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Store Credit Card */}
+                    <div className="p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900/50 flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">
+                          {formatCurrency(
+                            customer?.redeemableAmount || 100,
+                            store.currency
+                          )}{" "}
+                          available store credit
+                        </p>
+                        <label className="flex items-center gap-2 mt-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={applyStoreCreditToggle}
+                            onChange={(e) =>
+                              setApplyStoreCreditToggle(e.target.checked)
+                            }
+                            disabled={
+                              !customer ||
+                              (customer?.redeemableAmount || 0) <= 0
+                            }
+                            className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 accent-[#E11D48]"
+                          />
+                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                            Apply credit to this order
+                          </span>
+                        </label>
+                        <p className="text-[11px] text-zinc-500 mt-1">
+                          Up to{" "}
+                          {formatCurrency(
+                            Math.min(
+                              customer?.redeemableAmount || 100,
+                              cartTotals.subtotal + cartTotals.taxTotal
+                            ),
+                            store.currency
+                          )}{" "}
+                          can be applied
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Locked / Available Next Reward Card */}
+                    <div className="p-3.5 rounded-2xl border border-rose-100 bg-rose-50/40 dark:bg-rose-950/20 dark:border-rose-900/40 flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-rose-100/70 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                        {treatProgress.projectedPts >= treatProgress.targetPts ? (
+                          <Sparkles className="w-5 h-5" />
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <Lock className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                          <span>
+                            {nextReward.name} — {treatProgress.targetPts} pts
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-zinc-500 mt-1">
+                          {treatProgress.projectedPts >= treatProgress.targetPts
+                            ? "Unlocks with this order! Claim at counter after payment."
+                            : "Unlocks after enough points are credited."}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  {cartTotals.discountTotal > 0 && (
-                    <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-medium">
-                      <span>
-                        Loyalty Points Discount ({cartTotals.pointsToRedeem} pts)
-                      </span>
-                      <span className="tabular-nums">
-                        -{formatCurrency(cartTotals.discountTotal, store.currency)}
+
+                  <p className="text-[11px] text-zinc-500 flex items-center gap-1 pl-1">
+                    <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    <span>Points and store credit are separate balances.</span>
+                  </p>
+                </div>
+
+                {/* 5. Bill Breakdown */}
+                <div className="pt-2">
+                  <div className="p-4 rounded-2xl border border-stone-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs space-y-2 text-xs sm:text-sm">
+                    <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
+                        {formatCurrency(cartTotals.subtotal, store.currency)}
                       </span>
                     </div>
-                  )}
-                  <div className="border-t border-stone-200 dark:border-zinc-800 pt-2 flex justify-between font-bold text-base">
-                    <span>Total Payable at Counter</span>
-                    <span className="tabular-nums">
-                      {formatCurrency(cartTotals.total, store.currency)}
-                    </span>
+                    <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                      <span>GST / Taxes ({store.tax_percentage}%)</span>
+                      <span className="tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
+                        {formatCurrency(cartTotals.taxTotal, store.currency)}
+                      </span>
+                    </div>
+                    {cartTotals.discountTotal > 0 && (
+                      <div className="flex justify-between text-emerald-600 font-bold">
+                        <span>
+                          Loyalty Points Discount ({cartTotals.pointsToRedeem} pts)
+                        </span>
+                        <span className="tabular-nums">
+                          -{formatCurrency(cartTotals.discountTotal, store.currency)}
+                        </span>
+                      </div>
+                    )}
+                    {cartTotals.storeCreditApplied > 0 && (
+                      <div className="flex justify-between text-emerald-600 font-bold">
+                        <span>Store Credit Applied</span>
+                        <span className="tabular-nums">
+                          -{formatCurrency(cartTotals.storeCreditApplied, store.currency)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t border-stone-200 dark:border-zinc-800 pt-2 flex justify-between items-baseline">
+                      <span className="font-extrabold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
+                        Total at counter
+                      </span>
+                      <span className="font-extrabold text-base sm:text-lg tabular-nums text-zinc-900 dark:text-zinc-100">
+                        {formatCurrency(cartTotals.total, store.currency)}
+                      </span>
+                    </div>
+                    <div className="pt-0.5 flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 font-bold">
+                      <span>⭐</span>
+                      <span>
+                        You&apos;ll earn +{cartTotals.estimatedPoints} points after
+                        payment
+                      </span>
+                    </div>
                   </div>
-                  <div className={`pt-1 flex items-center justify-between text-xs ${theme.primaryText} font-medium`}>
-                    <span>Points credited automatically after payment</span>
-                    <span className="tabular-nums font-bold">
-                      +{cartTotals.estimatedPoints} pts
-                    </span>
-                  </div>
-                </Card>
+                </div>
 
                 {orderError && (
-                  <div className="p-3 rounded-sm bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 text-xs text-red-700 dark:text-red-300">
+                  <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 text-xs text-red-700 dark:text-red-300">
                     {orderError}
                   </div>
                 )}
 
-                <Button
-                  className={`w-full py-3 text-base ${theme.primaryButton}`}
-                  onClick={handlePlaceOrder}
-                  disabled={submittingOrder}
-                >
-                  {submittingOrder
-                    ? "Creating Order Token..."
-                    : customer
-                    ? `Place Order • ${formatCurrency(cartTotals.total, store.currency)}`
-                    : "Enter Phone Number & Place Order"}
-                </Button>
+                {/* 6. Action Bar */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={submittingOrder}
+                    onClick={handlePlaceOrder}
+                    className="w-full bg-[#E11D48] hover:bg-[#BE123C] text-white py-3.5 px-6 rounded-full shadow-lg shadow-rose-500/25 flex items-center justify-between transition-all transform active:scale-[0.99] disabled:opacity-70 cursor-pointer"
+                  >
+                    <div className="text-left">
+                      <p className="text-base sm:text-lg font-extrabold tracking-tight">
+                        {submittingOrder
+                          ? "Creating Order Token..."
+                          : customer
+                          ? `Place Order • ${formatCurrency(cartTotals.total, store.currency)}`
+                          : "Enter Phone Number & Place Order"}
+                      </p>
+                      <p className="text-[11px] text-rose-100 font-medium">
+                        Pay at counter
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#E11D48] shrink-0 shadow-sm">
+                      <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                  </button>
+                </div>
               </>
             )}
           </div>
