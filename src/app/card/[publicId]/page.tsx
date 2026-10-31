@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import StoreOrderingView from "@/components/store/StoreOrderingView";
 import {
   QrCode,
   Gift,
@@ -363,14 +364,41 @@ function RadialPointsGauge({
 
 export default function CustomerPublicCardPage() {
   const params = useParams<{ publicId: string }>();
+  const searchParams = useSearchParams();
   const publicId = params.publicId;
 
   const [data, setData] = useState<CardPagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "home" | "rewards" | "claim" | "history" | "privacy"
+    "home" | "menu" | "rewards" | "claim" | "history" | "privacy"
   >("home");
+
+  // Sync activeTab with URL ?tab= query parameter seamlessly
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam &&
+      ["home", "menu", "rewards", "claim", "history", "privacy"].includes(tabParam)
+    ) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (
+    newTab: "home" | "menu" | "rewards" | "claim" | "history" | "privacy"
+  ) => {
+    setActiveTab(newTab);
+    try {
+      const url = new URL(window.location.href);
+      if (newTab === "home") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", newTab);
+      }
+      window.history.replaceState(null, "", url.toString());
+    } catch {}
+  };
 
   // Mobile App Modals & Drawer state
   const [showQrModal, setShowQrModal] = useState(false);
@@ -1269,11 +1297,11 @@ export default function CustomerPublicCardPage() {
         )}
 
         {/* When in other tabs, show breadcrumb back button */}
-        {activeTab !== "home" && (
+        {activeTab !== "home" && activeTab !== "menu" && (
           <div className="flex items-center justify-between gap-2 pb-1">
             <button
               type="button"
-              onClick={() => setActiveTab("home")}
+              onClick={() => handleTabChange("home")}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1285,8 +1313,8 @@ export default function CustomerPublicCardPage() {
           </div>
         )}
 
-        {/* Navigation Tabs (visible when not in home) */}
-        {activeTab !== "home" && (
+        {/* Navigation Tabs (visible when not in home or menu) */}
+        {activeTab !== "home" && activeTab !== "menu" && (
           <div
             role="tablist"
             aria-label="Card actions and history"
@@ -1296,7 +1324,7 @@ export default function CustomerPublicCardPage() {
               role="tab"
               aria-selected={activeTab === "rewards"}
               type="button"
-              onClick={() => setActiveTab("rewards")}
+              onClick={() => handleTabChange("rewards")}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded transition-colors ${
                 activeTab === "rewards"
                   ? "bg-surface text-foreground shadow-sm border border-border"
@@ -1311,7 +1339,7 @@ export default function CustomerPublicCardPage() {
               role="tab"
               aria-selected={activeTab === "claim"}
               type="button"
-              onClick={() => setActiveTab("claim")}
+              onClick={() => handleTabChange("claim")}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded transition-colors ${
                 activeTab === "claim"
                   ? "bg-surface text-foreground shadow-sm border border-border"
@@ -1326,7 +1354,7 @@ export default function CustomerPublicCardPage() {
               role="tab"
               aria-selected={activeTab === "history"}
               type="button"
-              onClick={() => setActiveTab("history")}
+              onClick={() => handleTabChange("history")}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded transition-colors ${
                 activeTab === "history"
                   ? "bg-surface text-foreground shadow-sm border border-border"
@@ -1341,7 +1369,7 @@ export default function CustomerPublicCardPage() {
               role="tab"
               aria-selected={activeTab === "privacy"}
               type="button"
-              onClick={() => setActiveTab("privacy")}
+              onClick={() => handleTabChange("privacy")}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded transition-colors ${
                 activeTab === "privacy"
                   ? "bg-surface text-foreground shadow-sm border border-border"
@@ -1355,7 +1383,7 @@ export default function CustomerPublicCardPage() {
         )}
 
         {/* Phone Last-4 Verification Bar for Write Actions */}
-        {activeTab !== "home" && (
+        {activeTab !== "home" && activeTab !== "menu" && (
           <div className="p-3.5 rounded bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
             <div className="flex items-center gap-2 text-xs">
               <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
@@ -1381,6 +1409,34 @@ export default function CustomerPublicCardPage() {
               className="w-full sm:w-28 px-3 py-1.5 text-xs font-mono text-center rounded border border-border bg-background text-foreground"
             />
           </div>
+        )}
+
+        {/* TAB: SEAMLESS INTEGRATED STORE MENU & ORDERING */}
+        {activeTab === "menu" && (
+          <section className="space-y-4 no-print animate-in fade-in duration-200">
+            <StoreOrderingView
+              storeSlug={business.slug}
+              initialCustomer={{
+                cardPublicId: card.publicId,
+                cardNumber: card.cardNumber,
+                fullName: customer.fullName,
+                displayName: customer.fullName,
+                phone: customer.maskedPhone,
+                maskedPhone: customer.maskedPhone,
+                pointsBalance: card.pointsBalance,
+                redeemableAmount: card.redeemableAmount,
+                email: (customer as any).email || null,
+              }}
+              embedded={true}
+              onBackToHome={() => handleTabChange("home")}
+              onNavigateTab={(tab) => {
+                if (tab === "home") handleTabChange("home");
+                else if (tab === "rewards") handleTabChange("rewards");
+                else if (tab === "orders") handleTabChange("history");
+                else if (tab === "profile") handleTabChange("privacy");
+              }}
+            />
+          </section>
         )}
 
         {/* TAB 1: REWARDS & WALLET CONVERSION */}
@@ -2793,7 +2849,7 @@ export default function CustomerPublicCardPage() {
                   type="button"
                   onClick={() => {
                     setShowMenuDrawer(false);
-                    setActiveTab("home");
+                    handleTabChange("home");
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors text-left"
                 >
@@ -2801,20 +2857,23 @@ export default function CustomerPublicCardPage() {
                   <span>Pass Home</span>
                 </button>
 
-                <Link
-                  href={`/s/${business.slug}`}
-                  onClick={() => setShowMenuDrawer(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenuDrawer(false);
+                    handleTabChange("menu");
+                  }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors text-left"
                 >
                   <Coffee className="w-4 h-4 text-rose-500" />
                   <span>Order Menu</span>
-                </Link>
+                </button>
 
                 <button
                   type="button"
                   onClick={() => {
                     setShowMenuDrawer(false);
-                    setActiveTab("rewards");
+                    handleTabChange("rewards");
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors text-left"
                 >
@@ -2826,7 +2885,7 @@ export default function CustomerPublicCardPage() {
                   type="button"
                   onClick={() => {
                     setShowMenuDrawer(false);
-                    setActiveTab("claim");
+                    handleTabChange("claim");
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors text-left"
                 >
@@ -2838,7 +2897,7 @@ export default function CustomerPublicCardPage() {
                   type="button"
                   onClick={() => {
                     setShowMenuDrawer(false);
-                    setActiveTab("history");
+                    handleTabChange("history");
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors text-left"
                 >
@@ -2850,7 +2909,7 @@ export default function CustomerPublicCardPage() {
                   type="button"
                   onClick={() => {
                     setShowMenuDrawer(false);
-                    setActiveTab("privacy");
+                    handleTabChange("privacy");
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors text-left"
                 >
@@ -2892,7 +2951,7 @@ export default function CustomerPublicCardPage() {
         <div className="max-w-md mx-auto grid grid-cols-5 py-2 px-1 text-center">
           <button
             type="button"
-            onClick={() => setActiveTab("home")}
+            onClick={() => handleTabChange("home")}
             className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
               activeTab === "home"
                 ? "text-[#E11D48] font-bold"
@@ -2903,17 +2962,22 @@ export default function CustomerPublicCardPage() {
             <span className="text-[10px]">Home</span>
           </button>
 
-          <Link
-            href={`/s/${business.slug}`}
-            className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+          <button
+            type="button"
+            onClick={() => handleTabChange("menu")}
+            className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+              activeTab === "menu"
+                ? "text-[#E11D48] font-bold"
+                : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            }`}
           >
             <Coffee className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px]">Menu</span>
-          </Link>
+          </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab("rewards")}
+            onClick={() => handleTabChange("rewards")}
             className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
               activeTab === "rewards"
                 ? "text-[#E11D48] font-bold"
@@ -2926,7 +2990,7 @@ export default function CustomerPublicCardPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("history")}
+            onClick={() => handleTabChange("history")}
             className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
               activeTab === "history"
                 ? "text-[#E11D48] font-bold"
@@ -2939,7 +3003,7 @@ export default function CustomerPublicCardPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("privacy")}
+            onClick={() => handleTabChange("privacy")}
             className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
               activeTab === "privacy"
                 ? "text-[#E11D48] font-bold"
