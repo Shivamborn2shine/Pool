@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -9,6 +9,10 @@ import {
   ArrowRight,
   Loader2,
   X,
+  MessageSquare,
+  Sparkles,
+  ExternalLink,
+  Gift,
 } from "lucide-react";
 import {
   CopyButton,
@@ -32,11 +36,21 @@ interface CustomerRow {
   redeemable_amount: number;
   pending_points: number;
   lifetime_purchase_amount: number;
+  birthday_day?: number | null;
+  birthday_month?: number | null;
+  last_visited_at?: string | null;
   created_at: string;
 }
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [businessInfo, setBusinessInfo] = useState<{
+    name: string;
+    slug: string;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState<"all" | "retention" | "birthdays">(
+    "all"
+  );
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -51,6 +65,26 @@ export default function CustomersPage() {
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const now = useMemo(() => new Date(), []);
+  const fourteenDaysAgo = useMemo(
+    () => new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+    [now]
+  );
+
+  const dormantCustomers = useMemo(() => {
+    return customers.filter((c) => {
+      const lastVisit = c.last_visited_at
+        ? new Date(c.last_visited_at)
+        : new Date(c.created_at);
+      return lastVisit < fourteenDaysAgo;
+    });
+  }, [customers, fourteenDaysAgo]);
+
+  const currentMonth = now.getMonth() + 1;
+  const birthdayCustomers = useMemo(() => {
+    return customers.filter((c) => c.birthday_month === currentMonth);
+  }, [customers, currentMonth]);
+
   const fetchCustomers = useCallback(async (search: string) => {
     setLoading(true);
     try {
@@ -60,6 +94,7 @@ export default function CustomersPage() {
       const json = await res.json();
       if (res.ok) {
         setCustomers(json.customers || []);
+        if (json.business) setBusinessInfo(json.business);
       }
     } finally {
       setLoading(false);
@@ -134,18 +169,229 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search customer by phone (+91...), name, email, or card number..."
-          aria-label="Search customers"
-          className="w-full pl-10 pr-4 py-2.5 text-sm rounded border border-border bg-surface text-foreground"
-        />
+      {/* Retention & Marketing Sub-Tabs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("all")}
+          className={`py-2 px-3 text-xs font-semibold rounded border transition-colors flex items-center justify-between ${
+            activeTab === "all"
+              ? "bg-surface text-foreground border-accent shadow-xs"
+              : "bg-surface-elevated text-muted border-border hover:text-foreground"
+          }`}
+        >
+          <span>All Customers</span>
+          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-background border border-border">
+            {customers.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("retention")}
+          className={`py-2 px-3 text-xs font-semibold rounded border transition-colors flex items-center justify-between ${
+            activeTab === "retention"
+              ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 shadow-xs"
+              : "bg-surface-elevated text-muted border-border hover:text-foreground"
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+            <span>Win-Back Retention (14+ Days)</span>
+          </span>
+          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200">
+            {dormantCustomers.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("birthdays")}
+          className={`py-2 px-3 text-xs font-semibold rounded border transition-colors flex items-center justify-between ${
+            activeTab === "birthdays"
+              ? "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800 shadow-xs"
+              : "bg-surface-elevated text-muted border-border hover:text-foreground"
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <Gift className="w-3.5 h-3.5 text-purple-500" />
+            <span>Birthday Club (This Month)</span>
+          </span>
+          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200">
+            {birthdayCustomers.length}
+          </span>
+        </button>
       </div>
+
+      {activeTab === "retention" ? (
+        <div className="space-y-3">
+          <div className="p-3.5 rounded bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                🎯 1-Click WhatsApp Win-Back Retention Studio
+              </p>
+              <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
+                These customers have not visited your store in 14+ days. Tap "Send WhatsApp Win-Back" to send a personalized invite with bonus points to bring them back!
+              </p>
+            </div>
+          </div>
+
+          {dormantCustomers.length === 0 ? (
+            <div className="p-8 text-center border border-border bg-surface rounded text-muted text-xs">
+              Awesome! You have no dormant customers right now. All customers visited within the last 14 days.
+            </div>
+          ) : (
+            <div className="border border-border bg-surface rounded overflow-hidden">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-surface-elevated text-muted font-mono uppercase">
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Points</th>
+                    <th className="py-3 px-4">Last Visit</th>
+                    <th className="py-3 px-4 text-right">Retention Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {dormantCustomers.map((c) => {
+                    const daysAgo = Math.floor(
+                      (now.getTime() -
+                        new Date(
+                          c.last_visited_at || c.created_at
+                        ).getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    );
+                    const bName = businessInfo?.name || "Scoop N Brew";
+                    const winBackMsg = `Hey ${c.full_name}, we miss you at ${bName}! ❤️ Enjoy 50 bonus points on your next visit this week: https://loopacards.netlify.app/card/${c.public_id}`;
+                    const waUrl = `https://wa.me/${c.phone.replace(
+                      /\D/g,
+                      ""
+                    )}?text=${encodeURIComponent(winBackMsg)}`;
+
+                    return (
+                      <tr key={c.id} className="hover:bg-surface-elevated/50">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-foreground">
+                            {c.full_name}
+                          </div>
+                          <div className="text-muted font-mono">{c.phone}</div>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold">
+                          {c.points_balance} pts
+                        </td>
+                        <td className="py-3 px-4 text-rose-600 dark:text-rose-400 font-medium">
+                          {daysAgo} days ago
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>WhatsApp Win-Back</span>
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : activeTab === "birthdays" ? (
+        <div className="space-y-3">
+          <div className="p-3.5 rounded bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold text-purple-900 dark:text-purple-200">
+                🎂 Birthday Club Greetings Studio
+              </p>
+              <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
+                Customers celebrating their birthday this month. Send them a personal WhatsApp wish and invite them for a complimentary birthday treat!
+              </p>
+            </div>
+          </div>
+
+          {birthdayCustomers.length === 0 ? (
+            <div className="p-8 text-center border border-border bg-surface rounded text-muted text-xs">
+              No registered customer birthdays in the current month yet.
+            </div>
+          ) : (
+            <div className="border border-border bg-surface rounded overflow-hidden">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-surface-elevated text-muted font-mono uppercase">
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Birthday</th>
+                    <th className="py-3 px-4">Points</th>
+                    <th className="py-3 px-4 text-right">Greeting Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {birthdayCustomers.map((c) => {
+                    const bName = businessInfo?.name || "Scoop N Brew";
+                    const bdayMsg = `Happy Birthday ${c.full_name}! 🎂 Wishing you great food and sweet vibes from the team at ${bName}! Show your loyalty card today for a complimentary birthday treat: https://loopacards.netlify.app/card/${c.public_id}`;
+                    const waUrl = `https://wa.me/${c.phone.replace(
+                      /\D/g,
+                      ""
+                    )}?text=${encodeURIComponent(bdayMsg)}`;
+
+                    return (
+                      <tr key={c.id} className="hover:bg-surface-elevated/50">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-foreground">
+                            {c.full_name}
+                          </div>
+                          <div className="text-muted font-mono">{c.phone}</div>
+                        </td>
+                        <td className="py-3 px-4 font-bold text-purple-700 dark:text-purple-300">
+                          {c.birthday_day
+                            ? `${new Date(
+                                2024,
+                                (c.birthday_month || 1) - 1,
+                                c.birthday_day
+                              ).toLocaleString("default", {
+                                month: "short",
+                              })} ${c.birthday_day}`
+                            : "This Month"}
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold">
+                          {c.points_balance} pts
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Wish on WhatsApp</span>
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search customer by phone (+91...), name, email, or card number..."
+              aria-label="Search customers"
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded border border-border bg-surface text-foreground"
+            />
+          </div>
 
       {/* Customers Table */}
       {loading ? (
@@ -241,6 +487,8 @@ export default function CustomersPage() {
             </table>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* Add Customer Modal */}

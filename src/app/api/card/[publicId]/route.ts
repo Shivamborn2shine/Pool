@@ -13,6 +13,8 @@ export async function GET(
       c.full_name AS customer_name,
       c.phone AS customer_phone,
       c.email AS customer_email,
+      c.birthday_day AS customer_birthday_day,
+      c.birthday_month AS customer_birthday_month,
       c.marketing_consent,
       c.loyalty_consent,
       c.status AS customer_status,
@@ -135,6 +137,8 @@ export async function GET(
     customer: {
       fullName: row.customer_name,
       maskedPhone: maskPhone(row.customer_phone),
+      birthdayDay: row.customer_birthday_day ? Number(row.customer_birthday_day) : null,
+      birthdayMonth: row.customer_birthday_month ? Number(row.customer_birthday_month) : null,
       marketingConsent: Boolean(row.marketing_consent),
       loyaltyConsent: Boolean(row.loyalty_consent),
       status: row.customer_status,

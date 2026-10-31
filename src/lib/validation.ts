@@ -235,6 +235,7 @@ export const createOrderSchema = z.object({
   notes: z.string().max(300).optional().nullable(),
   rewardPointsToRedeem: z.coerce.number().int().min(0).optional().default(0),
   idempotencyKey: z.string().min(6).max(120).optional(),
+  referredByCardPublicId: z.string().max(80).optional().nullable(),
   items: z
     .array(orderCartItemSchema)
     .min(1, "Add at least one item to your cart before placing an order"),

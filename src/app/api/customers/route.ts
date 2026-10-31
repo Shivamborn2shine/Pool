@@ -92,7 +92,13 @@ export async function GET(request: Request) {
     `;
   }
 
-  return NextResponse.json({ customers: rows });
+  return NextResponse.json({
+    customers: rows,
+    business: {
+      name: ctx.business.name,
+      slug: ctx.business.slug,
+    },
+  });
 }
 
 export async function POST(request: Request) {

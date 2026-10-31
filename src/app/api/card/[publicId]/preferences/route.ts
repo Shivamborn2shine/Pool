@@ -9,7 +9,14 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { phoneLast4, marketingConsent, privacyRequestType, details } = body;
+    const {
+      phoneLast4,
+      marketingConsent,
+      privacyRequestType,
+      details,
+      birthdayDay,
+      birthdayMonth,
+    } = body;
 
     const rows = await sql`
       SELECT
@@ -85,6 +92,20 @@ export async function PATCH(
         privacyRequest: reqRow,
         message: `Your data ${privacyRequestType} request has been logged under DPDP Act 2023 compliance.`,
       });
+    }
+
+    // Update birthday if provided
+    if (birthdayDay && birthdayMonth) {
+      const bDay = Math.min(Math.max(Number(birthdayDay), 1), 31);
+      const bMonth = Math.min(Math.max(Number(birthdayMonth), 1), 12);
+      await sql`
+        UPDATE public.customers
+        SET
+          birthday_day = ${bDay},
+          birthday_month = ${bMonth},
+          updated_at = NOW()
+        WHERE id = ${row.customer_id}
+      `;
     }
 
     // Update marketing consent preference (CUST-10)

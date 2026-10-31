@@ -291,6 +291,82 @@ export async function executeStaffOrderTransition(
         RETURNING *
       `;
 
+      // Update customer last_visited_at
+      await tx`
+        UPDATE public.customers
+        SET last_visited_at = NOW(), updated_at = NOW()
+        WHERE id = ${order.customer_id}
+      `;
+
+      // Two-sided viral referral bonus: +50 pts to friend and +50 pts to referrer
+      if (
+        order.referred_by_card_id &&
+        !order.referral_reward_credited &&
+        Number(order.total) >= 50
+      ) {
+        const [refCard] = await tx`
+          SELECT * FROM public.loyalty_cards
+          WHERE id = ${order.referred_by_card_id} AND business_id = ${ctx.business.id}
+          FOR UPDATE
+        `;
+
+        if (refCard) {
+          const REFERRAL_BONUS_PTS = 50;
+
+          // 1. Credit +50 pts to referring card
+          const refNewBal = Number(refCard.points_balance) + REFERRAL_BONUS_PTS;
+          await tx`
+            UPDATE public.loyalty_cards
+            SET
+              points_balance = ${refNewBal},
+              lifetime_points_earned = lifetime_points_earned + ${REFERRAL_BONUS_PTS},
+              updated_at = NOW()
+            WHERE id = ${refCard.id}
+          `;
+
+          await tx`
+            INSERT INTO public.transactions (
+              business_id, card_id, type, points_change, amount_change,
+              points_balance_after, redeemable_amount_after, description, metadata
+            ) VALUES (
+              ${ctx.business.id}, ${refCard.id}, 'points_earned',
+              ${REFERRAL_BONUS_PTS}, 0, ${refNewBal}, ${Number(refCard.redeemable_amount)},
+              ${`Referral Reward: Friend ordered (${order.order_number}) (+${REFERRAL_BONUS_PTS} pts)`},
+              ${JSON.stringify({ order_id: order.id, order_number: order.order_number, type: "referral_bonus" })}
+            )
+          `;
+
+          // 2. Credit +50 pts to current card as welcome referral bonus
+          const customerBonusBal = newPointsBalance + REFERRAL_BONUS_PTS;
+          await tx`
+            UPDATE public.loyalty_cards
+            SET
+              points_balance = ${customerBonusBal},
+              lifetime_points_earned = lifetime_points_earned + ${REFERRAL_BONUS_PTS},
+              updated_at = NOW()
+            WHERE id = ${card.id}
+          `;
+
+          await tx`
+            INSERT INTO public.transactions (
+              business_id, card_id, type, points_change, amount_change,
+              points_balance_after, redeemable_amount_after, description, metadata
+            ) VALUES (
+              ${ctx.business.id}, ${card.id}, 'points_earned',
+              ${REFERRAL_BONUS_PTS}, 0, ${customerBonusBal}, ${Number(card.redeemable_amount)},
+              ${`Welcome Referral Bonus: Used friend's referral link (+${REFERRAL_BONUS_PTS} pts)`},
+              ${JSON.stringify({ referrer_card_id: refCard.id, type: "referral_welcome" })}
+            )
+          `;
+
+          await tx`
+            UPDATE public.orders
+            SET referral_reward_credited = TRUE
+            WHERE id = ${order.id}
+          `;
+        }
+      }
+
       await tx`
         INSERT INTO public.order_events (
           order_id, event, actor_type, actor_id, note, metadata

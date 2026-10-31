@@ -14,6 +14,7 @@ import {
   Plus,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Search,
   ShoppingBag,
   Sparkles,
@@ -318,6 +319,94 @@ export default function StoreQrOrderingPage() {
   const theme = useMemo(() => {
     return THEME_STYLES[store?.theme_preset || "rose"] || THEME_STYLES.rose;
   }, [store?.theme_preset]);
+
+  // Capture viral referral link if present in query parameter
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      try {
+        window.localStorage.setItem("loopa_referral_ref", ref);
+      } catch {}
+    }
+  }, [searchParams]);
+
+  // 1-Tap Reorder items from customer's latest order
+  const favoriteItems = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+    const pastOrder = orders.find((o) => o.items && o.items.length > 0);
+    return pastOrder ? pastOrder.items : [];
+  }, [orders]);
+
+  const handleReorderFavorites = () => {
+    if (favoriteItems.length === 0) return;
+    const newCartEntries: CartEntry[] = [];
+    for (const fav of favoriteItems) {
+      const match = items.find(
+        (it) => it.name.toLowerCase() === fav.item_name.toLowerCase()
+      );
+      if (match) {
+        newCartEntries.push({
+          cartKey: `${match.id}_reorder_${Date.now()}_${Math.random()}`,
+          menuItem: match,
+          quantity: fav.quantity,
+          selectedVariant: null,
+          selectedAddons: [],
+          notes: "",
+        });
+      }
+    }
+    if (newCartEntries.length > 0) {
+      setCart((prev) => [...prev, ...newCartEntries]);
+      setActiveTab("cart");
+    }
+  };
+
+  // Smart Upsell Recommendations (frequently paired snacks, drinks, desserts)
+  const upsellItems = useMemo(() => {
+    if (cart.length === 0 || items.length === 0) return [];
+    const inCartIds = new Set(cart.map((c) => c.menuItem.id));
+    const candidates = items.filter(
+      (it) => it.is_available && it.is_visible && !inCartIds.has(it.id)
+    );
+    return candidates
+      .sort((a, b) => {
+        const aBoost = /fries|mojito|shake|waffle|coffee|spiral|tea/i.test(
+          a.name
+        )
+          ? 1
+          : 0;
+        const bBoost = /fries|mojito|shake|waffle|coffee|spiral|tea/i.test(
+          b.name
+        )
+          ? 1
+          : 0;
+        return bBoost - aBoost || a.price - b.price;
+      })
+      .slice(0, 6);
+  }, [cart, items]);
+
+  const handleQuickAddUpsell = (item: StoreMenuItem) => {
+    const cartKey = `${item.id}_default`;
+    setCart((prev) => {
+      const existing = prev.find((c) => c.cartKey === cartKey);
+      if (existing) {
+        return prev.map((c) =>
+          c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c
+        );
+      }
+      return [
+        ...prev,
+        {
+          cartKey,
+          menuItem: item,
+          quantity: 1,
+          selectedVariant: null,
+          selectedAddons: [],
+          notes: "",
+        },
+      ];
+    });
+  };
 
   const storageKey = `loopa_store_session_${storeSlug}`;
 
@@ -707,6 +796,16 @@ export default function StoreQrOrderingPage() {
     setSubmittingOrder(true);
     try {
       const idempotencyKey = `ord_${customer.cardPublicId}_${Date.now()}`;
+      const referredByCardPublicId =
+        searchParams.get("ref") ||
+        (() => {
+          try {
+            return window.localStorage.getItem("loopa_referral_ref");
+          } catch {
+            return null;
+          }
+        })();
+
       const res = await fetch(`/api/s/${storeSlug}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -718,6 +817,7 @@ export default function StoreQrOrderingPage() {
           notes: orderNotes.trim() || null,
           rewardPointsToRedeem: cartTotals.pointsToRedeem,
           idempotencyKey,
+          referredByCardPublicId: referredByCardPublicId || null,
           items: cart.map((c) => ({
             menuItemId: c.menuItem.id,
             quantity: c.quantity,
@@ -992,6 +1092,42 @@ export default function StoreQrOrderingPage() {
         {/* TAB 1: DIGITAL MENU */}
         {activeTab === "menu" && (
           <div className="space-y-4">
+            {/* Customer 1-Tap Reorder Banner */}
+            {customer && favoriteItems.length > 0 && (
+              <div
+                className={`p-3.5 rounded-sm border ${theme.chipActive} bg-stone-50 dark:bg-zinc-900/80 flex items-center justify-between gap-3 shadow-xs`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0 ${theme.primaryButton}`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                      <span>Quick Reorder</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-stone-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-extrabold uppercase">
+                        1-Tap
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">
+                      {favoriteItems
+                        .map((i) => `${i.quantity}x ${i.item_name}`)
+                        .join(", ")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReorderFavorites}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-sm text-white shrink-0 flex items-center gap-1 active:scale-95 transition-all shadow-xs ${theme.primaryButton}`}
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reorder</span>
+                </button>
+              </div>
+            )}
+
             {/* Search & Category Pills */}
             <div className="space-y-3">
               <div className="relative">
@@ -1195,6 +1331,49 @@ export default function StoreQrOrderingPage() {
                     );
                   })}
                 </Card>
+
+                {/* Smart Upselling & Add-on Recommendations */}
+                {upsellItems.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Frequently Paired With</span>
+                      </p>
+                      <span className="text-[10px] text-zinc-500 font-medium">
+                        Treat yourself
+                      </span>
+                    </div>
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
+                      {upsellItems.map((up) => (
+                        <div
+                          key={up.id}
+                          className="min-w-[155px] max-w-[170px] p-2.5 rounded-sm border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between shrink-0 shadow-xs"
+                        >
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                              {up.name}
+                            </p>
+                            <p className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">
+                              {formatCurrency(
+                                up.price,
+                                store?.currency || "INR"
+                              )}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAddUpsell(up)}
+                            className={`mt-2 w-full py-1 px-2 text-[11px] font-bold rounded-sm border flex items-center justify-center gap-1 transition-colors ${theme.chipActive}`}
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Order Type & Table Number */}
                 <Card className="p-4 space-y-4">

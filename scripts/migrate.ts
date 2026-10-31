@@ -557,6 +557,8 @@ async function migrate() {
         card_id UUID NOT NULL REFERENCES public.loyalty_cards(id) ON DELETE CASCADE,
         task_id TEXT NOT NULL,
         points_awarded INTEGER NOT NULL,
+        proof_handle TEXT,
+        status TEXT NOT NULL DEFAULT 'verified',
         claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         CONSTRAINT uq_card_bonus_task UNIQUE (card_id, task_id)
       );

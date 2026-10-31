@@ -62,6 +62,49 @@ interface StaffOrder {
   confirmed_at: string | null;
   paid_at: string | null;
   items: StaffOrderItem[];
+  bonus_claims?: {
+    task_id: string;
+    task_title: string;
+    proof_handle: string | null;
+    points_awarded: number;
+    claimed_at: string;
+  }[];
+}
+
+function playOrderChime() {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.2, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.45);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(880, now + 0.12);
+    gain2.gain.setValueAtTime(0.25, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.65);
+  } catch (e) {
+    console.error("Audio chime error:", e);
+  }
 }
 
 export default function StaffOrdersQueuePage() {
@@ -81,6 +124,8 @@ export default function StaffOrdersQueuePage() {
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [soundAlerts, setSoundAlerts] = useState(true);
+  const [kdsMode, setKdsMode] = useState(false);
+  const knownOrderIdsRef = React.useRef<Set<string>>(new Set());
 
   // Online payment modal state
   const [onlinePayOrder, setOnlinePayOrder] = useState<StaffOrder | null>(null);
@@ -107,7 +152,19 @@ export default function StaffOrdersQueuePage() {
         const res = await fetch(`/api/staff/orders?${qs.toString()}`);
         const data = await res.json();
         if (res.ok) {
-          setOrders(data.orders || []);
+          const incoming = data.orders || [];
+          if (silent && soundAlerts) {
+            const hasNewOrder = incoming.some(
+              (o: StaffOrder) =>
+                (o.status === "created" || o.status === "awaiting_confirmation") &&
+                !knownOrderIdsRef.current.has(o.id)
+            );
+            if (hasNewOrder) {
+              playOrderChime();
+            }
+          }
+          knownOrderIdsRef.current = new Set(incoming.map((o: StaffOrder) => o.id));
+          setOrders(incoming);
           if (data.counts) setCounts(data.counts);
         }
       } finally {
@@ -193,15 +250,29 @@ export default function StaffOrdersQueuePage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setSoundAlerts((prev) => !prev)}
+            onClick={() => {
+              setSoundAlerts((prev) => {
+                const next = !prev;
+                if (next) playOrderChime();
+                return next;
+              });
+            }}
             className={`px-3 py-2 rounded-sm text-xs font-semibold border flex items-center gap-1.5 ${
               soundAlerts
-                ? "bg-stone-100 dark:bg-zinc-800 border-stone-300 dark:border-zinc-700"
+                ? "bg-stone-100 dark:bg-zinc-800 border-stone-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
                 : "border-stone-200 dark:border-zinc-800 text-zinc-400"
             }`}
           >
             <Bell className="w-3.5 h-3.5 text-terracotta-600" />
-            {soundAlerts ? "Live Alerts On" : "Alerts Muted"}
+            {soundAlerts ? "Live Alerts On (Chime)" : "Alerts Muted"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setKdsMode(true)}
+            className="px-3 py-2 rounded-sm text-xs font-bold border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 hover:bg-amber-100 flex items-center gap-1.5"
+          >
+            <ChefHat className="w-3.5 h-3.5" />
+            <span>Kitchen KDS Mode</span>
           </button>
           <a
             href="/api/staff/reports/orders?export=csv"
@@ -397,6 +468,26 @@ export default function StaffOrdersQueuePage() {
                           <ExternalLink className="w-2.5 h-2.5" />
                         </Link>
                       </div>
+
+                      {order.bonus_claims && order.bonus_claims.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 rounded px-2 py-0.5 inline-flex items-center gap-1 shadow-2xs">
+                            <span>📸 Bonus Claimed:</span>
+                            <span className="font-bold">
+                              {order.bonus_claims
+                                .map(
+                                  (bc) =>
+                                    `${bc.task_title}${
+                                      bc.proof_handle
+                                        ? ` (${bc.proof_handle})`
+                                        : ""
+                                    }`
+                                )
+                                .join(", ")}
+                            </span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-right shrink-0">
@@ -796,6 +887,195 @@ export default function StaffOrdersQueuePage() {
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* High-Contrast Kitchen Display Mode (KDS) for Tablets */}
+      {kdsMode && (
+        <div className="fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col p-4 sm:p-6 overflow-hidden">
+          <header className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <ChefHat className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black tracking-wide text-zinc-100 flex items-center gap-2">
+                  <span>KITCHEN DISPLAY SCREEN (KDS)</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/40">
+                    LIVE
+                  </span>
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Optimized for tablet mounts • Preparing: {counts.preparing} • Awaiting Payment: {counts.awaiting_payment}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => fetchOrders()}
+                disabled={refreshing}
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+                />
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setKdsMode(false)}
+                className="font-bold"
+              >
+                Exit KDS
+              </Button>
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+            {orders
+              .filter(
+                (o) =>
+                  o.status === "preparing" ||
+                  o.status === "paid" ||
+                  o.status === "points_credited" ||
+                  o.status === "ready" ||
+                  o.status === "confirmed"
+              )
+              .map((order) => {
+                const isReady = order.status === "ready";
+                const isPreparing = order.status === "preparing";
+
+                return (
+                  <div
+                    key={order.id}
+                    className={`rounded-lg border-2 p-4 flex flex-col justify-between transition-all ${
+                      isReady
+                        ? "bg-emerald-950/30 border-emerald-500/60"
+                        : isPreparing
+                        ? "bg-amber-950/20 border-amber-500/60"
+                        : "bg-zinc-900 border-zinc-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-3">
+                        <div>
+                          <p className="text-2xl font-black tracking-tight text-white">
+                            {order.order_number}
+                          </p>
+                          <p className="text-xs font-semibold text-zinc-400 uppercase">
+                            {order.order_type.replace("_", " ")}{" "}
+                            {order.table_number
+                              ? `• Table ${order.table_number}`
+                              : ""}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span
+                            className={`px-2 py-0.5 text-xs font-extrabold uppercase rounded ${
+                              isReady
+                                ? "bg-emerald-500 text-black"
+                                : isPreparing
+                                ? "bg-amber-500 text-black"
+                                : "bg-zinc-800 text-zinc-300"
+                            }`}
+                          >
+                            {order.status.replace("_", " ")}
+                          </span>
+                          <p className="text-xs font-mono text-zinc-400 mt-1">
+                            {getElapsedMinutes(order.created_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mb-4">
+                        {order.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-start justify-between gap-2 text-sm"
+                          >
+                            <div>
+                              <p className="font-extrabold text-white text-base">
+                                {item.quantity}x {item.item_name}
+                              </p>
+                              {item.variant_details &&
+                                item.variant_details.length > 0 && (
+                                  <p className="text-xs text-amber-300">
+                                    {item.variant_details
+                                      .map((v) => v.name)
+                                      .join(", ")}
+                                  </p>
+                                )}
+                              {item.notes && (
+                                <p className="text-xs italic text-zinc-400">
+                                  “{item.notes}”
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {order.notes && (
+                        <p className="text-xs bg-zinc-800/80 p-2 rounded text-amber-200 mb-3 border border-zinc-700">
+                          <strong>Note:</strong> {order.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-800 flex gap-2">
+                      {isPreparing && (
+                        <Button
+                          className="flex-1 py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white"
+                          disabled={busyOrderId === order.id}
+                          onClick={() =>
+                            runOrderAction(order.id, { action: "ready" })
+                          }
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                          Mark Ready
+                        </Button>
+                      )}
+                      {(order.status === "paid" ||
+                        order.status === "points_credited") && (
+                        <Button
+                          className="flex-1 py-3 text-sm font-bold bg-amber-600 hover:bg-amber-500 text-white"
+                          disabled={busyOrderId === order.id}
+                          onClick={() =>
+                            runOrderAction(order.id, { action: "preparing" })
+                          }
+                        >
+                          <ChefHat className="w-4 h-4 mr-1.5" />
+                          Start Preparing
+                        </Button>
+                      )}
+                      {isReady && (
+                        <Button
+                          className="flex-1 py-3 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white"
+                          disabled={busyOrderId === order.id}
+                          onClick={() =>
+                            runOrderAction(order.id, { action: "served" })
+                          }
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                          Hand Over / Served
+                        </Button>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setTicketOrder(order)}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
     </div>

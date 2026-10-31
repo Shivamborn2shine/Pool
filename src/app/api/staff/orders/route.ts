@@ -92,12 +92,26 @@ export async function GET(request: Request) {
     `;
 
     const orderIds = orders.map((o) => o.id);
+    const cardIds = Array.from(
+      new Set(orders.map((o) => o.card_id).filter(Boolean))
+    );
+
     const items =
       orderIds.length > 0
         ? await sql`
             SELECT * FROM public.order_items
             WHERE order_id IN ${sql(orderIds)}
             ORDER BY created_at ASC
+          `
+        : [];
+
+    const bonusClaims =
+      cardIds.length > 0
+        ? await sql`
+            SELECT card_id, task_id, points_awarded, proof_handle, claimed_at
+            FROM public.customer_bonus_claims
+            WHERE card_id IN ${sql(cardIds)}
+            ORDER BY claimed_at DESC
           `
         : [];
 
@@ -115,6 +129,22 @@ export async function GET(request: Request) {
         ctx.role === "owner" || ctx.role === "manager"
           ? o.customer_phone
           : maskPhone(o.customer_phone),
+      bonus_claims: bonusClaims
+        .filter((bc) => bc.card_id === o.card_id)
+        .map((bc) => ({
+          task_id: bc.task_id,
+          task_title:
+            bc.task_id === "instagram_follow"
+              ? "Instagram"
+              : bc.task_id === "google_review"
+              ? "Google Review"
+              : bc.task_id === "instagram_story"
+              ? "Story Tag"
+              : "Referral",
+          proof_handle: bc.proof_handle,
+          points_awarded: Number(bc.points_awarded),
+          claimed_at: bc.claimed_at,
+        })),
       items: items
         .filter((i) => i.order_id === o.id)
         .map((i) => ({

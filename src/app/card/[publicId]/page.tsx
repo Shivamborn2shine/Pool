@@ -51,6 +51,8 @@ interface CardPagePayload {
   customer: {
     fullName: string;
     maskedPhone: string;
+    birthdayDay?: number | null;
+    birthdayMonth?: number | null;
     marketingConsent: boolean;
     loyaltyConsent: boolean;
     status: string;
@@ -173,6 +175,19 @@ export default function CustomerPublicCardPage() {
   const [pinPromptTaskId, setPinPromptTaskId] = useState<string | null>(null);
   const [modalPinInput, setModalPinInput] = useState("");
 
+  // Interactive Verification & Review Shield state
+  const [selectedTaskToVerify, setSelectedTaskToVerify] = useState<any | null>(null);
+  const [proofHandleInput, setProofHandleInput] = useState("");
+  const [reviewStars, setReviewStars] = useState(5);
+  const [privateFeedbackText, setPrivateFeedbackText] = useState("");
+  const [privateFeedbackSent, setPrivateFeedbackSent] = useState(false);
+
+  // Birthday Club state
+  const [birthdayMonth, setBirthdayMonth] = useState(1);
+  const [birthdayDay, setBirthdayDay] = useState(1);
+  const [editingBirthday, setEditingBirthday] = useState(false);
+  const [savingBirthday, setSavingBirthday] = useState(false);
+
   // Privacy / Preferences state
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -187,6 +202,10 @@ export default function CustomerPublicCardPage() {
       } else {
         setData(json);
         setMarketingConsent(Boolean(json.customer?.marketingConsent));
+        if (json.customer?.birthdayMonth)
+          setBirthdayMonth(Number(json.customer.birthdayMonth));
+        if (json.customer?.birthdayDay)
+          setBirthdayDay(Number(json.customer.birthdayDay));
       }
     } catch {
       setError("Unable to load loyalty card. Check your connection.");
@@ -357,7 +376,11 @@ export default function CustomerPublicCardPage() {
     }
   }
 
-  async function handleClaimBonusTask(taskId: string, pinToUse?: string) {
+  async function handleClaimBonusTask(
+    taskId: string,
+    pinToUse?: string,
+    proofToUse?: string
+  ) {
     const pin = pinToUse || phoneLast4;
     if (!pin || pin.length < 4) {
       setPinPromptTaskId(taskId);
@@ -373,7 +396,11 @@ export default function CustomerPublicCardPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ taskId, phoneLast4: pin }),
+          body: JSON.stringify({
+            taskId,
+            phoneLast4: pin,
+            proofHandle: proofToUse || proofHandleInput.trim() || null,
+          }),
         }
       );
       const json = await res.json();
@@ -394,6 +421,8 @@ export default function CustomerPublicCardPage() {
         }
         setShowPinPromptModal(false);
         setPinPromptTaskId(null);
+        setSelectedTaskToVerify(null);
+        setProofHandleInput("");
         await loadCard();
       }
     } catch {
@@ -403,6 +432,50 @@ export default function CustomerPublicCardPage() {
       });
     } finally {
       setClaimingTaskId(null);
+    }
+  }
+
+  async function handleSaveBirthday(e: React.FormEvent) {
+    e.preventDefault();
+    if (!phoneLast4) {
+      setFeedback({
+        type: "error",
+        text: "Please enter your 4-digit Security PIN in the bar above first.",
+      });
+      return;
+    }
+    setSavingBirthday(true);
+    try {
+      const res = await fetch(
+        `/api/card/${encodeURIComponent(publicId)}/preferences`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phoneLast4,
+            birthdayDay,
+            birthdayMonth,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setFeedback({
+          type: "error",
+          text: json.error || "Could not save birthday.",
+        });
+      } else {
+        setFeedback({
+          type: "success",
+          text: "🎉 Birthday saved! You are now enrolled in our Birthday Club.",
+        });
+        setEditingBirthday(false);
+        await loadCard();
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Network error saving birthday." });
+    } finally {
+      setSavingBirthday(false);
     }
   }
 
@@ -1057,21 +1130,17 @@ export default function CustomerPublicCardPage() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleClaimBonusTask(task.id)}
+                            onClick={() => {
+                              setSelectedTaskToVerify(task);
+                              setProofHandleInput("");
+                              setReviewStars(5);
+                              setPrivateFeedbackSent(false);
+                            }}
                             disabled={isClaiming}
                             className="py-1.5 px-3 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 text-[11px] font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1 shrink-0 active:translate-y-[0.5px]"
                           >
-                            {isClaiming ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                <span>Claiming...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3 h-3" />
-                                <span>Claim +{task.points} pts</span>
-                              </>
-                            )}
+                            <Sparkles className="w-3 h-3" />
+                            <span>Claim +{task.points} pts</span>
                           </button>
                         )}
                       </div>
@@ -1079,6 +1148,123 @@ export default function CustomerPublicCardPage() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Birthday Club Card */}
+            <div className="p-4 rounded bg-surface border border-border space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-rose-400 flex items-center justify-center text-white text-base shadow-xs shrink-0">
+                    🎂
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">
+                      Birthday Club (Free Treat)
+                    </h3>
+                    <p className="text-xs text-muted">
+                      Tell us your birthday to receive an exclusive complimentary surprise perk on your special day!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {customer.birthdayDay &&
+              customer.birthdayMonth &&
+              !editingBirthday ? (
+                <div className="p-3 rounded bg-surface-elevated border border-border flex items-center justify-between">
+                  <div className="text-xs">
+                    <span className="text-muted">Registered Birthday: </span>
+                    <strong className="text-foreground">
+                      {new Date(
+                        2024,
+                        customer.birthdayMonth - 1,
+                        customer.birthdayDay
+                      ).toLocaleString("default", { month: "long" })}{" "}
+                      {customer.birthdayDay}
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingBirthday(true)}
+                    className="text-xs text-accent font-semibold hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveBirthday} className="space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-muted mb-1">
+                        Birth Month
+                      </label>
+                      <select
+                        value={birthdayMonth}
+                        onChange={(e) =>
+                          setBirthdayMonth(Number(e.target.value))
+                        }
+                        className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background text-foreground"
+                      >
+                        {[
+                          "January",
+                          "February",
+                          "March",
+                          "April",
+                          "May",
+                          "June",
+                          "July",
+                          "August",
+                          "September",
+                          "October",
+                          "November",
+                          "December",
+                        ].map((m, idx) => (
+                          <option key={m} value={idx + 1}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-muted mb-1">
+                        Birth Day
+                      </label>
+                      <select
+                        value={birthdayDay}
+                        onChange={(e) => setBirthdayDay(Number(e.target.value))}
+                        className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background text-foreground"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                          (d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="submit"
+                      disabled={savingBirthday || !phoneLast4}
+                      className="px-3 py-1.5 text-xs font-bold rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50"
+                    >
+                      {savingBirthday ? "Saving..." : "Save Birthday"}
+                    </button>
+                    {editingBirthday && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingBirthday(false)}
+                        className="px-3 py-1.5 text-xs rounded border border-border text-muted"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
             </div>
 
             {/* Catalog Rewards List */}
@@ -1586,6 +1772,247 @@ export default function CustomerPublicCardPage() {
         onConfirm={() => handleUpdatePreferences(true)}
         onClose={() => setConfirmDeletionOpen(false)}
       />
+
+      {/* Interactive Bonus Task Claim & Verification Modal */}
+      {selectedTaskToVerify && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-md p-5 space-y-4 rounded bg-surface border border-border shadow-xl">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${selectedTaskToVerify.badgeBg} shadow-xs shrink-0`}
+                >
+                  {selectedTaskToVerify.icon === "instagram" ? (
+                    <Instagram className="w-4 h-4" />
+                  ) : selectedTaskToVerify.icon === "star" ? (
+                    <Star className="w-4 h-4 fill-current" />
+                  ) : selectedTaskToVerify.icon === "camera" ? (
+                    <Camera className="w-4 h-4" />
+                  ) : (
+                    <Share2 className="w-4 h-4" />
+                  )}
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">
+                    {selectedTaskToVerify.title}
+                  </h3>
+                  <p className="text-xs text-muted">
+                    Earn +{selectedTaskToVerify.points} loyalty points
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTaskToVerify(null)}
+                className="text-xs text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Step 1: External Action Link */}
+            <div className="p-3 rounded bg-surface-elevated border border-border space-y-2">
+              <p className="text-xs text-muted leading-relaxed">
+                {selectedTaskToVerify.desc}
+              </p>
+              {selectedTaskToVerify.id === "refer_friend" ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`https://loopacards.netlify.app/s/${data.business.slug}?ref=${data.card.publicId}`}
+                      className="w-full px-2.5 py-1.5 text-xs font-mono rounded border border-border bg-background text-foreground select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `https://loopacards.netlify.app/s/${data.business.slug}?ref=${data.card.publicId}`
+                        );
+                        setFeedback({
+                          type: "success",
+                          text: "Referral link copied!",
+                        });
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold rounded border border-border bg-surface shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      `Hey! Enjoy delicious food & rewards at ${data.business.name}. Register & order here to get instant loyalty perks: https://loopacards.netlify.app/s/${data.business.slug}?ref=${data.card.publicId}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2 px-3 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>Share on WhatsApp</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              ) : (
+                <a
+                  href={selectedTaskToVerify.actionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 px-3 text-xs font-bold rounded bg-surface hover:bg-background border border-border text-foreground flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>{selectedTaskToVerify.actionLabel}</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-muted" />
+                </a>
+              )}
+            </div>
+
+            {/* Google Review Shield */}
+            {selectedTaskToVerify.id === "google_review" && (
+              <div className="space-y-3 p-3 rounded border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20">
+                <p className="text-xs font-bold text-foreground">
+                  How was your experience today?
+                </p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewStars(star)}
+                      className={`text-xl transition-transform hover:scale-110 ${
+                        reviewStars >= star
+                          ? "text-amber-500"
+                          : "text-zinc-300 dark:text-zinc-700"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+
+                {reviewStars <= 3 && (
+                  <div className="space-y-2 pt-1">
+                    <p className="text-xs text-muted">
+                      We're sorry it wasn't 5-star! Please tell management directly
+                      what happened:
+                    </p>
+                    <textarea
+                      rows={2}
+                      value={privateFeedbackText}
+                      onChange={(e) => setPrivateFeedbackText(e.target.value)}
+                      placeholder="Your honest feedback..."
+                      className="w-full p-2 text-xs rounded border border-border bg-background text-foreground"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPrivateFeedbackSent(true);
+                        setFeedback({
+                          type: "success",
+                          text: "Thank you for your valuable feedback! Management has been notified.",
+                        });
+                        setSelectedTaskToVerify(null);
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold rounded bg-zinc-800 text-white"
+                    >
+                      Send Feedback Privately
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Verification Inputs Form */}
+            {(selectedTaskToVerify.id !== "google_review" ||
+              reviewStars >= 4) && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleClaimBonusTask(
+                    selectedTaskToVerify.id,
+                    phoneLast4,
+                    proofHandleInput
+                  );
+                }}
+                className="space-y-3 pt-1"
+              >
+                {selectedTaskToVerify.id === "google_review" ? (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted mb-1">
+                      Your Google Account Display Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={proofHandleInput}
+                      onChange={(e) => setProofHandleInput(e.target.value)}
+                      placeholder="e.g. Shivam K."
+                      className="w-full px-3 py-1.5 text-xs rounded border border-border bg-background text-foreground"
+                    />
+                  </div>
+                ) : (selectedTaskToVerify.id === "instagram_follow" ||
+                    selectedTaskToVerify.id === "instagram_story") ? (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted mb-1">
+                      Your Instagram Username / Handle
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={proofHandleInput}
+                      onChange={(e) => setProofHandleInput(e.target.value)}
+                      placeholder="e.g. @shivam_01"
+                      className="w-full px-3 py-1.5 text-xs rounded border border-border bg-background text-foreground font-mono"
+                    />
+                  </div>
+                ) : null}
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted mb-1">
+                    Security PIN (Last 4 digits of {customer.maskedPhone})
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    required
+                    value={phoneLast4}
+                    onChange={(e) =>
+                      setPhoneLast4(
+                        e.target.value.replace(/\D/g, "").slice(0, 4)
+                      )
+                    }
+                    placeholder="4 digits"
+                    className="w-full px-3 py-1.5 text-xs font-mono text-center rounded border border-border bg-background text-foreground tracking-widest"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskToVerify(null)}
+                    className="flex-1 py-2 text-xs font-semibold rounded border border-border bg-surface hover:bg-surface-elevated text-foreground"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      claimingTaskId !== null ||
+                      phoneLast4.length < 4 ||
+                      (selectedTaskToVerify.id !== "refer_friend" &&
+                        !proofHandleInput.trim())
+                    }
+                    className="flex-1 py-2 text-xs font-bold rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50 shadow-xs"
+                  >
+                    {claimingTaskId
+                      ? "Verifying..."
+                      : `Claim +${selectedTaskToVerify.points} pts`}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bonus Task Security PIN Modal */}
       {showPinPromptModal && (

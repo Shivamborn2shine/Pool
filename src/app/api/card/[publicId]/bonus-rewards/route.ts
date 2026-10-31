@@ -70,7 +70,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { taskId, phoneLast4 } = body;
+    const { taskId, phoneLast4, proofHandle } = body;
 
     if (!taskId || !BONUS_TASKS[taskId]) {
       return NextResponse.json(
@@ -78,6 +78,8 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const cleanProofHandle = proofHandle ? String(proofHandle).trim().slice(0, 100) : null;
 
     // 1. Resolve loyalty card and customer
     const rows = await sql`
@@ -141,9 +143,9 @@ export async function POST(
       // Record bonus claim
       await tx`
         INSERT INTO public.customer_bonus_claims (
-          business_id, card_id, task_id, points_awarded
+          business_id, card_id, task_id, points_awarded, proof_handle
         ) VALUES (
-          ${card.business_id}, ${card.id}, ${taskId}, ${pointsToAdd}
+          ${card.business_id}, ${card.id}, ${taskId}, ${pointsToAdd}, ${cleanProofHandle}
         )
       `;
 
@@ -178,10 +180,11 @@ export async function POST(
           0.00,
           ${updatedCard.points_balance},
           ${updatedCard.redeemable_amount},
-          ${`Bonus Reward: ${task.title} (+${pointsToAdd} pts)`},
+          ${`Bonus Reward: ${task.title} (+${pointsToAdd} pts)${cleanProofHandle ? ` [Proof: ${cleanProofHandle}]` : ""}`},
           ${JSON.stringify({
             taskId,
             taskTitle: task.title,
+            proofHandle: cleanProofHandle,
             source: "social_bonus_task",
           })}
         )

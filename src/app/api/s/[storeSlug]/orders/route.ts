@@ -364,6 +364,21 @@ export async function POST(
 
       const publicToken = `ord_${crypto.randomBytes(16).toString("base64url")}`;
 
+      let referredByCardId: string | null = null;
+      if (
+        data.referredByCardPublicId &&
+        data.referredByCardPublicId !== data.cardPublicId
+      ) {
+        const refRows = await tx`
+          SELECT id FROM public.loyalty_cards
+          WHERE public_id = ${data.referredByCardPublicId} AND business_id = ${business.id}
+          LIMIT 1
+        `;
+        if (refRows.length > 0) {
+          referredByCardId = refRows[0].id;
+        }
+      }
+
       const [orderRow] = await tx`
         INSERT INTO public.orders (
           public_token,
@@ -371,6 +386,7 @@ export async function POST(
           business_id,
           customer_id,
           card_id,
+          referred_by_card_id,
           order_number,
           customer_display_name,
           order_type,
@@ -394,6 +410,7 @@ export async function POST(
           ${business.id},
           ${card.customer_id},
           ${card.id},
+          ${referredByCardId},
           ${orderNumber},
           ${displayName},
           ${data.orderType},
