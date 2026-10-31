@@ -41,6 +41,7 @@ import {
   Info,
   Users,
   Pencil,
+  LogOut,
 } from "lucide-react";
 import {
   CopyButton,
@@ -412,6 +413,7 @@ export default function CustomerPublicCardPage() {
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
   const [showAllRewardsModal, setShowAllRewardsModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Shared phone verification (Last 4 digits — Demo default hint for cd_araku_ananya_01 is 8765)
   const [phoneLast4, setPhoneLast4] = useState("");
@@ -865,6 +867,21 @@ export default function CustomerPublicCardPage() {
       setSavingPrefs(false);
     }
   }
+
+  const handleLogout = () => {
+    try {
+      if (business?.slug) {
+        window.localStorage.removeItem(`loopa_store_session_${business.slug}`);
+      }
+      window.localStorage.removeItem("loopa_customer_session");
+      window.sessionStorage.clear();
+    } catch {}
+    if (business?.slug) {
+      window.location.href = `/s/${business.slug}`;
+    } else {
+      window.location.reload();
+    }
+  };
 
   if (loading) {
     return (
@@ -2287,74 +2304,151 @@ export default function CustomerPublicCardPage() {
           </section>
         )}
 
-        {/* TAB 4: PRIVACY & CONSENT (DPDP ACT 2023) */}
+        {/* TAB 4: PROFILE, PRIVACY & CONSENT */}
         {activeTab === "privacy" && (
-          <section className="p-5 rounded bg-surface border border-border space-y-4 no-print">
-            <div>
-              <h2 className="text-base font-bold text-foreground">
-                Consent & Data Rights (DPDP Act 2023)
-              </h2>
-              <p className="text-xs text-muted mt-0.5">
-                Manage your communication consent or request personal data
-                deletion from {business.name}.
-              </p>
+          <section className="space-y-4 no-print pb-4 animate-in fade-in duration-200">
+            {/* Customer Profile & Card Summary Card */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 border border-rose-100 dark:border-zinc-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#E11D48] to-rose-400 text-white font-serif font-black text-xl flex items-center justify-center shadow-sm">
+                    {customer.fullName.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-serif font-black text-lg text-zinc-900 dark:text-zinc-50 leading-tight">
+                        {customer.fullName}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-900">
+                        Verified Member
+                      </span>
+                    </div>
+                    <p className="text-xs font-mono text-zinc-500 mt-0.5">
+                      {customer.maskedPhone}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 text-xs">
+                <div>
+                  <span className="text-zinc-400 block text-[10px] uppercase font-bold tracking-wider">
+                    Digital Pass Card #
+                  </span>
+                  <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                    {card.cardNumber}
+                  </span>
+                </div>
+                <CopyButton value={card.cardNumber} label="Copy #" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="p-3 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-center">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Loyalty Points
+                  </div>
+                  <div className="text-xl font-black text-zinc-900 dark:text-zinc-100 mt-0.5">
+                    {card.pointsBalance}
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">
+                    Active Balance
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 text-center">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] dark:text-rose-400">
+                    Store Credit
+                  </div>
+                  <div className="text-xl font-black text-[#E11D48] dark:text-rose-400 mt-0.5">
+                    {formatCurrency(card.redeemableAmount, business.currency)}
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">
+                    Redeemable Wallet
+                  </div>
+                </div>
+              </div>
+
+              {/* Log Out / Switch Account Button */}
+              <div className="pt-2 border-t border-rose-100/70 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="w-full py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out / Switch Account</span>
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <label className="flex items-start gap-2.5 p-3 rounded bg-surface-elevated border border-border">
-                <input
-                  type="checkbox"
-                  checked
-                  disabled
-                  className="mt-0.5 rounded"
-                />
-                <span>
-                  <strong className="text-foreground block">
-                    Loyalty Program Processing Consent (Active)
-                  </strong>
-                  <span className="text-muted">
-                    Required to maintain your points ledger and card balance.
+            {/* Consent & Data Rights (DPDP Act 2023) */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 border border-rose-100 dark:border-zinc-800 shadow-sm space-y-4">
+              <div>
+                <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                  Consent & Data Rights (DPDP Act 2023)
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Manage your communication consent or request personal data
+                  deletion from {business.name}.
+                </p>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60">
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled
+                    className="mt-0.5 rounded"
+                  />
+                  <span>
+                    <strong className="text-zinc-900 dark:text-zinc-100 block">
+                      Loyalty Program Processing Consent (Active)
+                    </strong>
+                    <span className="text-zinc-500 dark:text-zinc-400">
+                      Required to maintain your points ledger and card balance.
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
 
-              <label className="flex items-start gap-2.5 p-3 rounded bg-surface-elevated border border-border cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={marketingConsent}
-                  onChange={(e) => setMarketingConsent(e.target.checked)}
-                  className="mt-0.5 rounded accent-accent"
-                />
-                <span>
-                  <strong className="text-foreground block">
-                    Promotional & Bonus Multiplier Updates
-                  </strong>
-                  <span className="text-muted">
-                    Receive occasional offers and campaign announcements from{" "}
-                    {business.name}.
+                <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-0.5 rounded accent-[#E11D48]"
+                  />
+                  <span>
+                    <strong className="text-zinc-900 dark:text-zinc-100 block">
+                      Promotional & Bonus Multiplier Updates
+                    </strong>
+                    <span className="text-zinc-500 dark:text-zinc-400">
+                      Receive occasional offers and campaign announcements from{" "}
+                      {business.name}.
+                    </span>
                   </span>
-                </span>
-              </label>
-            </div>
+                </label>
+              </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                disabled={savingPrefs || !phoneLast4}
-                onClick={() => handleUpdatePreferences(false)}
-                className="px-4 py-2 text-xs font-semibold rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50"
-              >
-                {savingPrefs ? "Saving..." : "Save Marketing Preference"}
-              </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={savingPrefs || !phoneLast4}
+                  onClick={() => handleUpdatePreferences(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-[#E11D48] text-white hover:bg-[#be123c] disabled:opacity-50 transition"
+                >
+                  {savingPrefs ? "Saving..." : "Save Marketing Preference"}
+                </button>
 
-              <button
-                type="button"
-                disabled={!phoneLast4}
-                onClick={() => setConfirmDeletionOpen(true)}
-                className="px-3 py-2 text-xs font-medium rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-40"
-              >
-                Request Data Deletion
-              </button>
+                <button
+                  type="button"
+                  disabled={!phoneLast4}
+                  onClick={() => setConfirmDeletionOpen(true)}
+                  className="px-3 py-2 text-xs font-medium rounded-xl border border-red-300 dark:border-red-900 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-40 transition"
+                >
+                  Request Data Deletion
+                </button>
+              </div>
             </div>
           </section>
         )}
@@ -2962,6 +3056,50 @@ export default function CustomerPublicCardPage() {
         </div>
       )}
 
+      {/* Logout / Switch Account Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95">
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-200 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center space-y-1">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-xs mb-2">
+                <LogOut className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-50">
+                Log Out / Switch Account?
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                Your loyalty points and digital pass remain safely linked to your phone number ({customer.maskedPhone}).
+              </p>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 py-2.5 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25 transition"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Slide-out Menu Drawer */}
       {showMenuDrawer && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex">
@@ -3083,6 +3221,18 @@ export default function CustomerPublicCardPage() {
                 >
                   <Printer className="w-4 h-4 text-rose-500" />
                   <span>Print Physical Card</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenuDrawer(false);
+                    setShowLogoutConfirm(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-left"
+                >
+                  <LogOut className="w-4 h-4 text-red-500" />
+                  <span>Log Out / Switch Account</span>
                 </button>
               </div>
             </div>
