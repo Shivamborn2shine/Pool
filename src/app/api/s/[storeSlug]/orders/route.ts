@@ -40,7 +40,29 @@ export async function GET(
     }
 
     let orders: Record<string, unknown>[] = [];
+    let cardInfo: {
+      points_balance: number;
+      redeemable_amount: number;
+      card_number: string;
+      status: string;
+    } | null = null;
+
     if (cardPublicId) {
+      const cardRows = await sql`
+        SELECT points_balance, redeemable_amount, card_number, status
+        FROM public.loyalty_cards
+        WHERE public_id = ${cardPublicId}
+        LIMIT 1
+      `;
+      if (cardRows.length > 0) {
+        cardInfo = {
+          points_balance: Number(cardRows[0].points_balance || 0),
+          redeemable_amount: Number(cardRows[0].redeemable_amount || 0),
+          card_number: cardRows[0].card_number as string,
+          status: cardRows[0].status as string,
+        };
+      }
+
       orders = await sql`
         SELECT o.*
         FROM public.orders o
@@ -48,7 +70,7 @@ export async function GET(
         WHERE o.business_id = ${biz.id}
           AND lc.public_id = ${cardPublicId}
         ORDER BY o.created_at DESC
-        LIMIT 15
+        LIMIT 25
       `;
     } else if (orderIdsParam) {
       const ids = orderIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
@@ -57,13 +79,13 @@ export async function GET(
           SELECT * FROM public.orders
           WHERE business_id = ${biz.id} AND id IN ${sql(ids)}
           ORDER BY created_at DESC
-          LIMIT 15
+          LIMIT 25
         `;
       }
     }
 
     if (orders.length === 0) {
-      return NextResponse.json({ orders: [] });
+      return NextResponse.json({ orders: [], card: cardInfo });
     }
 
     const orderIds = orders.map((o) => o.id as string);
@@ -91,7 +113,7 @@ export async function GET(
         })),
     }));
 
-    return NextResponse.json({ orders: enriched });
+    return NextResponse.json({ orders: enriched, card: cardInfo });
   } catch (err) {
     console.error("GET /api/s/[storeSlug]/orders error:", err);
     return NextResponse.json(

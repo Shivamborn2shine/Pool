@@ -22,6 +22,13 @@ import {
   UserCheck,
   Utensils,
   XCircle,
+  User,
+  LogOut,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Receipt,
+  X,
 } from "lucide-react";
 import { Badge, Button, Card, Input } from "@/components/ui/primitives";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -269,6 +276,12 @@ export default function StoreQrOrderingPage() {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
 
+  // Customer Account Drawer & Profile state
+  const [showAccountDrawer, setShowAccountDrawer] = useState(false);
+  const [refreshingPoints, setRefreshingPoints] = useState(false);
+  const [copiedCardNum, setCopiedCardNum] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   // Item customization modal state
   const [customizingItem, setCustomizingItem] = useState<StoreMenuItem | null>(
     null
@@ -448,13 +461,26 @@ export default function StoreQrOrderingPage() {
         }
         const res = await fetch(`/api/s/${storeSlug}/orders?${qs.toString()}`);
         const data = await res.json();
-        if (res.ok && Array.isArray(data.orders) && data.orders.length > 0) {
-          setOrders((prev) => {
-            // Merge newly fetched orders with any existing while preserving order
-            const incomingIds = new Set(data.orders.map((o: ActiveOrderView) => o.id));
-            const retained = prev.filter((o) => !incomingIds.has(o.id));
-            return [...data.orders, ...retained];
-          });
+        if (res.ok) {
+          if (Array.isArray(data.orders) && data.orders.length > 0) {
+            setOrders((prev) => {
+              // Merge newly fetched orders with any existing while preserving order
+              const incomingIds = new Set(data.orders.map((o: ActiveOrderView) => o.id));
+              const retained = prev.filter((o) => !incomingIds.has(o.id));
+              return [...data.orders, ...retained];
+            });
+          }
+          if (data.card) {
+            setCustomer((prev) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                pointsBalance: Number(data.card.points_balance ?? prev.pointsBalance),
+                redeemableAmount: Number(data.card.redeemable_amount ?? prev.redeemableAmount),
+                cardNumber: data.card.card_number || prev.cardNumber,
+              };
+            });
+          }
         }
       } catch {
         // Silent background refresh
@@ -464,6 +490,88 @@ export default function StoreQrOrderingPage() {
     },
     [customer?.cardPublicId, orders, storeSlug]
   );
+
+  const refreshCustomerProfile = useCallback(
+    async (targetCardPublicId?: string) => {
+      const cardId = targetCardPublicId || customer?.cardPublicId;
+      if (!cardId) return;
+      setRefreshingPoints(true);
+      try {
+        const res = await fetch(`/api/card/${encodeURIComponent(cardId)}`);
+        const data = await res.json();
+        if (res.ok && data.card) {
+          setCustomer((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              pointsBalance: Number(
+                data.card.pointsBalance ?? data.card.points_balance ?? prev.pointsBalance
+              ),
+              redeemableAmount: Number(
+                data.card.redeemableAmount ?? data.card.redeemable_amount ?? prev.redeemableAmount
+              ),
+              fullName: data.customer?.fullName || prev.fullName,
+              displayName: data.customer?.fullName || prev.displayName,
+              maskedPhone: data.customer?.maskedPhone || prev.maskedPhone,
+              cardNumber: data.card.cardNumber || prev.cardNumber,
+            };
+          });
+        }
+      } catch {
+        // Silent background refresh
+      } finally {
+        setRefreshingPoints(false);
+      }
+    },
+    [customer?.cardPublicId]
+  );
+
+  const handleLogout = () => {
+    setCustomer(null);
+    setOrders([]);
+    setSelectedOrderId(null);
+    setRecentOrders([]);
+    setCart([]);
+    setShowAccountDrawer(false);
+    setShowLogoutConfirm(false);
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {}
+  };
+
+  const handleReorderOrder = (targetOrder: ActiveOrderView) => {
+    if (!targetOrder.items || targetOrder.items.length === 0) return;
+    const newCartEntries: CartEntry[] = [];
+    for (const ordItem of targetOrder.items) {
+      const match = items.find(
+        (it) => it.name.toLowerCase() === ordItem.item_name.toLowerCase()
+      );
+      if (match) {
+        newCartEntries.push({
+          cartKey: `${match.id}_reorder_${Date.now()}_${Math.random()}`,
+          menuItem: match,
+          quantity: ordItem.quantity,
+          selectedVariant: null,
+          selectedAddons: [],
+          notes: "",
+        });
+      }
+    }
+    if (newCartEntries.length > 0) {
+      setCart((prev) => [...prev, ...newCartEntries]);
+      setShowAccountDrawer(false);
+      setActiveTab("cart");
+    }
+  };
+
+  const handleCopyCardNumber = () => {
+    if (!customer?.cardNumber) return;
+    try {
+      navigator.clipboard.writeText(customer.cardNumber);
+      setCopiedCardNum(true);
+      setTimeout(() => setCopiedCardNum(false), 2000);
+    } catch {}
+  };
 
   const fetchOrderLive = useCallback(
     async (orderId: string, token?: string, cardPublicId?: string) => {
@@ -516,6 +624,10 @@ export default function StoreQrOrderingPage() {
         const parsed = JSON.parse(saved);
         if (parsed?.customer) {
           setCustomer(parsed.customer);
+          if (parsed.customer.cardPublicId) {
+            fetchCustomerOrders(parsed.customer.cardPublicId);
+            refreshCustomerProfile(parsed.customer.cardPublicId);
+          }
         }
         if (parsed?.recentOrders) {
           setRecentOrders(parsed.recentOrders);
@@ -533,7 +645,16 @@ export default function StoreQrOrderingPage() {
     } catch {
       // Ignore storage errors
     }
-  }, [loadStoreData, storageKey]);
+  }, [fetchCustomerOrders, loadStoreData, refreshCustomerProfile, storageKey]);
+
+  // Periodic poll to keep customer points & order status fresh
+  useEffect(() => {
+    if (!customer?.cardPublicId) return;
+    const interval = setInterval(() => {
+      refreshCustomerProfile(customer.cardPublicId);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [customer?.cardPublicId, refreshCustomerProfile]);
 
   // Sync state to local storage so active orders never vanish across page reloads
   useEffect(() => {
@@ -974,15 +1095,38 @@ export default function StoreQrOrderingPage() {
 
           {customer ? (
             <div className="flex items-center gap-2 shrink-0">
-              <Link
-                href={`/card/${customer.cardPublicId}`}
-                className={`px-2.5 py-1.5 rounded-sm border text-xs font-medium flex items-center gap-1.5 transition-colors ${theme.loyaltyChip}`}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAccountDrawer(true);
+                  if (customer.cardPublicId) {
+                    refreshCustomerProfile(customer.cardPublicId);
+                    fetchCustomerOrders(customer.cardPublicId);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition-all hover:shadow-xs active:scale-95 cursor-pointer ${theme.loyaltyChip}`}
+                title="View Account, Live Points & Order History"
               >
-                <Award className={`w-3.5 h-3.5 ${theme.primaryText}`} />
-                <span className="tabular-nums font-bold">
-                  {customer.pointsBalance} pts
-                </span>
-              </Link>
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0 uppercase"
+                  style={{
+                    backgroundColor:
+                      store.primary_color ||
+                      (store.theme_preset === "rose" ? "#E11D48" : "#18181B"),
+                  }}
+                >
+                  {(customer.displayName || customer.fullName || "U").slice(0, 1)}
+                </div>
+                <div className="flex flex-col text-left leading-none">
+                  <span className="font-bold tabular-nums flex items-center gap-1">
+                    <Award className={`w-3 h-3 ${theme.primaryText}`} />
+                    <span>{customer.pointsBalance} pts</span>
+                  </span>
+                  <span className="text-[10px] opacity-70 truncate max-w-[70px] sm:max-w-[110px] mt-0.5">
+                    {customer.displayName || customer.fullName || "Account"}
+                  </span>
+                </div>
+              </button>
             </div>
           ) : (
             <Button
@@ -1026,6 +1170,33 @@ export default function StoreQrOrderingPage() {
             </div>
           </div>
         )}
+
+        {/* Live Active Order Alert Bar for Handiness */}
+        {activeOrder &&
+          (activeOrder.status === "preparing" || activeOrder.status === "ready") &&
+          activeTab !== "order" && (
+            <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2 truncate">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                </span>
+                <span className="truncate">
+                  {activeOrder.status === "ready"
+                    ? "🎉 Order is READY at counter!"
+                    : "🍳 Kitchen is preparing your order"}{" "}
+                  ({activeOrder.order_number})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("order")}
+                className="px-2.5 py-1 rounded bg-white text-emerald-900 font-bold text-[11px] hover:bg-emerald-50 shrink-0 shadow-2xs"
+              >
+                Track Live →
+              </button>
+            </div>
+          )}
 
         {/* Navigation Tabs */}
         <div className={`max-w-xl mx-auto px-4 flex border-t ${theme.headerBorder} bg-stone-50/70 dark:bg-zinc-900`}>
@@ -1141,12 +1312,21 @@ export default function StoreQrOrderingPage() {
               <div className="relative">
                 <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="search"
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search filter coffee, croissants, cold brew..."
-                  className={`w-full pl-9 pr-3 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 ${theme.focusRing}`}
+                  className={`w-full pl-9 pr-9 py-2 text-sm rounded-sm border border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 ${theme.focusRing}`}
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-xs p-1"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -1218,10 +1398,21 @@ export default function StoreQrOrderingPage() {
                             {item.description}
                           </p>
                         )}
-                        <div className="pt-1 flex items-center gap-3">
+                        <div className="pt-1 flex items-center gap-2.5 flex-wrap">
                           <span className="font-bold text-sm tabular-nums">
                             {formatCurrency(item.price, store.currency)}
                           </span>
+                          {loyaltyOffer && (
+                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                              <Sparkles className="w-3 h-3" />
+                              +{Math.floor(
+                                (item.price / (loyaltyOffer.currency_unit || 10)) *
+                                  (loyaltyOffer.points_per_currency_unit || 1) *
+                                  (item.loyalty_multiplier || 1)
+                              )}{" "}
+                              pts
+                            </span>
+                          )}
                           {((item.variants?.length || 0) > 0 ||
                             (item.addons?.length || 0) > 0) && (
                             <span className="text-[11px] text-zinc-500">
@@ -1232,15 +1423,57 @@ export default function StoreQrOrderingPage() {
                       </div>
 
                       <div className="flex flex-col items-end gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          disabled={!item.is_available}
-                          onClick={() => handleAddItemClick(item)}
-                          className={theme.primaryButton}
-                        >
-                          <Plus className="w-3.5 h-3.5 mr-1" />
-                          {inCartQty > 0 ? `Add (${inCartQty})` : "Add"}
-                        </Button>
+                        {inCartQty > 0 &&
+                        (item.variants?.length || 0) === 0 &&
+                        (item.addons?.length || 0) === 0 ? (
+                          <div className="flex items-center gap-1.5 border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-850 rounded-lg p-0.5 shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cartKey = `${item.id}_default`;
+                                setCart((prev) => {
+                                  const existing = prev.find(
+                                    (c) => c.cartKey === cartKey
+                                  );
+                                  if (!existing) return prev;
+                                  if (existing.quantity <= 1) {
+                                    return prev.filter(
+                                      (c) => c.cartKey !== cartKey
+                                    );
+                                  }
+                                  return prev.map((c) =>
+                                    c.cartKey === cartKey
+                                      ? { ...c, quantity: c.quantity - 1 }
+                                      : c
+                                  );
+                                });
+                              }}
+                              className="w-6 h-6 rounded flex items-center justify-center hover:bg-stone-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-xs font-bold w-4 text-center tabular-nums">
+                              {inCartQty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleAddItemClick(item)}
+                              className={`w-6 h-6 rounded flex items-center justify-center text-white ${theme.primaryButton}`}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            disabled={!item.is_available}
+                            onClick={() => handleAddItemClick(item)}
+                            className={theme.primaryButton}
+                          >
+                            <Plus className="w-3.5 h-3.5 mr-1" />
+                            {inCartQty > 0 ? `Add (${inCartQty})` : "Add"}
+                          </Button>
+                        )}
                       </div>
                     </Card>
                   );
@@ -2277,6 +2510,267 @@ export default function StoreQrOrderingPage() {
               </Button>
             </form>
           </Card>
+        </div>
+      )}
+
+      {/* Customer Account & Past Orders Drawer (ACC-01..05) */}
+      {showAccountDrawer && customer && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
+            {/* Drawer Top Header */}
+            <div className="p-4 border-b border-stone-200 dark:border-zinc-800 flex items-center justify-between gap-3 bg-stone-50/70 dark:bg-zinc-950/60">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xs uppercase"
+                  style={{
+                    backgroundColor:
+                      store?.primary_color ||
+                      (store?.theme_preset === "rose" ? "#E11D48" : "#18181B"),
+                  }}
+                >
+                  {(customer.displayName || customer.fullName || "U").slice(0, 1)}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight">My Account & Loyalty</h3>
+                  <p className="text-[11px] text-zinc-500">{store?.name || "Store"}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAccountDrawer(false)}
+                className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Drawer Content */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+              {/* Profile Card */}
+              <div className="p-4 rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950/50 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-extrabold text-base text-zinc-900 dark:text-zinc-100">
+                      {customer.fullName || customer.displayName || "Valued Customer"}
+                    </h4>
+                    <p className="text-xs text-zinc-500 font-mono mt-0.5">
+                      {customer.maskedPhone}
+                    </p>
+                  </div>
+                  <Badge variant="success">Verified Member</Badge>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-200/60 dark:border-zinc-800/60 text-xs">
+                  <span className="text-zinc-500 font-mono truncate">
+                    Card: {customer.cardNumber}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyCardNumber}
+                    className="inline-flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300 hover:text-foreground shrink-0"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{copiedCardNum ? "Copied!" : "Copy #"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Wallets */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950/50 text-center relative overflow-hidden">
+                  <div className="flex items-center justify-center gap-1 text-[11px] font-mono uppercase text-zinc-500">
+                    <span>Loyalty Points</span>
+                    <button
+                      type="button"
+                      onClick={() => refreshCustomerProfile(customer.cardPublicId)}
+                      disabled={refreshingPoints}
+                      title="Refresh points balance"
+                      className="p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${refreshingPoints ? "animate-spin" : ""}`} />
+                    </button>
+                  </div>
+                  <div className="mt-1 text-2xl font-black text-zinc-900 dark:text-zinc-100 font-mono">
+                    {customer.pointsBalance}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">
+                    {refreshingPoints ? "Syncing..." : "Active Balance"}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950/50 text-center">
+                  <div className="text-[11px] font-mono uppercase text-zinc-500">
+                    Store Credit
+                  </div>
+                  <div className="mt-1 text-2xl font-black text-rose-600 dark:text-rose-400 font-mono">
+                    {formatCurrency(customer.redeemableAmount, store.currency)}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">
+                    Redeemable Wallet
+                  </div>
+                </div>
+              </div>
+
+              {/* View Full Digital Pass Button */}
+              <Link
+                href={`/card/${customer.cardPublicId}`}
+                target="_blank"
+                className={`w-full py-2.5 px-4 rounded-xl border flex items-center justify-between text-xs font-bold transition-colors ${theme.loyaltyChip}`}
+              >
+                <div className="flex items-center gap-2">
+                  <QrCode className="w-4 h-4" />
+                  <span>Open Full Digital Card Pass & QR</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              </Link>
+
+              {/* Past Orders Section */}
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5" />
+                    <span>Past Orders ({orders.length})</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => fetchCustomerOrders(customer.cardPublicId)}
+                    disabled={refreshingOrder}
+                    className="text-[11px] font-semibold text-zinc-500 hover:text-foreground flex items-center gap-1"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${refreshingOrder ? "animate-spin" : ""}`} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="p-6 rounded-xl border border-dashed border-stone-200 dark:border-zinc-800 text-center text-xs text-zinc-500">
+                    No orders placed yet. Place your first order to view receipts and track points!
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                    {orders.map((ord) => {
+                      const isReady = ord.status === "ready";
+                      const isPreparing = ord.status === "preparing";
+                      const isServed = ord.status === "served";
+                      return (
+                        <div
+                          key={ord.id}
+                          className="p-3 rounded-xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 space-y-2 text-xs shadow-2xs"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold font-mono text-zinc-900 dark:text-zinc-100">
+                                  {ord.order_number}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                    isReady
+                                      ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300"
+                                      : isPreparing
+                                      ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300"
+                                      : isServed
+                                      ? "bg-stone-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                                      : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
+                                  }`}
+                                >
+                                  {ord.status.replace("_", " ")}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-zinc-500 mt-0.5">
+                                {formatDate(ord.created_at)} • {ord.order_type.replace("_", " ")}
+                              </p>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="font-extrabold text-zinc-900 dark:text-zinc-100 font-mono">
+                                {formatCurrency(ord.total, store.currency)}
+                              </span>
+                              {ord.points_earned > 0 && (
+                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                  +{ord.points_earned} pts
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Items summary */}
+                          {ord.items && ord.items.length > 0 && (
+                            <div className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate bg-stone-50 dark:bg-zinc-900 p-1.5 rounded">
+                              {ord.items.map((it) => `${it.quantity}x ${it.item_name}`).join(", ")}
+                            </div>
+                          )}
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 pt-1 border-t border-stone-100 dark:border-zinc-800/80">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrderId(ord.id);
+                                setShowAccountDrawer(false);
+                                setActiveTab("order");
+                              }}
+                              className="flex-1 py-1 px-2 rounded border border-stone-200 dark:border-zinc-800 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-stone-50 dark:hover:bg-zinc-800"
+                            >
+                              Track Status
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReorderOrder(ord)}
+                              className="flex-1 py-1 px-2 rounded bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-[11px] font-bold hover:opacity-90 flex items-center justify-center gap-1 shadow-2xs"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>1-Tap Reorder</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Logout & Account Actions */}
+              <div className="pt-3 border-t border-stone-200 dark:border-zinc-800 space-y-2">
+                {!showLogoutConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowLogoutConfirm(true)}
+                    className="w-full py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log Out / Switch Account</span>
+                  </button>
+                ) : (
+                  <div className="p-3 rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 space-y-2">
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-300 text-center">
+                      Log out from this device?
+                    </p>
+                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 text-center">
+                      Your loyalty points and order history remain safely saved under your phone number ({customer.maskedPhone}).
+                    </p>
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="flex-1 text-xs"
+                        onClick={() => setShowLogoutConfirm(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+                        onClick={handleLogout}
+                      >
+                        Confirm Log Out
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
