@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   Award,
+  Check,
   CheckCircle2,
   Clock,
   Coffee,
@@ -136,6 +137,7 @@ export default function StoreQrOrderingPage() {
     tax_percentage: number;
     order_prefix: string;
     order_expiry_minutes: number;
+    require_table_number?: boolean;
   } | null>(null);
 
   const [loyaltyOffer, setLoyaltyOffer] = useState<{
@@ -511,7 +513,11 @@ export default function StoreQrOrderingPage() {
       return;
     }
     if (cart.length === 0) return;
-    if (orderType === "dine_in" && !tableNumber.trim()) {
+    if (
+      Boolean(store?.require_table_number) &&
+      orderType === "dine_in" &&
+      !tableNumber.trim()
+    ) {
       setOrderError("Please enter your Table Number for Dine-In orders.");
       return;
     }
@@ -984,25 +990,51 @@ export default function StoreQrOrderingPage() {
                     <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
                       Order Type
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       {(
                         [
-                          ["dine_in", "Dine-In"],
-                          ["takeaway", "Takeaway"],
-                          ["pickup", "Counter Pickup"],
+                          {
+                            val: "dine_in" as const,
+                            label: "Dine-In",
+                            desc: "Enjoy your food at the cafe. Served directly to your seat or table.",
+                          },
+                          {
+                            val: "takeaway" as const,
+                            label: "Takeaway",
+                            desc: "Freshly packed parcel to take home or enjoy on the move.",
+                          },
+                          {
+                            val: "pickup" as const,
+                            label: "Counter Pickup",
+                            desc: "Collect from the counter when your token number is ready.",
+                          },
                         ] as const
-                      ).map(([val, label]) => (
+                      ).map(({ val, label, desc }) => (
                         <button
                           key={val}
                           type="button"
                           onClick={() => setOrderType(val)}
-                          className={`py-2 px-3 rounded-sm text-xs font-semibold border transition-colors ${
+                          className={`p-3 rounded-sm text-left border transition-all ${
                             orderType === val
-                              ? "bg-zinc-900 text-white border-zinc-900 dark:bg-stone-100 dark:text-zinc-900"
-                              : "border-stone-300 dark:border-zinc-800"
+                              ? "bg-zinc-900 text-white border-zinc-900 dark:bg-stone-100 dark:text-zinc-900 shadow-sm ring-1 ring-zinc-900 dark:ring-stone-100"
+                              : "border-stone-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-700"
                           }`}
                         >
-                          {label}
+                          <div className="font-bold text-xs flex items-center justify-between">
+                            <span>{label}</span>
+                            {orderType === val && (
+                              <Check className="w-3.5 h-3.5 shrink-0" />
+                            )}
+                          </div>
+                          <p
+                            className={`text-[11px] mt-1 leading-snug ${
+                              orderType === val
+                                ? "text-zinc-300 dark:text-zinc-600"
+                                : "text-zinc-500"
+                            }`}
+                          >
+                            {desc}
+                          </p>
                         </button>
                       ))}
                     </div>
@@ -1010,11 +1042,19 @@ export default function StoreQrOrderingPage() {
 
                   {orderType === "dine_in" && (
                     <Input
-                      label="Table Number"
-                      placeholder="e.g., Table 04 or Window Counter"
+                      label={
+                        store?.require_table_number
+                          ? "Table Number (Required)"
+                          : "Table Number (Optional)"
+                      }
+                      placeholder={
+                        store?.require_table_number
+                          ? "e.g., Table 04 or Window Counter"
+                          : "e.g., Table 04 (Leave blank if sitting elsewhere)"
+                      }
                       value={tableNumber}
                       onChange={(e) => setTableNumber(e.target.value)}
-                      required
+                      required={Boolean(store?.require_table_number)}
                     />
                   )}
 

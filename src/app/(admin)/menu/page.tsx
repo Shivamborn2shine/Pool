@@ -70,6 +70,7 @@ export default function AdminMenuAndQrPage() {
     order_prefix?: string;
     tax_percentage?: number;
     order_expiry_minutes?: number;
+    require_table_number?: boolean;
   } | null>(null);
   const [orderStats, setOrderStats] = useState<{
     totalOrders: number;
@@ -85,6 +86,7 @@ export default function AdminMenuAndQrPage() {
   const [orderPrefix, setOrderPrefix] = useState("");
   const [taxPercentage, setTaxPercentage] = useState("5");
   const [orderExpiryMinutes, setOrderExpiryMinutes] = useState("20");
+  const [requireTableNumber, setRequireTableNumber] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const settingsDirtyRef = React.useRef(false);
@@ -182,6 +184,12 @@ export default function AdminMenuAndQrPage() {
             String(qrData.business.order_expiry_minutes)
           );
         }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.require_table_number !== undefined
+        ) {
+          setRequireTableNumber(Boolean(qrData.business.require_table_number));
+        }
       }
       if (repRes.ok && repData.summary) {
         setOrderStats({
@@ -210,6 +218,7 @@ export default function AdminMenuAndQrPage() {
           orderPrefix,
           taxPercentage: Number(taxPercentage),
           orderExpiryMinutes: Number(orderExpiryMinutes),
+          requireTableNumber,
         }),
       });
       const data = await res.json();
@@ -220,6 +229,9 @@ export default function AdminMenuAndQrPage() {
           setBusiness((prev) => ({ ...prev, ...data.business }));
           if (data.business.order_prefix) {
             setOrderPrefix(data.business.order_prefix);
+          }
+          if (data.business.require_table_number !== undefined) {
+            setRequireTableNumber(Boolean(data.business.require_table_number));
           }
         }
         setTimeout(() => setSettingsSaved(false), 3000);
@@ -750,6 +762,31 @@ export default function AdminMenuAndQrPage() {
                 }}
                 required
               />
+
+              <div className="pt-1 flex items-start gap-2.5">
+                <input
+                  id="requireTableNumber"
+                  type="checkbox"
+                  checked={requireTableNumber}
+                  onChange={(e) => {
+                    settingsDirtyRef.current = true;
+                    setRequireTableNumber(e.target.checked);
+                  }}
+                  className="mt-0.5 w-4 h-4 rounded border-stone-300 text-zinc-900 focus:ring-zinc-900 accent-terracotta-600 cursor-pointer"
+                />
+                <label
+                  htmlFor="requireTableNumber"
+                  className="text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer select-none"
+                >
+                  <span className="font-semibold block">
+                    Require Table Number for Dine-In Orders
+                  </span>
+                  <span className="text-zinc-500 block text-[11px] mt-0.5">
+                    When unchecked, customers can place Dine-In orders without being forced to enter a table number.
+                  </span>
+                </label>
+              </div>
+
               <div className="pt-1 flex items-center justify-between">
                 {settingsSaved ? (
                   <span className="text-xs font-semibold text-emerald-600">

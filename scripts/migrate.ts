@@ -348,6 +348,7 @@ async function migrate() {
       ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS order_sequence INTEGER NOT NULL DEFAULT 1000;
       ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS tax_percentage NUMERIC(5, 2) NOT NULL DEFAULT 5.00;
       ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS order_expiry_minutes INTEGER NOT NULL DEFAULT 20;
+      ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS require_table_number BOOLEAN NOT NULL DEFAULT false;
 
       -- 19. store_qr_codes (Generic dynamic store QR codes QR-01..08)
       CREATE TABLE IF NOT EXISTS public.store_qr_codes (

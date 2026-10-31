@@ -124,6 +124,7 @@ export async function GET(
         tax_percentage: Number(business.tax_percentage ?? 5),
         order_prefix: business.order_prefix || "SC",
         order_expiry_minutes: Number(business.order_expiry_minutes ?? 20),
+        require_table_number: Boolean(business.require_table_number ?? false),
       },
       loyaltyOffer: rules
         ? {

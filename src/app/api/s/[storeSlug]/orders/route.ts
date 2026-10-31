@@ -88,6 +88,17 @@ export async function POST(
       LIMIT 1
     `;
 
+    if (
+      Boolean(business.require_table_number) &&
+      data.orderType === "dine_in" &&
+      !data.tableNumber?.trim()
+    ) {
+      return NextResponse.json(
+        { error: "Table number is required for Dine-In orders at this store." },
+        { status: 400 }
+      );
+    }
+
     // Atomic order creation, server-side price calculation, and optional points redemption
     const createdOrder = await sql.begin(async (tx) => {
       const cardRows = await tx`

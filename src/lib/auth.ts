@@ -234,6 +234,7 @@ export async function getSessionContext(): Promise<AuthenticatedContext | null> 
       order_sequence: bRow.order_sequence !== null ? Number(bRow.order_sequence) : undefined,
       tax_percentage: bRow.tax_percentage !== null ? Number(bRow.tax_percentage) : 5,
       order_expiry_minutes: bRow.order_expiry_minutes !== null ? Number(bRow.order_expiry_minutes) : 20,
+      require_table_number: Boolean(bRow.require_table_number ?? false),
       created_at: bRow.created_at,
       updated_at: bRow.updated_at,
     };

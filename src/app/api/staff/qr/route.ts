@@ -97,6 +97,7 @@ export async function GET(request: Request) {
             freshBiz.order_expiry_minutes !== null
               ? Number(freshBiz.order_expiry_minutes)
               : 20,
+          require_table_number: Boolean(freshBiz.require_table_number ?? false),
         }
       : ctx.business,
   });
@@ -128,6 +129,10 @@ export async function PATCH(request: Request) {
       body.orderExpiryMinutes !== undefined
         ? Number(body.orderExpiryMinutes)
         : undefined;
+    const requireTableNumber =
+      body.requireTableNumber !== undefined
+        ? Boolean(body.requireTableNumber)
+        : undefined;
 
     if (label) {
       await sql`
@@ -141,10 +146,11 @@ export async function PATCH(request: Request) {
     if (
       orderPrefix ||
       taxPercentage !== undefined ||
-      orderExpiryMinutes !== undefined
+      orderExpiryMinutes !== undefined ||
+      requireTableNumber !== undefined
     ) {
       const [bRow] = await sql`
-        SELECT order_prefix, tax_percentage, order_expiry_minutes
+        SELECT order_prefix, tax_percentage, order_expiry_minutes, require_table_number
         FROM public.businesses
         WHERE id = ${ctx.business.id}
       `;
@@ -163,6 +169,11 @@ export async function PATCH(request: Request) {
               ? Math.max(5, Math.min(180, Math.round(orderExpiryMinutes)))
               : Number(bRow.order_expiry_minutes ?? 20)
           },
+          require_table_number = ${
+            requireTableNumber !== undefined
+              ? requireTableNumber
+              : Boolean(bRow.require_table_number ?? false)
+          },
           updated_at = NOW()
         WHERE id = ${ctx.business.id}
         RETURNING *
@@ -177,7 +188,7 @@ export async function PATCH(request: Request) {
       action: "store_qr.settings_updated",
       entityType: "store_qr",
       entityId: ctx.business.id,
-      afterState: { label, orderPrefix, taxPercentage, orderExpiryMinutes },
+      afterState: { label, orderPrefix, taxPercentage, orderExpiryMinutes, requireTableNumber },
     });
 
     return NextResponse.json({

@@ -65,6 +65,7 @@ export interface Business {
   order_sequence?: number;
   tax_percentage?: number;
   order_expiry_minutes?: number;
+  require_table_number?: boolean;
   created_at: string;
   updated_at: string;
 }
