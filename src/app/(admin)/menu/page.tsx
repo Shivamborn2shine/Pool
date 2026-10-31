@@ -91,6 +91,8 @@ export default function AdminMenuAndQrPage() {
   const [requireTableNumber, setRequireTableNumber] = useState(false);
   const [themePreset, setThemePreset] = useState("rose");
   const [primaryColor, setPrimaryColor] = useState("#E11D48");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const settingsDirtyRef = React.useRef(false);
@@ -206,6 +208,18 @@ export default function AdminMenuAndQrPage() {
         ) {
           setPrimaryColor(qrData.business.primary_color);
         }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.instagram_url !== undefined
+        ) {
+          setInstagramUrl(qrData.business.instagram_url || "");
+        }
+        if (
+          !settingsDirtyRef.current &&
+          qrData.business.google_review_url !== undefined
+        ) {
+          setGoogleReviewUrl(qrData.business.google_review_url || "");
+        }
       }
       if (repRes.ok && repData.summary) {
         setOrderStats({
@@ -237,6 +251,8 @@ export default function AdminMenuAndQrPage() {
           requireTableNumber,
           themePreset,
           primaryColor,
+          instagramUrl: instagramUrl.trim(),
+          googleReviewUrl: googleReviewUrl.trim(),
         }),
       });
       const data = await res.json();
@@ -860,6 +876,37 @@ export default function AdminMenuAndQrPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="pt-2 border-t border-stone-200 dark:border-zinc-800 space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                    Social & Review Rewards Links
+                  </h4>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    Customers earn instant bonus points on their digital loyalty card when they follow your Instagram or leave a Google review.
+                  </p>
+                </div>
+
+                <Input
+                  label="Official Instagram Page URL"
+                  value={instagramUrl}
+                  onChange={(e) => {
+                    settingsDirtyRef.current = true;
+                    setInstagramUrl(e.target.value);
+                  }}
+                  placeholder="https://instagram.com/scoop_n_breww"
+                />
+
+                <Input
+                  label="Google Maps Place / Review URL"
+                  value={googleReviewUrl}
+                  onChange={(e) => {
+                    settingsDirtyRef.current = true;
+                    setGoogleReviewUrl(e.target.value);
+                  }}
+                  placeholder="https://maps.google.com/?cid=... or search URL"
+                />
               </div>
 
               <div className="pt-1 flex items-center justify-between">

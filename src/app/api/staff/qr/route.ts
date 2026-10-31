@@ -100,6 +100,8 @@ export async function GET(request: Request) {
           require_table_number: Boolean(freshBiz.require_table_number ?? false),
           theme_preset: freshBiz.theme_preset || "rose",
           primary_color: freshBiz.primary_color || "#E11D48",
+          instagram_url: freshBiz.instagram_url || undefined,
+          google_review_url: freshBiz.google_review_url || undefined,
         }
       : ctx.business,
   });
@@ -141,6 +143,14 @@ export async function PATCH(request: Request) {
     const primaryColor = body.primaryColor
       ? String(body.primaryColor).trim()
       : undefined;
+    const instagramUrl =
+      body.instagramUrl !== undefined
+        ? String(body.instagramUrl).trim()
+        : undefined;
+    const googleReviewUrl =
+      body.googleReviewUrl !== undefined
+        ? String(body.googleReviewUrl).trim()
+        : undefined;
 
     if (label) {
       await sql`
@@ -157,10 +167,12 @@ export async function PATCH(request: Request) {
       orderExpiryMinutes !== undefined ||
       requireTableNumber !== undefined ||
       themePreset !== undefined ||
-      primaryColor !== undefined
+      primaryColor !== undefined ||
+      instagramUrl !== undefined ||
+      googleReviewUrl !== undefined
     ) {
       const [bRow] = await sql`
-        SELECT order_prefix, tax_percentage, order_expiry_minutes, require_table_number, theme_preset, primary_color
+        SELECT order_prefix, tax_percentage, order_expiry_minutes, require_table_number, theme_preset, primary_color, instagram_url, google_review_url
         FROM public.businesses
         WHERE id = ${ctx.business.id}
       `;
@@ -186,6 +198,14 @@ export async function PATCH(request: Request) {
           },
           theme_preset = ${themePreset || bRow.theme_preset || "rose"},
           primary_color = ${primaryColor || bRow.primary_color || "#E11D48"},
+          instagram_url = ${
+            instagramUrl !== undefined ? instagramUrl : bRow.instagram_url || null
+          },
+          google_review_url = ${
+            googleReviewUrl !== undefined
+              ? googleReviewUrl
+              : bRow.google_review_url || null
+          },
           updated_at = NOW()
         WHERE id = ${ctx.business.id}
         RETURNING *
@@ -208,6 +228,8 @@ export async function PATCH(request: Request) {
         requireTableNumber,
         themePreset,
         primaryColor,
+        instagramUrl,
+        googleReviewUrl,
       },
     });
 

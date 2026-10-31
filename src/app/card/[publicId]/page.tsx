@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -16,6 +16,13 @@ import {
   Phone,
   MapPin,
   Settings,
+  Sparkles,
+  Star,
+  Instagram,
+  Camera,
+  Share2,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import {
   CopyButton,
@@ -58,6 +65,8 @@ interface CardPagePayload {
     phone: string | null;
     email: string | null;
     status: string;
+    instagramUrl?: string | null;
+    googleReviewUrl?: string | null;
   };
   rules: {
     pointsPerCurrencyUnit: number;
@@ -112,6 +121,7 @@ interface CardPagePayload {
     requested_at: string;
     notes: string | null;
   }>;
+  claimedBonusTasks?: string[];
 }
 
 export default function CustomerPublicCardPage() {
@@ -156,6 +166,12 @@ export default function CustomerPublicCardPage() {
   const [redeemCreditAmount, setRedeemCreditAmount] = useState("");
   const [redeemNotes, setRedeemNotes] = useState("");
   const [submittingRedeem, setSubmittingRedeem] = useState(false);
+
+  // Bonus & Social Rewards state
+  const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
+  const [showPinPromptModal, setShowPinPromptModal] = useState(false);
+  const [pinPromptTaskId, setPinPromptTaskId] = useState<string | null>(null);
+  const [modalPinInput, setModalPinInput] = useState("");
 
   // Privacy / Preferences state
   const [marketingConsent, setMarketingConsent] = useState(false);
@@ -340,6 +356,121 @@ export default function CustomerPublicCardPage() {
       setSubmittingRedeem(false);
     }
   }
+
+  async function handleClaimBonusTask(taskId: string, pinToUse?: string) {
+    const pin = pinToUse || phoneLast4;
+    if (!pin || pin.length < 4) {
+      setPinPromptTaskId(taskId);
+      setShowPinPromptModal(true);
+      return;
+    }
+
+    setFeedback(null);
+    setClaimingTaskId(taskId);
+    try {
+      const res = await fetch(
+        `/api/card/${encodeURIComponent(publicId)}/bonus-rewards`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId, phoneLast4: pin }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setFeedback({
+          type: "error",
+          text: json.error || "Unable to claim bonus points.",
+        });
+      } else {
+        setFeedback({
+          type: "success",
+          text:
+            json.message ||
+            `+${json.pointsAwarded} bonus points credited to your card!`,
+        });
+        if (pin && !phoneLast4) {
+          setPhoneLast4(pin);
+        }
+        setShowPinPromptModal(false);
+        setPinPromptTaskId(null);
+        await loadCard();
+      }
+    } catch {
+      setFeedback({
+        type: "error",
+        text: "Network error claiming bonus reward. Please check connection.",
+      });
+    } finally {
+      setClaimingTaskId(null);
+    }
+  }
+
+  const bonusTasks = useMemo(() => {
+    const igUrl =
+      data?.business?.instagramUrl || "https://instagram.com/scoop_n_breww";
+    const googleUrl =
+      data?.business?.googleReviewUrl ||
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        data?.business?.name || "Scoop N Brew"
+      )}`;
+    const cardUrl =
+      data?.card?.publicUrl ||
+      `https://loopacards.netlify.app/card/${publicId}`;
+
+    return [
+      {
+        id: "instagram_follow",
+        title: "Follow Us on Instagram",
+        handle: "@scoop_n_breww",
+        desc: "Follow our official Instagram page for daily updates, reels, new treats & secret discounts.",
+        points: 25,
+        actionUrl: igUrl,
+        actionLabel: "Visit Instagram",
+        icon: "instagram" as const,
+        badgeBg: "from-pink-500 to-rose-600",
+      },
+      {
+        id: "google_review",
+        title: "Leave a 5-Star Google Review",
+        handle: "Google Maps Rating",
+        desc: "Review your cafe experience and favorite food on Google Maps to help others discover us.",
+        points: 30,
+        actionUrl: googleUrl,
+        actionLabel: "Write Review",
+        icon: "star" as const,
+        badgeBg: "from-amber-400 to-amber-600",
+      },
+      {
+        id: "instagram_story",
+        title: "Tag Us in your Instagram Story",
+        handle: "Story Mention",
+        desc: "Snap a photo of your waffle, shake or coffee & tag @scoop_n_breww in your Instagram Story.",
+        points: 20,
+        actionUrl: igUrl,
+        actionLabel: "Open Instagram",
+        icon: "camera" as const,
+        badgeBg: "from-purple-500 to-pink-500",
+      },
+      {
+        id: "refer_friend",
+        title: "Invite Friends & Family",
+        handle: "Loyalty Referral",
+        desc: "Share your loyalty pass link with friends so they can register and earn reward points too.",
+        points: 50,
+        actionUrl: cardUrl,
+        actionLabel: "Share Pass",
+        icon: "share" as const,
+        badgeBg: "from-emerald-500 to-teal-600",
+      },
+    ];
+  }, [
+    data?.business?.instagramUrl,
+    data?.business?.googleReviewUrl,
+    data?.business?.name,
+    data?.card?.publicUrl,
+    publicId,
+  ]);
 
   async function handleUpdatePreferences(
     requestDeletion = false
@@ -796,6 +927,159 @@ export default function CustomerPublicCardPage() {
                 </div>
               </div>
             )}
+
+            {/* Special Section: Earn Bonus Points & Social Tasks */}
+            <div className="p-4 rounded bg-surface border border-border space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5 flex-wrap">
+                      <span>Earn Rewards & Bonus Points</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-extrabold uppercase tracking-wider">
+                        Up to +125 pts
+                      </span>
+                    </h2>
+                    <p className="text-xs text-muted">
+                      Complete quick tasks to boost your loyalty points wallet instantly!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {bonusTasks.map((task) => {
+                  const isClaimed = (data?.claimedBonusTasks || []).includes(
+                    task.id
+                  );
+                  const isClaiming = claimingTaskId === task.id;
+
+                  return (
+                    <div
+                      key={task.id}
+                      className={`p-3.5 rounded border transition-all flex flex-col justify-between gap-3 ${
+                        isClaimed
+                          ? "bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50"
+                          : "bg-surface-elevated/40 border-border hover:border-zinc-400 dark:hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-7 h-7 rounded flex items-center justify-center text-white bg-gradient-to-br ${task.badgeBg} shadow-xs shrink-0`}
+                            >
+                              {task.icon === "instagram" ? (
+                                <Instagram className="w-3.5 h-3.5" />
+                              ) : task.icon === "star" ? (
+                                <Star className="w-3.5 h-3.5 fill-current" />
+                              ) : task.icon === "camera" ? (
+                                <Camera className="w-3.5 h-3.5" />
+                              ) : (
+                                <Share2 className="w-3.5 h-3.5" />
+                              )}
+                            </span>
+                            <div>
+                              <h3 className="text-xs font-bold text-foreground leading-tight">
+                                {task.title}
+                              </h3>
+                              <span className="text-[10px] text-muted font-mono">
+                                {task.handle}
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`shrink-0 px-2 py-0.5 text-xs font-mono font-bold rounded-xs ${
+                              isClaimed
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200"
+                                : "bg-brand/10 text-brand dark:bg-zinc-800 dark:text-zinc-100 border border-border"
+                            }`}
+                          >
+                            +{task.points} pts
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted leading-relaxed">
+                          {task.desc}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                        {task.id === "refer_friend" ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (navigator.share) {
+                                try {
+                                  await navigator.share({
+                                    title: `Join ${business.name} Loyalty`,
+                                    text: `Check out ${business.name} and get your loyalty card with instant points!`,
+                                    url: task.actionUrl,
+                                  });
+                                } catch {}
+                              } else {
+                                await navigator.clipboard.writeText(
+                                  task.actionUrl
+                                );
+                                setFeedback({
+                                  type: "success",
+                                  text: "Referral link copied to clipboard! Share it with friends.",
+                                });
+                              }
+                            }}
+                            className="flex-1 py-1.5 px-2.5 rounded border border-border bg-surface hover:bg-surface-elevated text-[11px] font-semibold text-foreground flex items-center justify-center gap-1.5"
+                          >
+                            <Share2 className="w-3 h-3 text-muted" />
+                            <span>Share Link</span>
+                          </button>
+                        ) : (
+                          <a
+                            href={task.actionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-1.5 px-2.5 rounded border border-border bg-surface hover:bg-surface-elevated text-[11px] font-semibold text-foreground flex items-center justify-center gap-1.5"
+                          >
+                            <span>{task.actionLabel}</span>
+                            <ExternalLink className="w-3 h-3 text-muted" />
+                          </a>
+                        )}
+
+                        {isClaimed ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="py-1.5 px-3 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1 cursor-default shrink-0"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Claimed</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleClaimBonusTask(task.id)}
+                            disabled={isClaiming}
+                            className="py-1.5 px-3 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 text-[11px] font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1 shrink-0 active:translate-y-[0.5px]"
+                          >
+                            {isClaiming ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Claiming...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3" />
+                                <span>Claim +{task.points} pts</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Catalog Rewards List */}
             <div className="space-y-3">
@@ -1302,6 +1586,85 @@ export default function CustomerPublicCardPage() {
         onConfirm={() => handleUpdatePreferences(true)}
         onClose={() => setConfirmDeletionOpen(false)}
       />
+
+      {/* Bonus Task Security PIN Modal */}
+      {showPinPromptModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm p-5 space-y-4 rounded bg-surface border border-border shadow-lg">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-accent" />
+                <h3 className="text-sm font-bold text-foreground">
+                  Confirm Security PIN
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPinPromptModal(false);
+                  setPinPromptTaskId(null);
+                }}
+                className="text-xs text-muted hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+
+            <p className="text-xs text-muted leading-relaxed">
+              Please enter the last 4 digits of your registered mobile number (
+              <span className="font-mono">{customer.maskedPhone}</span>) to claim
+              your bonus points.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (pinPromptTaskId && modalPinInput.length === 4) {
+                  handleClaimBonusTask(pinPromptTaskId, modalPinInput);
+                }
+              }}
+              className="space-y-3"
+            >
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={modalPinInput}
+                onChange={(e) =>
+                  setModalPinInput(
+                    e.target.value.replace(/\D/g, "").slice(0, 4)
+                  )
+                }
+                placeholder="4 digits"
+                className="w-full px-3 py-2 text-base font-mono text-center rounded border border-border bg-background text-foreground tracking-widest focus:outline-none focus:ring-2 focus:ring-accent"
+                autoFocus
+              />
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPinPromptModal(false);
+                    setPinPromptTaskId(null);
+                  }}
+                  className="flex-1 py-2 text-xs font-semibold rounded border border-border bg-surface hover:bg-surface-elevated text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    modalPinInput.length < 4 || claimingTaskId !== null
+                  }
+                  className="flex-1 py-2 text-xs font-semibold rounded bg-accent text-white hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {claimingTaskId ? "Verifying..." : "Verify & Claim"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

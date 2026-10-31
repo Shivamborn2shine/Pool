@@ -350,6 +350,8 @@ async function migrate() {
       ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS order_expiry_minutes INTEGER NOT NULL DEFAULT 20;
       ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS require_table_number BOOLEAN NOT NULL DEFAULT false;
       ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS theme_preset TEXT NOT NULL DEFAULT 'rose';
+      ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS instagram_url TEXT;
+      ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS google_review_url TEXT;
 
       -- 19. store_qr_codes (Generic dynamic store QR codes QR-01..08)
       CREATE TABLE IF NOT EXISTS public.store_qr_codes (
@@ -547,10 +549,22 @@ async function migrate() {
           'reward_points_restored'
         )
       );
+
+      -- 29. customer_bonus_claims (Social tasks, reviews, bonus reward claims)
+      CREATE TABLE IF NOT EXISTS public.customer_bonus_claims (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+        card_id UUID NOT NULL REFERENCES public.loyalty_cards(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL,
+        points_awarded INTEGER NOT NULL,
+        claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT uq_card_bonus_task UNIQUE (card_id, task_id)
+      );
     `);
 
     console.log("Creating performance indexes (supabase-postgres-best-practices)...");
     await sql.unsafe(`
+      CREATE INDEX IF NOT EXISTS idx_customer_bonus_claims_card ON public.customer_bonus_claims(card_id);
       CREATE INDEX IF NOT EXISTS idx_business_locations_business ON public.business_locations(business_id);
       CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON public.user_sessions(user_id);
       CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON public.user_sessions(expires_at);

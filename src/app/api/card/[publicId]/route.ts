@@ -25,7 +25,9 @@ export async function GET(
       b.address AS business_address,
       b.phone AS business_phone,
       b.email AS business_email,
-      b.status AS business_status
+      b.status AS business_status,
+      b.instagram_url AS business_instagram_url,
+      b.google_review_url AS business_google_review_url
     FROM public.loyalty_cards lc
     JOIN public.customers c ON c.id = lc.customer_id
     JOIN public.businesses b ON b.id = lc.business_id
@@ -104,6 +106,12 @@ export async function GET(
     LIMIT 20
   `;
 
+  const bonusClaims = await sql`
+    SELECT task_id, points_awarded, claimed_at
+    FROM public.customer_bonus_claims
+    WHERE card_id = ${row.id}
+  `;
+
   const qrDataUrl = await generateCardQrDataUrl(
     row.public_id,
     row.business_primary_color
@@ -141,6 +149,8 @@ export async function GET(
       phone: row.business_phone,
       email: row.business_email,
       status: row.business_status,
+      instagramUrl: row.business_instagram_url || null,
+      googleReviewUrl: row.business_google_review_url || null,
     },
     rules: rules
       ? {
@@ -163,6 +173,7 @@ export async function GET(
     claims,
     redemptions,
     orders,
+    claimedBonusTasks: bonusClaims.map((bc) => bc.task_id as string),
   });
 }
 
