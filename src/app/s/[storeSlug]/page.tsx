@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -421,34 +421,49 @@ export default function StoreQrOrderingPage() {
     });
   };
 
+  const customerRef = useRef(customer);
+  customerRef.current = customer;
+  const ordersRef = useRef(orders);
+  ordersRef.current = orders;
+  const sessionRestoredRef = useRef(false);
+  const lastFetchedCardRef = useRef<string | null>(null);
+
   const storageKey = `loopa_store_session_${storeSlug}`;
 
-  const loadStoreData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/s/${storeSlug}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Unable to load store.");
-        return;
+  const loadStoreData = useCallback(
+    async (isInitial = true) => {
+      if (isInitial) {
+        setLoading(true);
       }
-      setStore(data.store);
-      setLoyaltyOffer(data.loyaltyOffer);
-      setCategories(data.categories || []);
-      setItems(data.items || []);
-    } catch {
-      setError("Network error while loading store menu.");
-    } finally {
-      setLoading(false);
-    }
-  }, [storeSlug]);
+      setError(null);
+      try {
+        const res = await fetch(`/api/s/${storeSlug}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Unable to load store.");
+          return;
+        }
+        setStore(data.store);
+        setLoyaltyOffer(data.loyaltyOffer);
+        setCategories(data.categories || []);
+        setItems(data.items || []);
+      } catch {
+        setError("Network error while loading store menu.");
+      } finally {
+        if (isInitial) {
+          setLoading(false);
+        }
+      }
+    },
+    [storeSlug]
+  );
 
   const fetchCustomerOrders = useCallback(
     async (targetCardPublicId?: string, targetOrderIds?: string[]) => {
-      const cardId = targetCardPublicId || customer?.cardPublicId;
+      const cardId = targetCardPublicId || customerRef.current?.cardPublicId;
+      const currentOrders = ordersRef.current;
       const orderIds =
-        targetOrderIds || (orders.length > 0 ? orders.map((o) => o.id) : []);
+        targetOrderIds || (currentOrders.length > 0 ? currentOrders.map((o) => o.id) : []);
       if (!cardId && orderIds.length === 0) return;
 
       setRefreshingOrder(true);
@@ -459,7 +474,7 @@ export default function StoreQrOrderingPage() {
         } else if (orderIds.length > 0) {
           qs.set("orderIds", orderIds.join(","));
         }
-        const res = await fetch(`/api/s/${storeSlug}/orders?${qs.toString()}`);
+        const res = await fetch(`/api/s/${storeSlug}/orders?${qs.toString()}`, { cache: "no-store" });
         const data = await res.json();
         if (res.ok) {
           if (Array.isArray(data.orders) && data.orders.length > 0) {
@@ -488,16 +503,16 @@ export default function StoreQrOrderingPage() {
         setRefreshingOrder(false);
       }
     },
-    [customer?.cardPublicId, orders, storeSlug]
+    [storeSlug]
   );
 
   const refreshCustomerProfile = useCallback(
     async (targetCardPublicId?: string) => {
-      const cardId = targetCardPublicId || customer?.cardPublicId;
+      const cardId = targetCardPublicId || customerRef.current?.cardPublicId;
       if (!cardId) return;
       setRefreshingPoints(true);
       try {
-        const res = await fetch(`/api/card/${encodeURIComponent(cardId)}`);
+        const res = await fetch(`/api/card/${encodeURIComponent(cardId)}`, { cache: "no-store" });
         const data = await res.json();
         if (res.ok && data.card) {
           setCustomer((prev) => {
@@ -523,7 +538,7 @@ export default function StoreQrOrderingPage() {
         setRefreshingPoints(false);
       }
     },
-    [customer?.cardPublicId]
+    []
   );
 
   const handleLogout = () => {
@@ -617,42 +632,47 @@ export default function StoreQrOrderingPage() {
   );
 
   useEffect(() => {
-    loadStoreData();
-    try {
-      const saved = window.localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.customer) {
-          setCustomer(parsed.customer);
-          if (parsed.customer.cardPublicId) {
-            fetchCustomerOrders(parsed.customer.cardPublicId);
-            refreshCustomerProfile(parsed.customer.cardPublicId);
+    loadStoreData(true);
+    if (!sessionRestoredRef.current) {
+      sessionRestoredRef.current = true;
+      try {
+        const saved = window.localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.customer) {
+            setCustomer(parsed.customer);
+            if (parsed.customer.cardPublicId) {
+              lastFetchedCardRef.current = parsed.customer.cardPublicId;
+              fetchCustomerOrders(parsed.customer.cardPublicId);
+              refreshCustomerProfile(parsed.customer.cardPublicId);
+            }
+          }
+          if (parsed?.recentOrders) {
+            setRecentOrders(parsed.recentOrders);
+          }
+          if (Array.isArray(parsed?.orders) && parsed.orders.length > 0) {
+            setOrders(parsed.orders);
+            if (parsed.selectedOrderId) {
+              setSelectedOrderId(parsed.selectedOrderId);
+            }
+          } else if (parsed?.activeOrder) {
+            setOrders([parsed.activeOrder]);
+            setSelectedOrderId(parsed.activeOrder.id);
           }
         }
-        if (parsed?.recentOrders) {
-          setRecentOrders(parsed.recentOrders);
-        }
-        if (Array.isArray(parsed?.orders) && parsed.orders.length > 0) {
-          setOrders(parsed.orders);
-          if (parsed.selectedOrderId) {
-            setSelectedOrderId(parsed.selectedOrderId);
-          }
-        } else if (parsed?.activeOrder) {
-          setOrders([parsed.activeOrder]);
-          setSelectedOrderId(parsed.activeOrder.id);
-        }
+      } catch {
+        // Ignore storage errors
       }
-    } catch {
-      // Ignore storage errors
     }
-  }, [fetchCustomerOrders, loadStoreData, refreshCustomerProfile, storageKey]);
+  }, [loadStoreData, storageKey, fetchCustomerOrders, refreshCustomerProfile]);
 
-  // Periodic poll to keep customer points & order status fresh
+  // Periodic poll to keep customer points fresh (every 30 seconds when customer is active)
   useEffect(() => {
-    if (!customer?.cardPublicId) return;
+    const cardId = customer?.cardPublicId;
+    if (!cardId) return;
     const interval = setInterval(() => {
-      refreshCustomerProfile(customer.cardPublicId);
-    }, 20000);
+      refreshCustomerProfile(cardId);
+    }, 30000);
     return () => clearInterval(interval);
   }, [customer?.cardPublicId, refreshCustomerProfile]);
 
@@ -674,12 +694,15 @@ export default function StoreQrOrderingPage() {
     }
   }, [customer, orders, selectedOrderId, recentOrders, storageKey]);
 
-  // Refresh customer orders once customer session is established
+  // Refresh customer orders once customer session is established or changed
   useEffect(() => {
-    if (customer?.cardPublicId) {
-      fetchCustomerOrders(customer.cardPublicId);
+    const cardId = customer?.cardPublicId;
+    if (cardId && lastFetchedCardRef.current !== cardId) {
+      lastFetchedCardRef.current = cardId;
+      fetchCustomerOrders(cardId);
+      refreshCustomerProfile(cardId);
     }
-  }, [customer?.cardPublicId, fetchCustomerOrders]);
+  }, [customer?.cardPublicId, fetchCustomerOrders, refreshCustomerProfile]);
 
   // Support direct link to order status via ?orderId=...&token=...
   useEffect(() => {
@@ -691,7 +714,7 @@ export default function StoreQrOrderingPage() {
     }
   }, [searchParams, fetchOrderLive]);
 
-  // Poll all queued orders every 5 seconds while any order is in a non-terminal state
+  // Poll all queued orders every 8 seconds while any order is in a non-terminal state
   useEffect(() => {
     if (orders.length === 0) return;
     const terminalStates = [
@@ -708,13 +731,13 @@ export default function StoreQrOrderingPage() {
 
     const timer = setInterval(() => {
       fetchCustomerOrders(
-        customer?.cardPublicId,
-        orders.map((o) => o.id)
+        customerRef.current?.cardPublicId,
+        ordersRef.current.map((o) => o.id)
       );
-    }, 5000);
+    }, 8000);
 
     return () => clearInterval(timer);
-  }, [orders, customer?.cardPublicId, fetchCustomerOrders]);
+  }, [orders, fetchCustomerOrders]);
 
   const handleRegisterCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1053,7 +1076,7 @@ export default function StoreQrOrderingPage() {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {error || "This QR code could not be linked to an active store."}
           </p>
-          <Button onClick={loadStoreData} className="w-full">
+          <Button onClick={() => loadStoreData(true)} className="w-full">
             Retry
           </Button>
         </Card>
