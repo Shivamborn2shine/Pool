@@ -35,6 +35,7 @@ import {
   Edit3,
   Mail,
   Cake,
+  Camera,
   Wallet,
   Lock,
   Info,
@@ -254,13 +255,40 @@ const THEME_STYLES: Record<string, ThemeStyle> = {
 };
 
 function getItemImage(name: string, fallbackUrl?: string | null): string {
-  if (fallbackUrl && fallbackUrl.startsWith("http")) return fallbackUrl;
+  if (
+    fallbackUrl &&
+    (fallbackUrl.startsWith("http") ||
+      fallbackUrl.startsWith("/") ||
+      fallbackUrl.startsWith("data:"))
+  ) {
+    return fallbackUrl;
+  }
   const n = name.toLowerCase();
+
+  // Distinct Mojitos & Iced Teas (No identical images!)
+  if (n.includes("watermelon")) {
+    return "/images/menu/watermelon-mojito.jpg";
+  }
+  if (n.includes("blueberry")) {
+    return "/images/menu/blueberry-mojito.jpg";
+  }
+  if (n.includes("bubble gum") || n.includes("bubblegum")) {
+    return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("mint mojito") || (n.includes("mojito") && n.includes("mint"))) {
+    return "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("peach tea") || (n.includes("peach") && n.includes("tea"))) {
+    return "/images/menu/peach-tea.jpg";
+  }
+  if (n.includes("iced tea")) {
+    return "/images/menu/iced-tea.jpg";
+  }
+  if (n.includes("mojito") || n.includes("cooler")) {
+    return "https://images.unsplash.com/photo-1556881286-fc6915169721?w=500&auto=format&fit=crop&q=80";
+  }
   if (n.includes("spiral") || (n.includes("potato") && !n.includes("fry"))) {
     return "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=500&auto=format&fit=crop&q=80";
-  }
-  if (n.includes("watermelon") || n.includes("mojito")) {
-    return "https://images.unsplash.com/photo-1556881286-fc6915169721?w=500&auto=format&fit=crop&q=80";
   }
   if (n.includes("kesar") || n.includes("chai") || n.includes("tea")) {
     return "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=80";
@@ -3534,6 +3562,15 @@ export default function StoreOrderingView({
 
               {/* Logout & Account Actions */}
               <div className="pt-3 border-t border-stone-200 dark:border-zinc-800 space-y-2">
+                <Link
+                  href="/menu"
+                  onClick={() => setShowAccountDrawer(false)}
+                  className="w-full py-2.5 px-3 rounded-xl border border-amber-200/80 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                >
+                  <Camera className="w-4 h-4 text-terracotta-600" />
+                  <span>Manage Menu & Photos (Staff)</span>
+                </Link>
+
                 {!showLogoutConfirm ? (
                   <button
                     type="button"

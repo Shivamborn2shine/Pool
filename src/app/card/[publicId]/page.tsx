@@ -146,7 +146,14 @@ interface CardPagePayload {
 }
 
 function getRewardImage(name: string, fallbackUrl?: string | null): string {
-  if (fallbackUrl && fallbackUrl.startsWith("http")) return fallbackUrl;
+  if (
+    fallbackUrl &&
+    (fallbackUrl.startsWith("http") ||
+      fallbackUrl.startsWith("/") ||
+      fallbackUrl.startsWith("data:"))
+  ) {
+    return fallbackUrl;
+  }
   const n = name.toLowerCase();
   if (n.includes("chai") || n.includes("tea")) {
     return "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=80";
@@ -3671,6 +3678,15 @@ export default function CustomerPublicCardPage() {
                   <User className="w-4 h-4 text-rose-500" />
                   <span>Profile & Privacy</span>
                 </button>
+
+                <Link
+                  href="/menu"
+                  onClick={() => setShowMenuDrawer(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-terracotta-700 dark:text-terracotta-300 bg-amber-50/80 dark:bg-amber-950/30 hover:bg-amber-100/80 dark:hover:bg-amber-950/50 border border-amber-200/70 dark:border-amber-900/50 transition-colors text-left"
+                >
+                  <Camera className="w-4 h-4 text-terracotta-600" />
+                  <span>Manage Menu & Photos</span>
+                </Link>
 
                 <button
                   type="button"

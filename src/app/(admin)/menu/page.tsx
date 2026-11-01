@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
+  Camera,
   Check,
   Copy,
   Download,
@@ -12,10 +13,15 @@ import {
   Eye,
   EyeOff,
   FileJson,
+  Image as ImageIcon,
   Layers,
+  LayoutGrid,
+  List,
   Pencil,
   Plus,
   Printer,
+  RotateCcw,
+  Search,
   Sparkles,
   Trash2,
   Upload,
@@ -45,6 +51,7 @@ interface MenuItemRow {
   description: string | null;
   price: number;
   currency: string;
+  image_url?: string | null;
   is_available: boolean;
   is_visible: boolean;
   sort_order: number;
@@ -52,6 +59,193 @@ interface MenuItemRow {
   variants: { id: string; name: string; price_delta: number }[];
   addons: { id: string; name: string; price: number }[];
 }
+
+function getItemImage(name: string, fallbackUrl?: string | null): string {
+  if (
+    fallbackUrl &&
+    (fallbackUrl.startsWith("http") ||
+      fallbackUrl.startsWith("/") ||
+      fallbackUrl.startsWith("data:"))
+  ) {
+    return fallbackUrl;
+  }
+  const n = (name || "").toLowerCase();
+
+  // Distinct Mojitos & Iced Teas
+  if (n.includes("watermelon")) {
+    return "/images/menu/watermelon-mojito.jpg";
+  }
+  if (n.includes("blueberry")) {
+    return "/images/menu/blueberry-mojito.jpg";
+  }
+  if (n.includes("bubble gum") || n.includes("bubblegum")) {
+    return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("mint mojito") || (n.includes("mojito") && n.includes("mint"))) {
+    return "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("peach tea") || (n.includes("peach") && n.includes("tea"))) {
+    return "/images/menu/peach-tea.jpg";
+  }
+  if (n.includes("iced tea")) {
+    return "/images/menu/iced-tea.jpg";
+  }
+  if (n.includes("mojito") || n.includes("cooler")) {
+    return "https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("spiral") || (n.includes("potato") && !n.includes("fry"))) {
+    return "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("kesar") || n.includes("chai") || n.includes("tea")) {
+    return "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("waffle")) {
+    return "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("oreo") || n.includes("shake") || n.includes("smoothie")) {
+    return "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("peri") || n.includes("frie") || n.includes("fries")) {
+    return "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("coffee") || n.includes("latte") || n.includes("cappuccino") || n.includes("brew") || n.includes("espresso")) {
+    return "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("combo") || n.includes("deal") || n.includes("study break") || n.includes("gang") || n.includes("together") || n.includes("therapy")) {
+    return "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("bun") || n.includes("bread") || n.includes("sandwich") || n.includes("toast")) {
+    return "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("burger")) {
+    return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("pastry") || n.includes("croissant") || n.includes("cake") || n.includes("dessert")) {
+    return "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&auto=format&fit=crop&q=80";
+  }
+  return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&auto=format&fit=crop&q=80";
+}
+
+function getCategoryIcon(name: string): string {
+  const n = (name || "").toLowerCase();
+  if (n.includes("combo") || n.includes("deal")) return "🔥";
+  if (n.includes("chai") || n.includes("tea")) return "☕";
+  if (n.includes("snack") || n.includes("fries") || n.includes("frie")) return "🍟";
+  if (n.includes("waffle")) return "🧇";
+  if (n.includes("shake")) return "🥤";
+  if (n.includes("mojito") || n.includes("cooler")) return "🌿";
+  if (n.includes("coffee")) return "☕";
+  if (n.includes("bread") || n.includes("bun") || n.includes("sandwich") || n.includes("burger")) return "🥪";
+  if (n.includes("special")) return "✨";
+  return "🍽️";
+}
+
+const CAFE_IMAGE_PRESETS: {
+  category: string;
+  name: string;
+  url: string;
+  badge: string;
+}[] = [
+  // Mojitos & Coolers
+  {
+    category: "Mojitos & Coolers",
+    name: "Bubble Gum Mojito",
+    url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&auto=format&fit=crop&q=80",
+    badge: "Pink Bubblegum",
+  },
+  {
+    category: "Mojitos & Coolers",
+    name: "Mint Mojito / Virgin",
+    url: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=80",
+    badge: "Emerald Fresh Mint",
+  },
+  {
+    category: "Mojitos & Coolers",
+    name: "Watermelon Mojito",
+    url: "/images/menu/watermelon-mojito.jpg",
+    badge: "Scoop N Brew Original",
+  },
+  {
+    category: "Mojitos & Coolers",
+    name: "Blueberry Mojito",
+    url: "/images/menu/blueberry-mojito.jpg",
+    badge: "Scoop N Brew Original",
+  },
+  {
+    category: "Mojitos & Coolers",
+    name: "Iced Tea",
+    url: "/images/menu/iced-tea.jpg",
+    badge: "Scoop N Brew Original",
+  },
+  {
+    category: "Mojitos & Coolers",
+    name: "Peach Tea",
+    url: "/images/menu/peach-tea.jpg",
+    badge: "Scoop N Brew Original",
+  },
+  // Coffee & Chai
+  {
+    category: "Coffee & Chai",
+    name: "Hot Coffee / Cappuccino",
+    url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80",
+    badge: "Hot Latte Art",
+  },
+  {
+    category: "Coffee & Chai",
+    name: "Cold Coffee",
+    url: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=800&auto=format&fit=crop&q=80",
+    badge: "Iced Frappe",
+  },
+  {
+    category: "Coffee & Chai",
+    name: "Kesar Chai / Kulhad",
+    url: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&auto=format&fit=crop&q=80",
+    badge: "Saffron Chai",
+  },
+  // Treats & Snacks
+  {
+    category: "Treats & Snacks",
+    name: "Chocolate Waffle",
+    url: "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=800&auto=format&fit=crop&q=80",
+    badge: "Belgian Chocolate",
+  },
+  {
+    category: "Treats & Snacks",
+    name: "Oreo Shake",
+    url: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=800&auto=format&fit=crop&q=80",
+    badge: "Thickshake",
+  },
+  {
+    category: "Treats & Snacks",
+    name: "Potato Spiral",
+    url: "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=800&auto=format&fit=crop&q=80",
+    badge: "Tornado Spiral",
+  },
+  {
+    category: "Treats & Snacks",
+    name: "Peri Peri Fries",
+    url: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&auto=format&fit=crop&q=80",
+    badge: "Spicy Crispy",
+  },
+  {
+    category: "Treats & Snacks",
+    name: "Veg Sandwich",
+    url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&auto=format&fit=crop&q=80",
+    badge: "Grilled Cafe Toast",
+  },
+  {
+    category: "Treats & Snacks",
+    name: "Veg Burger",
+    url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80",
+    badge: "Sesame Gourmet",
+  },
+  {
+    category: "Combos & Specials",
+    name: "Snack & Drink Combo",
+    url: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&auto=format&fit=crop&q=80",
+    badge: "Combo Feast",
+  },
+];
 
 export default function AdminMenuAndQrPage() {
   const [loading, setLoading] = useState(true);
@@ -127,6 +321,7 @@ export default function AdminMenuAndQrPage() {
   const [itemDesc, setItemDesc] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [itemMultiplier, setItemMultiplier] = useState("1");
+  const [itemImageUrl, setItemImageUrl] = useState("");
   const [itemVariantsText, setItemVariantsText] = useState("");
   const [itemAddonsText, setItemAddonsText] = useState("");
   const [creatingItem, setCreatingItem] = useState(false);
@@ -139,7 +334,26 @@ export default function AdminMenuAndQrPage() {
   const [editItemDesc, setEditItemDesc] = useState("");
   const [editItemPrice, setEditItemPrice] = useState("");
   const [editItemMultiplier, setEditItemMultiplier] = useState("1");
+  const [editItemImageUrl, setEditItemImageUrl] = useState("");
   const [savingItemEdit, setSavingItemEdit] = useState(false);
+
+  // Visual Menu & Photo Manager states
+  const [menuViewMode, setMenuViewMode] = useState<"visual" | "grouped">("visual");
+  const [selectedCatFilter, setSelectedCatFilter] = useState<string>("ALL");
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
+  const [photoFilter, setPhotoFilter] = useState<
+    "all" | "custom" | "fallback" | "sold_out"
+  >("all");
+
+  // Dedicated Photo Modal state
+  const [imageModalItem, setImageModalItem] = useState<MenuItemRow | null>(null);
+  const [imageModalUrl, setImageModalUrl] = useState("");
+  const [imageModalUploading, setImageModalUploading] = useState(false);
+  const [imageModalSaving, setImageModalSaving] = useState(false);
+  const [imageModalError, setImageModalError] = useState<string | null>(null);
+  const [imageModalTab, setImageModalTab] = useState<"upload" | "presets" | "url">(
+    "presets"
+  );
 
   // Bulk Import / AI Menu Modal
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -351,6 +565,7 @@ export default function AdminMenuAndQrPage() {
           description: itemDesc,
           price: Number(itemPrice),
           loyaltyMultiplier: Number(itemMultiplier) || 1,
+          imageUrl: itemImageUrl.trim() || null,
           isAvailable: true,
           isVisible: true,
           variants,
@@ -366,6 +581,7 @@ export default function AdminMenuAndQrPage() {
       setItemDesc("");
       setItemPrice("");
       setItemMultiplier("1");
+      setItemImageUrl("");
       setItemVariantsText("");
       setItemAddonsText("");
       setShowItemModal(false);
@@ -503,6 +719,7 @@ export default function AdminMenuAndQrPage() {
     setEditItemDesc(item.description || "");
     setEditItemPrice(String(item.price));
     setEditItemMultiplier(String(item.loyalty_multiplier ?? 1));
+    setEditItemImageUrl(item.image_url || "");
   };
 
   const handleSaveItemEdit = async (e: React.FormEvent) => {
@@ -520,6 +737,7 @@ export default function AdminMenuAndQrPage() {
           description: editItemDesc,
           price: Number(editItemPrice),
           loyaltyMultiplier: Number(editItemMultiplier) || 1,
+          imageUrl: editItemImageUrl.trim() || null,
         }),
       });
       const data = await res.json();
@@ -531,6 +749,177 @@ export default function AdminMenuAndQrPage() {
       await loadAll();
     } finally {
       setSavingItemEdit(false);
+    }
+  };
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (selectedCatFilter !== "ALL" && item.category_id !== selectedCatFilter) {
+        return false;
+      }
+      if (itemSearchQuery.trim()) {
+        const q = itemSearchQuery.toLowerCase();
+        const matchesName = item.name.toLowerCase().includes(q);
+        const matchesDesc = (item.description || "").toLowerCase().includes(q);
+        const matchesCat = (item.category_name || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesDesc && !matchesCat) return false;
+      }
+      if (photoFilter === "custom") {
+        return Boolean(item.image_url && item.image_url.trim().length > 0);
+      }
+      if (photoFilter === "fallback") {
+        return !item.image_url || item.image_url.trim().length === 0;
+      }
+      if (photoFilter === "sold_out") {
+        return !item.is_available;
+      }
+      return true;
+    });
+  }, [items, selectedCatFilter, itemSearchQuery, photoFilter]);
+
+  const stats = useMemo(() => {
+    const totalItems = items.length;
+    const customPhotosCount = items.filter(
+      (i) => Boolean(i.image_url && i.image_url.trim().length > 0)
+    ).length;
+    const soldOutCount = items.filter((i) => !i.is_available).length;
+    return { totalItems, customPhotosCount, soldOutCount };
+  }, [items]);
+
+  const openPhotoModal = (item: MenuItemRow) => {
+    setImageModalItem(item);
+    setImageModalUrl(item.image_url || "");
+    setImageModalError(null);
+    setImageModalUploading(false);
+    setImageModalSaving(false);
+    setImageModalTab(item.image_url ? "upload" : "presets");
+  };
+
+  const handleUploadImageFile = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !imageModalItem) return;
+    setImageModalUploading(true);
+    setImageModalError(null);
+
+    try {
+      // 1. Try uploading to /api/upload
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "business-assets");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          setImageModalUrl(data.url);
+          setImageModalUploading(false);
+          return;
+        }
+      }
+
+      // 2. Client-side canvas compression fallback (< 150 KB)
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const maxDim = 800;
+            let width = img.width;
+            let height = img.height;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL("image/jpeg", 0.85);
+            setImageModalUrl(compressed);
+            setImageModalUploading(false);
+          };
+          img.onerror = () => {
+            setImageModalUrl(reader.result as string);
+            setImageModalUploading(false);
+          };
+          img.src = reader.result;
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setImageModalError("Upload issue. You can paste an image URL or choose a preset.");
+      setImageModalUploading(false);
+    }
+  };
+
+  const handleSavePhotoModal = async () => {
+    if (!imageModalItem) return;
+    setImageModalSaving(true);
+    setImageModalError(null);
+    try {
+      const res = await fetch(`/api/staff/menu/items/${imageModalItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: imageModalUrl.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImageModalError(data.error || "Failed to update item photo.");
+        return;
+      }
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === imageModalItem.id
+            ? { ...i, image_url: imageModalUrl.trim() || null }
+            : i
+        )
+      );
+      setImageModalItem(null);
+      await loadAll();
+    } catch {
+      setImageModalError("Failed to save image. Please check your connection.");
+    } finally {
+      setImageModalSaving(false);
+    }
+  };
+
+  const handleRemovePhotoModal = async () => {
+    if (!imageModalItem) return;
+    setImageModalSaving(true);
+    setImageModalError(null);
+    try {
+      const res = await fetch(`/api/staff/menu/items/${imageModalItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: null,
+        }),
+      });
+      if (res.ok) {
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === imageModalItem.id ? { ...i, image_url: null } : i
+          )
+        );
+        setImageModalItem(null);
+        await loadAll();
+      }
+    } finally {
+      setImageModalSaving(false);
     }
   };
 
@@ -989,14 +1378,213 @@ export default function AdminMenuAndQrPage() {
         </div>
       )}
 
-      {/* Categories & Menu Items Table */}
+      {/* Visual Menu Item & Image Manager Studio */}
       <div className="space-y-6">
+        {/* Studio Header Card */}
+        <Card className="p-5 bg-gradient-to-r from-stone-50 via-white to-rose-50/40 dark:from-zinc-900 dark:via-zinc-900 dark:to-rose-950/20 border-stone-200 dark:border-zinc-800">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-terracotta-50 dark:bg-terracotta-950/40 text-terracotta-600 dark:text-terracotta-400 border border-terracotta-200/60 dark:border-terracotta-900/40 shadow-2xs shrink-0">
+                <Camera className="w-6 h-6" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                    Menu Items & Visual Image Studio
+                  </h2>
+                  <Badge variant="success">
+                    {stats.customPhotosCount} Custom Photos
+                  </Badge>
+                  <Badge variant="neutral">
+                    {stats.totalItems} Total Items
+                  </Badge>
+                </div>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  Control images, stock availability (in stock / sold out), prices, and presentation for every item. Updates reflect live on your store QR ordering menu and digital loyalty cards.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {/* View Switcher: Visual Cards vs Classic Category Table */}
+              <div className="p-1 rounded-lg bg-stone-100 dark:bg-zinc-800 border border-stone-200 dark:border-zinc-700 flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setMenuViewMode("visual")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    menuViewMode === "visual"
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  }`}
+                  title="Card Grid view with large photo previews & one-click photo editing"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Visual Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMenuViewMode("grouped")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    menuViewMode === "grouped"
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  }`}
+                  title="Grouped category table view"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Category Table</span>
+                </button>
+              </div>
+
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setFormError(null);
+                  setShowManageCategoriesModal(true);
+                }}
+              >
+                <Layers className="w-3.5 h-3.5 mr-1" />
+                Categories ({categories.length})
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={() => {
+                  setFormError(null);
+                  setItemImageUrl("");
+                  setShowItemModal(true);
+                }}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Add Item
+              </Button>
+            </div>
+          </div>
+
+          {/* Category Filter Pills (Horizontal Scrollable) */}
+          <div className="mt-5 pt-4 border-t border-stone-200/80 dark:border-zinc-800 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <button
+              type="button"
+              onClick={() => setSelectedCatFilter("ALL")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all ${
+                selectedCatFilter === "ALL"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs"
+                  : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-stone-200 dark:border-zinc-700 hover:border-zinc-400"
+              }`}
+            >
+              All Items ({items.length})
+            </button>
+            {categories.map((cat) => {
+              const count = items.filter((i) => i.category_id === cat.id).length;
+              const isSelected = selectedCatFilter === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCatFilter(cat.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all ${
+                    isSelected
+                      ? "bg-terracotta-600 text-white shadow-xs"
+                      : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-stone-200 dark:border-zinc-700 hover:border-zinc-400"
+                  }`}
+                >
+                  <span>{getCategoryIcon(cat.name)}</span>
+                  <span>{cat.name}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      isSelected
+                        ? "bg-white/25 text-white"
+                        : "bg-stone-100 dark:bg-zinc-800 text-zinc-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Bar & Photo Filter Badges */}
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search items by name or description..."
+                value={itemSearchQuery}
+                onChange={(e) => setItemSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-terracotta-500"
+              />
+              {itemSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setItemSearchQuery("")}
+                  className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-600 text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="text-[11px] font-semibold text-zinc-500 uppercase mr-1">
+                Filter:
+              </span>
+              <button
+                type="button"
+                onClick={() => setPhotoFilter("all")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
+                  photoFilter === "all"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-stone-200 dark:border-zinc-700"
+                }`}
+              >
+                All ({items.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoFilter("custom")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
+                  photoFilter === "custom"
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : "bg-white dark:bg-zinc-900 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
+                }`}
+              >
+                ✓ Custom Photo ({stats.customPhotosCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoFilter("fallback")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
+                  photoFilter === "fallback"
+                    ? "bg-amber-600 text-white border-amber-600"
+                    : "bg-white dark:bg-zinc-900 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900"
+                }`}
+              >
+                Auto Fallback ({stats.totalItems - stats.customPhotosCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoFilter("sold_out")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
+                  photoFilter === "sold_out"
+                    ? "bg-red-600 text-white border-red-600"
+                    : "bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900"
+                }`}
+              >
+                Sold Out ({stats.soldOutCount})
+              </button>
+            </div>
+          </div>
+        </Card>
+
         {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((n) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <div
                 key={n}
-                className="h-32 bg-stone-200 dark:bg-zinc-900 animate-pulse rounded-sm"
+                className="h-72 bg-stone-200 dark:bg-zinc-900 animate-pulse rounded-xl"
               />
             ))}
           </div>
@@ -1011,7 +1599,215 @@ export default function AdminMenuAndQrPage() {
               Create First Category
             </Button>
           </Card>
+        ) : menuViewMode === "visual" ? (
+          /* ========================================================================= */
+          /* VISUAL CARDS & PHOTO STUDIO VIEW                                          */
+          /* ========================================================================= */
+          filteredItems.length === 0 ? (
+            <Card className="p-10 text-center space-y-3">
+              <Camera className="w-10 h-10 text-zinc-400 mx-auto" />
+              <h3 className="text-base font-bold">No items match your filters</h3>
+              <p className="text-xs text-zinc-500">
+                Try selecting &ldquo;All Items&rdquo; or clearing your search query.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSelectedCatFilter("ALL");
+                  setItemSearchQuery("");
+                  setPhotoFilter("all");
+                }}
+              >
+                Reset All Filters
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredItems.map((item) => {
+                const itemImg = getItemImage(item.name, item.image_url);
+                const hasCustomPhoto = Boolean(
+                  item.image_url && item.image_url.trim().length > 0
+                );
+                const isComboItem =
+                  item.name.toLowerCase().includes("combo") ||
+                  (item.category_name || "").toLowerCase().includes("combo");
+
+                return (
+                  <Card
+                    key={item.id}
+                    className="overflow-hidden flex flex-col group border-stone-200 dark:border-zinc-800 hover:shadow-md transition-shadow"
+                  >
+                    {/* Visual Card Image Preview */}
+                    <div className="relative h-44 w-full bg-stone-100 dark:bg-zinc-800 overflow-hidden">
+                      <img
+                        src={itemImg}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+
+                      {/* Photo Status Pill */}
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                        {hasCustomPhoto ? (
+                          <span className="bg-emerald-600/95 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs flex items-center gap-1">
+                            <Check className="w-2.5 h-2.5" /> Custom Photo
+                          </span>
+                        ) : (
+                          <span className="bg-zinc-900/75 text-zinc-200 text-[10px] font-medium px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                            Smart Fallback
+                          </span>
+                        )}
+                        {isComboItem && (
+                          <span className="bg-gradient-to-r from-amber-500 to-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                            🔥 COMBO
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Category Badge */}
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className="bg-white/90 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs backdrop-blur-xs">
+                          {item.category_name || "Cafe"}
+                        </span>
+                      </div>
+
+                      {/* Sold Out Overlay */}
+                      {!item.is_available && (
+                        <div className="absolute inset-0 bg-red-950/70 backdrop-blur-2xs flex items-center justify-center">
+                          <span className="bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                            Sold Out
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Hover Overlay Button to Change Photo */}
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+                        <button
+                          type="button"
+                          onClick={() => openPhotoModal(item)}
+                          className="bg-white text-zinc-900 font-extrabold text-xs px-3.5 py-2 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-terracotta-600" />
+                          Change / Upload Photo
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 line-clamp-1">
+                            {item.name}
+                          </h4>
+                          <span className="font-extrabold text-sm text-terracotta-600 dark:text-terracotta-400 tabular-nums shrink-0">
+                            {formatCurrency(item.price, item.currency)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 min-h-[30px]">
+                          {item.description || "No description provided."}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] text-zinc-500 pt-0.5">
+                          <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                            +{Math.round(item.price / 10)} pts
+                          </span>
+                          {item.loyalty_multiplier > 1 && (
+                            <Badge variant="warning">
+                              <Sparkles className="w-2.5 h-2.5 mr-0.5" />
+                              {item.loyalty_multiplier}x
+                            </Badge>
+                          )}
+                          {!item.is_visible && (
+                            <Badge variant="neutral">Hidden</Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Bar */}
+                      <div className="pt-2 border-t border-stone-200/70 dark:border-zinc-800 space-y-2">
+                        {/* 1-Click Photo Manager Button */}
+                        <button
+                          type="button"
+                          onClick={() => openPhotoModal(item)}
+                          className="w-full py-1.5 px-2.5 rounded-lg text-xs font-bold bg-stone-100 hover:bg-stone-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-1.5 transition-colors border border-stone-200/80 dark:border-zinc-700"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-terracotta-600" />
+                          <span>{hasCustomPhoto ? "Edit / Change Photo" : "📷 Upload / Add Photo"}</span>
+                        </button>
+
+                        {/* Inline Controls */}
+                        <div className="flex items-center justify-between gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleItemField(
+                                item,
+                                "isAvailable",
+                                !item.is_available
+                              )
+                            }
+                            className={`flex-1 py-1 px-2 rounded-md text-[11px] font-bold border transition-colors ${
+                              item.is_available
+                                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
+                                : "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100"
+                            }`}
+                          >
+                            {item.is_available ? "In Stock" : "Sold Out"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openEditItem(item)}
+                            className="p-1.5 rounded-md border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:bg-stone-50 dark:hover:bg-zinc-800"
+                            title="Edit Item Details"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleItemField(
+                                item,
+                                "isVisible",
+                                !item.is_visible
+                              )
+                            }
+                            className="p-1.5 rounded-md border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:bg-stone-50 dark:hover:bg-zinc-800"
+                            title={
+                              item.is_visible
+                                ? "Hide from customer menu"
+                                : "Show on customer menu"
+                            }
+                          >
+                            {item.is_visible ? (
+                              <Eye className="w-3.5 h-3.5" />
+                            ) : (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteItem(item.id)}
+                            className="p-1.5 rounded-md border border-stone-300 dark:border-zinc-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            title="Delete item"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )
         ) : (
+          /* ========================================================================= */
+          /* CLASSIC CATEGORY GROUPED TABLE VIEW                                       */
+          /* ========================================================================= */
           categories.map((cat, catIndex) => {
             const catItems = items.filter((i) => i.category_id === cat.id);
             const isHiddenCat = cat.status === "inactive";
@@ -1020,6 +1816,7 @@ export default function AdminMenuAndQrPage() {
                 <div className="p-4 bg-stone-100 dark:bg-zinc-900 border-b border-stone-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-lg">{getCategoryIcon(cat.name)}</span>
                       <h3 className="font-bold text-base">{cat.name}</h3>
                       <Badge variant="neutral">{catItems.length} items</Badge>
                       {isHiddenCat && (
@@ -1089,6 +1886,7 @@ export default function AdminMenuAndQrPage() {
                       onClick={() => {
                         setFormError(null);
                         setItemCategoryId(cat.id);
+                        setItemImageUrl("");
                         setShowItemModal(true);
                       }}
                     >
@@ -1104,114 +1902,157 @@ export default function AdminMenuAndQrPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-stone-200 dark:divide-zinc-800">
-                    {catItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-sm">
-                              {item.name}
-                            </span>
-                            <span className="font-bold text-sm tabular-nums text-terracotta-600">
-                              {formatCurrency(item.price, item.currency)}
-                            </span>
-                            {item.loyalty_multiplier > 1 && (
-                              <Badge variant="warning">
-                                <Sparkles className="w-3 h-3 mr-1" />
-                                {item.loyalty_multiplier}x Points
-                              </Badge>
-                            )}
-                            {!item.is_available && (
-                              <Badge variant="danger">Sold Out</Badge>
-                            )}
-                            {!item.is_visible && (
-                              <Badge variant="neutral">Hidden</Badge>
-                            )}
+                    {catItems.map((item) => {
+                      const itemImg = getItemImage(item.name, item.image_url);
+                      const hasCustomPhoto = Boolean(
+                        item.image_url && item.image_url.trim().length > 0
+                      );
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Item Photo Thumbnail with Camera Overlay */}
+                            <button
+                              type="button"
+                              onClick={() => openPhotoModal(item)}
+                              className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-stone-200 dark:border-zinc-700 group/thumb shadow-2xs"
+                              title="Click to view or change photo"
+                            >
+                              <img
+                                src={itemImg}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                <Camera className="w-4 h-4" />
+                              </div>
+                              {hasCustomPhoto && (
+                                <div className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+                              )}
+                            </button>
+
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-sm">
+                                  {item.name}
+                                </span>
+                                <span className="font-bold text-sm tabular-nums text-terracotta-600">
+                                  {formatCurrency(item.price, item.currency)}
+                                </span>
+                                {hasCustomPhoto && (
+                                  <Badge variant="success">Photo</Badge>
+                                )}
+                                {item.loyalty_multiplier > 1 && (
+                                  <Badge variant="warning">
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    {item.loyalty_multiplier}x Points
+                                  </Badge>
+                                )}
+                                {!item.is_available && (
+                                  <Badge variant="danger">Sold Out</Badge>
+                                )}
+                                {!item.is_visible && (
+                                  <Badge variant="neutral">Hidden</Badge>
+                                )}
+                              </div>
+                              {item.description && (
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">
+                                  {item.description}
+                                </p>
+                              )}
+                              {((item.variants?.length || 0) > 0 ||
+                                (item.addons?.length || 0) > 0) && (
+                                <p className="text-[11px] text-zinc-500">
+                                  {item.variants?.length > 0 &&
+                                    `Variants: ${item.variants
+                                      .map((v) => v.name)
+                                      .join(", ")} `}
+                                  {item.addons?.length > 0 &&
+                                    `• Add-ons: ${item.addons
+                                      .map((a) => a.name)
+                                      .join(", ")}`}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          {item.description && (
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                              {item.description}
-                            </p>
-                          )}
-                          {((item.variants?.length || 0) > 0 ||
-                            (item.addons?.length || 0) > 0) && (
-                            <p className="text-[11px] text-zinc-500">
-                              {item.variants?.length > 0 &&
-                                `Variants: ${item.variants
-                                  .map((v) => v.name)
-                                  .join(", ")} `}
-                              {item.addons?.length > 0 &&
-                                `• Add-ons: ${item.addons
-                                  .map((a) => a.name)
-                                  .join(", ")}`}
-                            </p>
-                          )}
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Photo Manager Button */}
+                            <button
+                              type="button"
+                              onClick={() => openPhotoModal(item)}
+                              className="px-2.5 py-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-stone-50 dark:hover:bg-zinc-800 flex items-center gap-1.5"
+                              title="Upload or change image"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-terracotta-600" />
+                              <span>Photo</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleItemField(
+                                  item,
+                                  "isAvailable",
+                                  !item.is_available
+                                )
+                              }
+                              className={`px-2.5 py-1.5 rounded-sm text-xs font-semibold border ${
+                                item.is_available
+                                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+                                  : "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
+                              }`}
+                            >
+                              {item.is_available ? "In Stock" : "Sold Out"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => openEditItem(item)}
+                              className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
+                              title="Edit menu item or move to another category"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleItemField(
+                                  item,
+                                  "isVisible",
+                                  !item.is_visible
+                                )
+                              }
+                              className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
+                              title={
+                                item.is_visible
+                                  ? "Hide from customer menu"
+                                  : "Show on customer menu"
+                              }
+                            >
+                              {item.is_visible ? (
+                                <Eye className="w-4 h-4" />
+                              ) : (
+                                <EyeOff className="w-4 h-4" />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => deleteItem(item.id)}
+                              className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              title="Delete menu item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleItemField(
-                                item,
-                                "isAvailable",
-                                !item.is_available
-                              )
-                            }
-                            className={`px-2.5 py-1.5 rounded-sm text-xs font-semibold border ${
-                              item.is_available
-                                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-                                : "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300"
-                            }`}
-                          >
-                            {item.is_available ? "In Stock" : "Sold Out"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openEditItem(item)}
-                            className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
-                            title="Edit menu item or move to another category"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleItemField(
-                                item,
-                                "isVisible",
-                                !item.is_visible
-                              )
-                            }
-                            className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
-                            title={
-                              item.is_visible
-                                ? "Hide from customer menu"
-                                : "Show on customer menu"
-                            }
-                          >
-                            {item.is_visible ? (
-                              <Eye className="w-4 h-4" />
-                            ) : (
-                              <EyeOff className="w-4 h-4" />
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => deleteItem(item.id)}
-                            className="p-1.5 rounded-sm border border-stone-300 dark:border-zinc-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            title="Delete menu item"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Card>
@@ -1219,6 +2060,278 @@ export default function AdminMenuAndQrPage() {
           })
         )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* DEDICATED PHOTO & IMAGE MANAGER MODAL                                     */}
+      {/* ========================================================================= */}
+      {imageModalItem && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <Card className="w-full max-w-2xl p-5 sm:p-6 space-y-4 bg-white dark:bg-zinc-900 max-h-[92vh] overflow-y-auto shadow-2xl border-stone-200 dark:border-zinc-800">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-stone-200 dark:border-zinc-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-terracotta-600" />
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                    Manage Photo: {imageModalItem.name}
+                  </h3>
+                </div>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Category: {imageModalItem.category_name} • Price: {formatCurrency(imageModalItem.price, imageModalItem.currency)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImageModalItem(null)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Live Dual Preview: Customer Menu Card + Cart Item */}
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 space-y-2">
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block">
+                Live Customer Preview (How customers see it):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                {/* Preview 1: Menu Grid Card */}
+                <div className="border border-stone-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-2xs">
+                  <div className="h-28 relative bg-stone-100 dark:bg-zinc-800">
+                    <img
+                      src={getItemImage(imageModalItem.name, imageModalUrl)}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      Menu Card
+                    </div>
+                  </div>
+                  <div className="p-2.5 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-xs truncate">{imageModalItem.name}</p>
+                      <p className="text-[10px] text-emerald-600 font-bold">
+                        +{Math.round(imageModalItem.price / 10)} pts
+                      </p>
+                    </div>
+                    <span className="font-bold text-xs">
+                      {formatCurrency(imageModalItem.price, imageModalItem.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Preview 2: Cart Row */}
+                <div className="border border-stone-200 dark:border-zinc-800 rounded-xl p-2.5 bg-white dark:bg-zinc-900 shadow-2xs flex items-center gap-2.5">
+                  <img
+                    src={getItemImage(imageModalItem.name, imageModalUrl)}
+                    alt="Preview"
+                    className="w-12 h-12 rounded-lg object-cover shrink-0 border border-stone-200 dark:border-zinc-800"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-bold bg-rose-50 text-rose-600 px-1 py-0.2 rounded">
+                        Cart Row
+                      </span>
+                    </div>
+                    <p className="font-bold text-xs truncate mt-0.5">{imageModalItem.name}</p>
+                    <p className="text-[11px] font-extrabold text-terracotta-600">
+                      {formatCurrency(imageModalItem.price, imageModalItem.currency)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Option Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-stone-100 dark:bg-zinc-800 border border-stone-200 dark:border-zinc-700">
+              <button
+                type="button"
+                onClick={() => setImageModalTab("presets")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  imageModalTab === "presets"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                }`}
+              >
+                ✨ Cafe Presets (1-Click)
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageModalTab("upload")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  imageModalTab === "upload"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                }`}
+              >
+                📷 Upload Photo File
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageModalTab("url")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  imageModalTab === "url"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                }`}
+              >
+                🔗 Paste Image URL
+              </button>
+            </div>
+
+            {/* Tab 1: Cafe Presets */}
+            {imageModalTab === "presets" && (
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-500">
+                  Click any photo below to immediately apply it to &ldquo;{imageModalItem.name}&rdquo;:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-60 overflow-y-auto p-1">
+                  {CAFE_IMAGE_PRESETS.map((preset) => {
+                    const isSelected = imageModalUrl === preset.url;
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => setImageModalUrl(preset.url)}
+                        className={`group relative rounded-xl overflow-hidden border text-left transition-all ${
+                          isSelected
+                            ? "ring-2 ring-terracotta-600 border-terracotta-600 scale-[1.02]"
+                            : "border-stone-200 dark:border-zinc-800 hover:border-zinc-400"
+                        }`}
+                      >
+                        <div className="h-20 w-full bg-stone-100 dark:bg-zinc-800 relative">
+                          <img
+                            src={preset.url}
+                            alt={preset.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-terracotta-600/30 flex items-center justify-center">
+                              <span className="bg-terracotta-600 text-white rounded-full p-1 shadow-md">
+                                <Check className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-1.5 bg-white dark:bg-zinc-900">
+                          <p className="font-bold text-[11px] truncate text-zinc-900 dark:text-zinc-100">
+                            {preset.name}
+                          </p>
+                          <span className="text-[9px] text-zinc-400 block truncate">
+                            {preset.badge}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Tab 2: Upload File */}
+            {imageModalTab === "upload" && (
+              <div className="space-y-3">
+                <label className="border-2 border-dashed border-stone-300 dark:border-zinc-700 hover:border-terracotta-500 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-stone-50/50 dark:bg-zinc-950/50">
+                  <div className="p-3 rounded-full bg-stone-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 mb-2">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                    {imageModalUploading
+                      ? "Processing & Optimizing Image..."
+                      : "Click or drag photo here"}
+                  </span>
+                  <span className="text-xs text-zinc-500 mt-1">
+                    Accepts JPG, PNG, WebP (Max 5MB). Photo is automatically optimized for fast mobile loading.
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    className="hidden"
+                    disabled={imageModalUploading}
+                    onChange={handleUploadImageFile}
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Tab 3: Paste URL */}
+            {imageModalTab === "url" && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                  Image URL or Local Relative Path
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={imageModalUrl}
+                    onChange={(e) => setImageModalUrl(e.target.value)}
+                    placeholder="e.g. /images/menu/watermelon-mojito.jpg or https://images.unsplash.com/..."
+                    className="flex-1 px-3 py-2 text-xs rounded-lg border border-stone-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-terracotta-500"
+                  />
+                  {imageModalUrl && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setImageModalUrl("")}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-500">
+                  You can paste any web photo URL (Unsplash, Cloudinary, Imgur, Supabase) or local paths like &ldquo;/images/menu/watermelon-mojito.jpg&rdquo;.
+                </p>
+              </div>
+            )}
+
+            {imageModalError && (
+              <p className="text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-950/40 p-2.5 rounded-lg border border-red-200 dark:border-red-900">
+                {imageModalError}
+              </p>
+            )}
+
+            {/* Modal Footer Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-stone-200 dark:border-zinc-800">
+              {imageModalItem.image_url ? (
+                <button
+                  type="button"
+                  onClick={handleRemovePhotoModal}
+                  disabled={imageModalSaving}
+                  className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset to Smart Fallback
+                </button>
+              ) : (
+                <span className="text-xs text-zinc-400">
+                  Currently using smart category fallback
+                </span>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setImageModalItem(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={imageModalSaving || imageModalUploading}
+                  onClick={handleSavePhotoModal}
+                >
+                  {imageModalSaving ? "Saving Photo..." : "Save Image to Item"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Manage Categories Modal */}
       {showManageCategoriesModal && (
@@ -1607,6 +2720,35 @@ export default function AdminMenuAndQrPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+                  Item Photo (Optional Image URL or Local Path)
+                </label>
+                <div className="flex gap-2.5 items-center">
+                  <div className="w-11 h-11 rounded-lg overflow-hidden bg-stone-100 dark:bg-zinc-800 shrink-0 border border-stone-200 dark:border-zinc-700 shadow-2xs">
+                    <img
+                      src={getItemImage(itemName || "Item", itemImageUrl)}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <Input
+                    placeholder="/images/menu/... or https://..."
+                    value={itemImageUrl}
+                    onChange={(e) => setItemImageUrl(e.target.value)}
+                  />
+                  {itemImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setItemImageUrl("")}
+                      className="text-xs text-red-500 hover:underline shrink-0 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <Input
                 label="Variants (Optional — format: Name:PriceDelta, Name:PriceDelta)"
                 placeholder="e.g., Regular:0, Large Tumbler:50"
@@ -1695,6 +2837,35 @@ export default function AdminMenuAndQrPage() {
                   value={editItemMultiplier}
                   onChange={(e) => setEditItemMultiplier(e.target.value)}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+                  Item Photo (Image URL or Local Path)
+                </label>
+                <div className="flex gap-2.5 items-center">
+                  <div className="w-11 h-11 rounded-lg overflow-hidden bg-stone-100 dark:bg-zinc-800 shrink-0 border border-stone-200 dark:border-zinc-700 shadow-2xs">
+                    <img
+                      src={getItemImage(editItemName, editItemImageUrl)}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <Input
+                    placeholder="/images/menu/... or https://..."
+                    value={editItemImageUrl}
+                    onChange={(e) => setEditItemImageUrl(e.target.value)}
+                  />
+                  {editItemImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditItemImageUrl("")}
+                      className="text-xs text-red-500 hover:underline shrink-0 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
               {formError && (
