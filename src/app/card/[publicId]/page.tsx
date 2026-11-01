@@ -148,27 +148,30 @@ interface CardPagePayload {
 function getRewardImage(name: string, fallbackUrl?: string | null): string {
   if (fallbackUrl && fallbackUrl.startsWith("http")) return fallbackUrl;
   const n = name.toLowerCase();
+  if (n.includes("chai") || n.includes("tea")) {
+    return "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("coffee") || n.includes("latte") || n.includes("brew") || n.includes("cappuccino")) {
+    return "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("mojito") || n.includes("cooler") || n.includes("drink")) {
+    return "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("fries") || n.includes("potato") || n.includes("peri peri")) {
+    return "https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("waffle") || n.includes("biscoff") || n.includes("pastry") || n.includes("croissant") || n.includes("dessert") || n.includes("cake")) {
+    return "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("bill") || n.includes("off") || n.includes("discount") || n.includes("50 off")) {
+    return "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=500&auto=format&fit=crop&q=80";
+  }
   if (
     n.includes("beverage") ||
-    n.includes("coffee") ||
-    n.includes("drink") ||
     n.includes("shake") ||
-    n.includes("tea") ||
-    n.includes("cooler") ||
     n.includes("frappe")
   ) {
     return "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=80";
-  }
-  if (
-    n.includes("pastry") ||
-    n.includes("croissant") ||
-    n.includes("waffle") ||
-    n.includes("dessert") ||
-    n.includes("cake") ||
-    n.includes("bun") ||
-    n.includes("spiral")
-  ) {
-    return "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&auto=format&fit=crop&q=80";
   }
   if (
     n.includes("merchandise") ||
@@ -414,6 +417,8 @@ export default function CustomerPublicCardPage() {
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
   const [showAllRewardsModal, setShowAllRewardsModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [menuTargetCategory, setMenuTargetCategory] = useState<string>("all");
 
   // Shared phone verification (Last 4 digits — Demo default hint for cd_araku_ananya_01 is 8765)
   const [phoneLast4, setPhoneLast4] = useState("");
@@ -495,6 +500,35 @@ export default function CustomerPublicCardPage() {
   useEffect(() => {
     loadCard();
   }, [loadCard]);
+
+  // First signup celebratory popup trigger (Loopa Spec 2.1: 40 Welcome Points)
+  useEffect(() => {
+    if (!loading && data?.card && data.card.pointsBalance >= 40) {
+      try {
+        const welcomeKey = `loopa_welcome_seen_${data.card.publicId}`;
+        const seen = window.localStorage.getItem(welcomeKey);
+        if (!seen) {
+          setShowWelcomeModal(true);
+        }
+      } catch {}
+    }
+  }, [loading, data?.card?.pointsBalance, data?.card?.publicId]);
+
+  const handleDismissWelcomeModal = (goToMenu = false) => {
+    try {
+      if (data?.card?.publicId) {
+        window.localStorage.setItem(
+          `loopa_welcome_seen_${data.card.publicId}`,
+          "true"
+        );
+      }
+    } catch {}
+    setShowWelcomeModal(false);
+    if (goToMenu) {
+      setMenuTargetCategory("combo");
+      handleTabChange("menu");
+    }
+  };
 
   async function handleReceiptFileUpload(
     e: React.ChangeEvent<HTMLInputElement>
@@ -1192,6 +1226,66 @@ export default function CustomerPublicCardPage() {
               <CuteCoffeeMascot />
             </div>
 
+            {/* Motivational Welcome Bonus / Free Treat Milestone Banner */}
+            {card.pointsBalance >= 40 && card.pointsBalance < 50 && (
+              <div className="relative rounded-2xl p-3.5 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-pink-500/10 dark:from-amber-950/30 dark:to-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 shadow-2xs overflow-hidden">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs font-bold text-sm">
+                      🎁
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-zinc-900 dark:text-zinc-100 leading-tight flex items-center gap-1.5">
+                        <span>40 Welcome Points Active!</span>
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">80% to Free Chai</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-tight mt-0.5">
+                        Earn just <strong>10 more points</strong> (₹100 spend) to get your <strong>Free Regular Chai</strong>!
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuTargetCategory("all");
+                      handleTabChange("menu");
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-[11px] font-bold shrink-0 shadow-xs active:scale-95 transition-transform cursor-pointer"
+                  >
+                    Order Now →
+                  </button>
+                </div>
+                <div className="w-full h-1.5 bg-rose-200/60 dark:bg-zinc-800 rounded-full mt-2.5 overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full" style={{ width: "80%" }} />
+                </div>
+              </div>
+            )}
+
+            {card.pointsBalance >= 50 && (
+              <div className="relative rounded-2xl p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-rose-500/10 dark:from-emerald-950/30 dark:to-rose-950/30 border border-emerald-200/80 dark:border-emerald-900/50 shadow-2xs flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs text-sm">
+                    ✨
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block leading-tight">
+                      Free Reward Unlocked!
+                    </span>
+                    <span className="text-[11px] text-zinc-600 dark:text-zinc-400 block truncate mt-0.5">
+                      You have enough points to claim a treat at the counter!
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("rewards")}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shrink-0 shadow-xs active:scale-95 transition-transform cursor-pointer"
+                >
+                  Redeem →
+                </button>
+              </div>
+            )}
+
             {/* 2-Column Points Ring & Wallets */}
             <div className="grid grid-cols-2 gap-3 items-stretch">
               {/* Left: Radial Points Gauge */}
@@ -1240,13 +1334,295 @@ export default function CustomerPublicCardPage() {
                       </div>
                       <div className="text-[10px] text-zinc-600 dark:text-zinc-400 mt-0.5 line-clamp-2 leading-tight">
                         {pointsToNext > 0
-                          ? `Collect ${pointsToNext} more points for a ${nextReward?.name.toLowerCase() || "free beverage"}`
+                          ? `Collect ${pointsToNext} more points for a ${nextReward?.name.toLowerCase() || "free chai"}`
                           : `Ready to claim your ${nextReward?.name.toLowerCase()}!`}
                       </div>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-rose-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </button>
+              </div>
+            </div>
+
+            {/* QUICK "GO TO MENU & ORDER" SECTION */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-1.5">
+                    <span>Order Food & Drinks</span>
+                    <span className="text-xs">☕</span>
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Freshly prepared • Dine-in & takeaway • Earn points
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("all");
+                    handleTabChange("menu");
+                  }}
+                  className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-0.5"
+                >
+                  <span>Full Menu</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 3x2 Quick Category Shortcuts */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("combo");
+                    handleTabChange("menu");
+                  }}
+                  className="p-2.5 rounded-2xl bg-gradient-to-br from-amber-50 to-rose-50 dark:from-amber-950/30 dark:to-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl">🔥</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#E11D48] bg-rose-100 dark:bg-rose-900/60 px-1.5 py-0.5 rounded-md">Save ₹</span>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
+                      Combos & Deals
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
+                      Up to ₹73 off
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("coffee");
+                    handleTabChange("menu");
+                  }}
+                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
+                >
+                  <span className="text-xl">☕</span>
+                  <div>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
+                      Hot Coffee
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
+                      From ₹39
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("waffle");
+                    handleTabChange("menu");
+                  }}
+                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
+                >
+                  <span className="text-xl">🧇</span>
+                  <div>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
+                      Waffles
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
+                      From ₹129
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("fries");
+                    handleTabChange("menu");
+                  }}
+                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
+                >
+                  <span className="text-xl">🍟</span>
+                  <div>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
+                      Fries & Spirals
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
+                      From ₹89
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("mojito");
+                    handleTabChange("menu");
+                  }}
+                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
+                >
+                  <span className="text-xl">🍹</span>
+                  <div>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
+                      Mojitos & Shakes
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
+                      From ₹99
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("bread");
+                    handleTabChange("menu");
+                  }}
+                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
+                >
+                  <span className="text-xl">🥪</span>
+                  <div>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
+                      Breads & Buns
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
+                      From ₹99
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* WANNA SAVE MONEY? TRY OUR COMBOS! (Featured Combos directly above "Rewards for you") */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-1.5">
+                    <span>Wanna save money? Try Combos!</span>
+                    <span className="text-amber-500">🔥</span>
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Pair your favorites & save up to ₹73 • Earn loyalty points!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuTargetCategory("combo");
+                    handleTabChange("menu");
+                  }}
+                  className="text-xs font-bold text-[#E11D48] hover:underline"
+                >
+                  View all 7
+                </button>
+              </div>
+
+              {/* Scrollable Horizontal Showcase of Top Combos */}
+              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pt-1 -mx-4 px-4">
+                {[
+                  {
+                    name: "The Study Break",
+                    price: 109,
+                    original: 124,
+                    savings: 15,
+                    itemsText: "Veg Sandwich + Regular Chai",
+                    points: 5,
+                    image: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&auto=format&fit=crop&q=80",
+                    badge: "Most Popular",
+                  },
+                  {
+                    name: "Sweet Tooth Therapy",
+                    price: 199,
+                    original: 228,
+                    savings: 29,
+                    itemsText: "Chocolate Waffle + Oreo Shake",
+                    points: 9,
+                    image: "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop&q=80",
+                    badge: "Sweet Deal",
+                  },
+                  {
+                    name: "Campus Cravings",
+                    price: 249,
+                    original: 287,
+                    savings: 38,
+                    itemsText: "Veg Burger + Fries + Mojito",
+                    points: 12,
+                    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80",
+                    badge: "Combo Feast",
+                  },
+                  {
+                    name: "Better Together",
+                    price: 419,
+                    original: 485,
+                    savings: 66,
+                    itemsText: "2x Burgers + Fries + 2x Mojitos",
+                    points: 20,
+                    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80",
+                    badge: "Duo Deal",
+                  },
+                  {
+                    name: "The Whole Gang",
+                    price: 699,
+                    original: 772,
+                    savings: 73,
+                    itemsText: "4x Burgers + 2x Fries + 2x Mojitos",
+                    points: 34,
+                    image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500&auto=format&fit=crop&q=80",
+                    badge: "Save ₹73!",
+                  },
+                ].map((combo) => (
+                  <div
+                    key={combo.name}
+                    className="w-56 shrink-0 bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+                  >
+                    <div>
+                      <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2">
+                        <img
+                          src={combo.image}
+                          alt={combo.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-xs">
+                          {combo.badge}
+                        </span>
+                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
+                          Save ₹{combo.savings}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-serif font-black text-zinc-900 dark:text-zinc-100 truncate">
+                        {combo.name}
+                      </h4>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5 leading-tight font-medium">
+                        {combo.itemsText}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 mt-2 border-t border-rose-50 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+                      <div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-black text-zinc-900 dark:text-zinc-100">
+                            ₹{combo.price}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 line-through">
+                            ₹{combo.original}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                          +{combo.points} pts
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuTargetCategory("combo");
+                          handleTabChange("menu");
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-[10px] font-bold shadow-xs active:scale-95 transition-transform shrink-0 cursor-pointer"
+                      >
+                        Order →
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1463,6 +1839,7 @@ export default function CustomerPublicCardPage() {
                 email: (customer as any).email || null,
               }}
               embedded={true}
+              initialCategory={menuTargetCategory}
               onBackToHome={() => handleTabChange("home")}
               onNavigateTab={(tab) => {
                 if (tab === "home") handleTabChange("home");
@@ -2876,6 +3253,90 @@ export default function CustomerPublicCardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* First Signup / Welcome Points Modal (Loopa Spec 2.1) */}
+      {showWelcomeModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF6F0] dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl border border-rose-200/80 dark:border-rose-900/60 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Ambient Sparkle Glows */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-200/50 dark:bg-amber-950/40 rounded-full blur-xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-rose-200/50 dark:bg-rose-950/40 rounded-full blur-xl pointer-events-none" />
+
+            <button
+              type="button"
+              onClick={() => handleDismissWelcomeModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Mascot / Gift Box with sparkle */}
+            <div className="flex flex-col items-center pt-2">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 via-rose-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/30 rotate-3">
+                  <Gift className="w-10 h-10 animate-pulse" />
+                </div>
+                <span className="absolute -top-2 -right-2 text-2xl">✨</span>
+                <span className="absolute -bottom-1 -left-2 text-xl">🎉</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black tracking-widest text-[#E11D48] dark:text-rose-400 uppercase">
+                Welcome to Scoop Rewards
+              </span>
+              <h3 className="text-xl sm:text-2xl font-serif font-black text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight">
+                You&apos;ve unlocked 40 Welcome Points! 🎁
+              </h3>
+              <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
+                We&apos;ve credited <strong className="text-zinc-900 dark:text-zinc-100">40 free reward points</strong> (₹20 store value) straight to your digital card to celebrate your join!
+              </p>
+            </div>
+
+            {/* Psychological Goal Gradient Milestone Card */}
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-800/80 border border-rose-100 dark:border-zinc-700 shadow-xs space-y-2 text-left">
+              <div className="flex items-center justify-between text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                <span className="flex items-center gap-1.5">
+                  <span>☕</span>
+                  <span>Free Regular Chai</span>
+                </span>
+                <span className="text-[#E11D48] font-black">Just 10 pts to go!</span>
+              </div>
+
+              {/* Progress Bar 40 / 50 */}
+              <div className="w-full h-2.5 bg-rose-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full"
+                  style={{ width: "80%" }}
+                />
+              </div>
+
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-tight">
+                Spend just ₹100 on your next order to collect 10 points and unlock your free treat!
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleDismissWelcomeModal(true)}
+                className="w-full py-3 px-4 rounded-2xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-black shadow-lg shadow-rose-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Order Now & Unlock Free Chai ☕</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDismissWelcomeModal(false)}
+                className="w-full py-2.5 px-4 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              >
+                View My Loyalty Pass
+              </button>
+            </div>
           </div>
         </div>
       )}

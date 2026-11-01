@@ -110,6 +110,7 @@ export interface StoreOrderingViewProps {
   storeSlug?: string;
   initialCustomer?: CustomerSession | null;
   embedded?: boolean;
+  initialCategory?: string;
   onBackToHome?: () => void;
   onNavigateTab?: (tab: "home" | "rewards" | "orders" | "profile") => void;
 }
@@ -276,6 +277,9 @@ function getItemImage(name: string, fallbackUrl?: string | null): string {
   if (n.includes("coffee") || n.includes("latte") || n.includes("cappuccino") || n.includes("brew") || n.includes("espresso")) {
     return "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80";
   }
+  if (n.includes("combo") || n.includes("deal") || n.includes("study break") || n.includes("gang") || n.includes("together") || n.includes("therapy")) {
+    return "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80";
+  }
   if (n.includes("bun") || n.includes("bread") || n.includes("sandwich") || n.includes("toast")) {
     return "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&auto=format&fit=crop&q=80";
   }
@@ -290,6 +294,7 @@ function getItemImage(name: string, fallbackUrl?: string | null): string {
 
 function getCategoryIcon(name: string): string {
   const n = name.toLowerCase();
+  if (n.includes("combo") || n.includes("deal")) return "🔥";
   if (n.includes("chai") || n.includes("tea")) return "☕";
   if (n.includes("snack") || n.includes("fries") || n.includes("frie")) return "🍟";
   if (n.includes("waffle")) return "🧇";
@@ -417,6 +422,7 @@ export default function StoreOrderingView({
   storeSlug: propStoreSlug,
   initialCustomer,
   embedded = false,
+  initialCategory,
   onBackToHome,
   onNavigateTab,
 }: StoreOrderingViewProps = {}) {
@@ -465,6 +471,22 @@ export default function StoreOrderingView({
   }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Auto-select category if initialCategory prop is supplied
+  useEffect(() => {
+    if (initialCategory && categories.length > 0) {
+      if (initialCategory === "all") {
+        setSelectedCategory("all");
+      } else {
+        const match = categories.find((c) =>
+          c.name.toLowerCase().includes(initialCategory.toLowerCase())
+        );
+        if (match) {
+          setSelectedCategory(match.id);
+        }
+      }
+    }
+  }, [initialCategory, categories]);
 
   // Customer session state
   const [customer, setCustomer] = useState<CustomerSession | null>(
@@ -1145,6 +1167,10 @@ export default function StoreOrderingView({
     let subtotal = 0;
     let totalItems = 0;
     let itemBonusPointsEstimate = 0;
+    let comboSpend = 0;
+    let regularSpend = 0;
+    let hasComboItems = false;
+    let comboSavingsTotal = 0;
 
     for (const entry of cart) {
       const varDelta = entry.selectedVariant?.price_delta || 0;
@@ -1157,15 +1183,32 @@ export default function StoreOrderingView({
       subtotal += lineTotal;
       totalItems += entry.quantity;
 
-      if (
-        loyaltyOffer &&
-        entry.menuItem.loyalty_multiplier > 1 &&
-        loyaltyOffer.currency_unit > 0
-      ) {
-        itemBonusPointsEstimate +=
-          (lineTotal / loyaltyOffer.currency_unit) *
-          loyaltyOffer.points_per_currency_unit *
-          (entry.menuItem.loyalty_multiplier - 1);
+      const isCombo =
+        /combo/i.test(entry.menuItem.name) ||
+        /save ₹/i.test(entry.menuItem.description || "") ||
+        categories.some(
+          (c) => c.id === entry.menuItem.category_id && /combo/i.test(c.name)
+        );
+
+      if (isCombo) {
+        comboSpend += lineTotal;
+        hasComboItems = true;
+        const savMatch = entry.menuItem.description?.match(/Save ₹(\d+)/i);
+        if (savMatch) {
+          comboSavingsTotal += Number(savMatch[1]) * entry.quantity;
+        }
+      } else {
+        regularSpend += lineTotal;
+        if (
+          loyaltyOffer &&
+          entry.menuItem.loyalty_multiplier > 1 &&
+          loyaltyOffer.currency_unit > 0
+        ) {
+          itemBonusPointsEstimate +=
+            (lineTotal / loyaltyOffer.currency_unit) *
+            loyaltyOffer.points_per_currency_unit *
+            (entry.menuItem.loyalty_multiplier - 1);
+        }
       }
     }
 
@@ -1204,14 +1247,18 @@ export default function StoreOrderingView({
 
     let estimatedPoints = 0;
     if (loyaltyOffer && total >= loyaltyOffer.minimum_purchase_amount) {
-      const basePts =
-        Math.floor(total / loyaltyOffer.currency_unit) *
-        loyaltyOffer.points_per_currency_unit;
+      // Loopa Specification Section 13:
+      // Combos earn 1 pt per ₹20 spent (floor(combo_spend / 20))
+      // Regular items earn 1 pt per ₹10 spent (floor(regular_spend / 10))
+      const comboPts = Math.floor(comboSpend / 20);
+      const regPts =
+        Math.floor(regularSpend / (loyaltyOffer.currency_unit || 10)) *
+        (loyaltyOffer.points_per_currency_unit || 1);
       const multPts =
-        basePts * (loyaltyOffer.campaign_multiplier || 1) - basePts;
+        regPts * (loyaltyOffer.campaign_multiplier || 1) - regPts;
       estimatedPoints = Math.min(
         loyaltyOffer.maximum_points_per_transaction,
-        Math.floor(basePts + multPts + itemBonusPointsEstimate)
+        Math.floor(comboPts + regPts + multPts + itemBonusPointsEstimate)
       );
     }
 
@@ -1224,6 +1271,10 @@ export default function StoreOrderingView({
       total,
       totalItems,
       estimatedPoints,
+      hasComboItems,
+      comboSavingsTotal,
+      regularSpend,
+      comboSpend,
     };
   }, [
     cart,
@@ -1232,6 +1283,7 @@ export default function StoreOrderingView({
     redeemPointsToggle,
     applyStoreCreditToggle,
     store?.tax_percentage,
+    categories,
   ]);
 
   // Next unlockable reward
@@ -1735,22 +1787,58 @@ export default function StoreOrderingView({
                 <span>⊞</span>
                 <span>All</span>
               </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
-                    selectedCategory === cat.id
-                      ? "bg-[#E11D48] text-white shadow-xs font-bold"
-                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-rose-100/70 hover:bg-rose-50"
-                  }`}
-                >
-                  <span>{getCategoryIcon(cat.name)}</span>
-                  <span>{cat.name}</span>
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const isComboCat = /combo|deal/i.test(cat.name);
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                      isComboCat
+                        ? isSelected
+                          ? "bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white font-black shadow-md ring-2 ring-rose-400/50"
+                          : "bg-gradient-to-r from-amber-50 via-rose-50 to-pink-50 dark:from-amber-950/40 dark:to-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-extrabold hover:bg-rose-100 shadow-2xs"
+                        : isSelected
+                        ? "bg-[#E11D48] text-white shadow-xs font-bold"
+                        : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-rose-100/70 hover:bg-rose-50 font-semibold"
+                    }`}
+                  >
+                    <span>{isComboCat ? "🔥" : getCategoryIcon(cat.name)}</span>
+                    <span>{cat.name}</span>
+                    {isComboCat && (
+                      <span className="px-1.5 py-0.5 bg-rose-500 text-white rounded-md text-[9px] font-black uppercase tracking-wider shadow-2xs">
+                        Save ₹
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Special Highlight Banner when viewing Combos */}
+            {selectedCategory !== "all" &&
+              categories.some(
+                (c) => c.id === selectedCategory && /combo|deal/i.test(c.name)
+              ) && (
+                <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white p-3.5 rounded-2xl shadow-sm flex items-center justify-between gap-2.5 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl animate-bounce">🔥</span>
+                    <div>
+                      <span className="font-black text-sm block">
+                        Curated Combos & Value Deals
+                      </span>
+                      <span className="text-[11px] text-white/90">
+                        Guaranteed savings up to ₹73 on our most loved pairings!
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-white text-rose-600 rounded-xl font-black text-[10px] shrink-0 uppercase shadow-2xs">
+                    Best Value
+                  </span>
+                </div>
+              )}
 
             {/* Section Heading: "Made for your cravings" */}
             <div className="flex items-center justify-between pt-1">
@@ -1782,18 +1870,38 @@ export default function StoreOrderingView({
                     .filter((c) => c.menuItem.id === item.id)
                     .reduce((sum, c) => sum + c.quantity, 0);
 
-                  const pointsEarned = Math.floor(
-                    (item.price / (loyaltyOffer?.currency_unit || 10)) *
-                      (loyaltyOffer?.points_per_currency_unit || 1) *
-                      (item.loyalty_multiplier || 1)
-                  );
+                  const isComboItem =
+                    /combo/i.test(item.name) ||
+                    /save ₹/i.test(item.description || "") ||
+                    categories.some(
+                      (c) => c.id === item.category_id && /combo|deal/i.test(c.name)
+                    );
+
+                  const savingsMatch = item.description?.match(/Save ₹(\d+)/i);
+                  const savingsAmount = savingsMatch ? savingsMatch[1] : null;
+
+                  const originalMatch = item.description?.match(/Menu Total ₹(\d+)/i);
+                  const originalTotal = originalMatch ? originalMatch[1] : null;
+
+                  // Specification Section 13:
+                  // Combos earn 1 pt per ₹20 spent (floor(price / 20))
+                  // Regular items earn 1 pt per ₹10 spent (floor(price / 10))
+                  const pointsEarned = isComboItem
+                    ? Math.floor(item.price / 20)
+                    : Math.floor(
+                        (item.price / (loyaltyOffer?.currency_unit || 10)) *
+                          (loyaltyOffer?.points_per_currency_unit || 1) *
+                          (item.loyalty_multiplier || 1)
+                      );
 
                   return (
                     <div
                       key={item.id}
-                      className={`bg-white dark:bg-zinc-900 rounded-3xl p-2.5 sm:p-3 border border-rose-100/70 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden ${
-                        !item.is_available ? "opacity-60" : ""
-                      }`}
+                      className={`bg-white dark:bg-zinc-900 rounded-3xl p-2.5 sm:p-3 border shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden ${
+                        isComboItem
+                          ? "border-rose-200/90 dark:border-rose-900/60 ring-1 ring-rose-200/50"
+                          : "border-rose-100/70 dark:border-zinc-800/80"
+                      } ${!item.is_available ? "opacity-60" : ""}`}
                     >
                       <div>
                         {/* Food Image */}
@@ -1810,7 +1918,21 @@ export default function StoreOrderingView({
                               </span>
                             </div>
                           )}
-                          {item.loyalty_multiplier > 1 && (
+
+                          {isComboItem && (
+                            <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                              <span>🔥</span>
+                              <span>COMBO</span>
+                            </div>
+                          )}
+
+                          {isComboItem && savingsAmount && (
+                            <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
+                              SAVE ₹{savingsAmount}
+                            </div>
+                          )}
+
+                          {!isComboItem && item.loyalty_multiplier > 1 && (
                             <div className="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs">
                               {item.loyalty_multiplier}x Pts
                             </div>
@@ -1831,8 +1953,15 @@ export default function StoreOrderingView({
                       {/* Bottom Row: Price, Points & Add Button */}
                       <div className="pt-2 flex items-center justify-between gap-1.5 mt-auto">
                         <div>
-                          <div className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
-                            {formatCurrency(item.price, store.currency)}
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
+                              {formatCurrency(item.price, store.currency)}
+                            </span>
+                            {isComboItem && originalTotal && (
+                              <span className="text-[10px] text-zinc-400 line-through">
+                                ₹{originalTotal}
+                              </span>
+                            )}
                           </div>
                           {loyaltyOffer && (
                             <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 mt-0.5">
@@ -2284,6 +2413,15 @@ export default function StoreOrderingView({
                     </div>
                   </div>
 
+                  {cartTotals.hasComboItems && (
+                    <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Combo Deal:</strong> Combos in your cart already include guaranteed bundled savings and earn 1 point per ₹20 spent.
+                      </span>
+                    </div>
+                  )}
+
                   <p className="text-[11px] text-zinc-500 flex items-center gap-1 pl-1">
                     <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                     <span>Points and store credit are separate balances.</span>
@@ -2299,6 +2437,14 @@ export default function StoreOrderingView({
                         {formatCurrency(cartTotals.subtotal, store.currency)}
                       </span>
                     </div>
+                    {cartTotals.comboSavingsTotal > 0 && (
+                      <div className="flex justify-between text-emerald-600 font-bold">
+                        <span>Bundle & Combo Savings</span>
+                        <span className="tabular-nums">
+                          -{formatCurrency(cartTotals.comboSavingsTotal, store.currency)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
                       <span>GST / Taxes ({store.tax_percentage}%)</span>
                       <span className="tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
