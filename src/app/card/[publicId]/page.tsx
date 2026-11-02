@@ -26,6 +26,7 @@ import {
   ExternalLink,
   Home,
   Coffee,
+  Utensils,
   Bell,
   Menu,
   Wallet,
@@ -303,10 +304,19 @@ function getRewardImage(name: string, fallbackUrl?: string | null): string {
   return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
 }
 
-function CuteCoffeeMascot() {
+function CuteCoffeeMascot({
+  showTagline = false,
+  size = "sm",
+}: {
+  showTagline?: boolean;
+  size?: "sm" | "md";
+}) {
+  const dimClass =
+    size === "sm" ? "w-20 h-20 sm:w-22 sm:h-22" : "w-28 h-28 sm:w-32 sm:h-32";
+
   return (
     <div className="relative flex flex-col items-center select-none shrink-0">
-      <div className="relative w-28 h-28 sm:w-32 sm:h-32">
+      <div className={`relative ${dimClass}`}>
         <svg
           viewBox="0 0 160 160"
           className="w-full h-full drop-shadow-sm overflow-visible"
@@ -406,84 +416,135 @@ function CuteCoffeeMascot() {
           <ellipse cx="92" cy="125" rx="5" ry="3" fill="#3D2619" />
         </svg>
       </div>
-      <div className="text-[11px] font-black leading-tight text-center text-[#B23B44] -mt-2 tracking-tight whitespace-nowrap rotate-[-3deg]">
-        Good Coffee,
-        <br />
-        Happier You!
-      </div>
+      {showTagline && (
+        <div className="text-[11px] font-black leading-tight text-center text-[#B23B44] -mt-2 tracking-tight whitespace-nowrap rotate-[-3deg]">
+          Good Coffee,
+          <br />
+          Happier You!
+        </div>
+      )}
     </div>
   );
 }
 
-function RadialPointsGauge({
-  currentPoints,
+function CompactBalanceBar({
+  points,
+  credit,
+  currency,
   targetPoints,
+  onCreditClick,
+  onTreatClick,
 }: {
-  currentPoints: number;
+  points: number;
+  credit: number;
+  currency: string;
   targetPoints: number;
+  onCreditClick: () => void;
+  onTreatClick: () => void;
 }) {
-  const percent = Math.min(100, Math.max(8, Math.round((currentPoints / targetPoints) * 100)));
-  const radius = 54;
-  const arcLength = 254;
-  const strokeDashoffset = arcLength - arcLength * (percent / 100);
-  const pointsToNext = Math.max(0, targetPoints - currentPoints);
+  const percent = Math.min(100, Math.max(8, Math.round((points / targetPoints) * 100)));
+  const pointsToNext = Math.max(0, targetPoints - points);
+
+  // SVG circular mini gauge
+  const r = 18;
+  const c = 2 * Math.PI * r;
+  const offset = c - (percent / 100) * c;
 
   return (
-    <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs rounded-3xl p-4 shadow-xs border border-rose-100/80 dark:border-rose-950/60 flex flex-col items-center justify-center text-center relative overflow-hidden">
-      <div className="absolute -top-6 -left-6 w-24 h-24 bg-rose-200/40 dark:bg-rose-950/20 rounded-full blur-xl pointer-events-none" />
-
-      <div className="relative w-36 h-36 flex items-center justify-center">
-        <svg viewBox="0 0 140 140" className="w-full h-full -rotate-135">
-          <circle
-            cx="70"
-            cy="70"
-            r={radius}
-            fill="none"
-            stroke="#FDE8EC"
-            strokeWidth="11"
-            strokeDasharray={`${arcLength} 360`}
-            strokeLinecap="round"
-          />
-          <circle
-            cx="70"
-            cy="70"
-            r={radius}
-            fill="none"
-            stroke="url(#roseGaugeGrad)"
-            strokeWidth="11"
-            strokeDasharray={`${arcLength} 360`}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            className="transition-all duration-1000 ease-out"
-          />
-          <defs>
-            <linearGradient id="roseGaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#E11D48" />
-              <stop offset="100%" stopColor="#FB7185" />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-2">
-          <div className="w-5 h-5 rounded-full bg-amber-500/10 flex items-center justify-center mb-0.5">
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-amber-600 fill-current">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-            </svg>
+    <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-3 sm:p-3.5 border border-rose-100/70 dark:border-zinc-800 shadow-sm flex items-center justify-between gap-1.5 sm:gap-3">
+      {/* 1. Points Radial Gauge */}
+      <button
+        type="button"
+        onClick={onTreatClick}
+        aria-label="View points balance"
+        className="flex items-center gap-2 group text-left cursor-pointer transition-transform active:scale-95"
+      >
+        <div className="relative w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 48 48" className="w-full h-full -rotate-90">
+            <circle
+              cx="24"
+              cy="24"
+              r={r}
+              fill="none"
+              stroke="#FDE8EC"
+              strokeWidth="3.5"
+              className="dark:stroke-zinc-800"
+            />
+            <circle
+              cx="24"
+              cy="24"
+              r={r}
+              fill="none"
+              stroke="#E11D48"
+              strokeWidth="3.5"
+              strokeDasharray={c}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+            />
+          </svg>
+          {/* Star at top */}
+          <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] font-bold shadow-2xs">
+            ★
           </div>
-          <span className="text-3xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-none">
-            {currentPoints}
-          </span>
-          <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400 mt-0.5">
-            points
-          </span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 leading-none">
+              {points}
+            </span>
+            <span className="text-[8px] sm:text-[9px] font-medium text-zinc-400 dark:text-zinc-500 leading-none mt-0.5">
+              Points
+            </span>
+          </div>
         </div>
-      </div>
+      </button>
 
-      <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 max-w-[125px] leading-tight mt-1">
-        {pointsToNext > 0
-          ? `${pointsToNext} points to your next treat`
-          : "You have enough points to claim a treat!"}
-      </p>
+      {/* Divider */}
+      <div className="h-8 w-[1px] bg-rose-100/70 dark:bg-zinc-800 shrink-0" />
+
+      {/* 2. Store Credit */}
+      <button
+        type="button"
+        onClick={onCreditClick}
+        aria-label="View store credit"
+        className="flex items-center gap-2 group text-left cursor-pointer transition-transform active:scale-95"
+      >
+        <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center text-[#E11D48] shrink-0">
+          <Wallet className="w-4 h-4 text-[#E11D48]" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 leading-none">
+            {formatCurrency(credit, currency)}
+          </div>
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 leading-none">
+            Store Credit
+          </div>
+        </div>
+      </button>
+
+      {/* Divider */}
+      <div className="h-8 w-[1px] bg-rose-100/70 dark:bg-zinc-800 shrink-0" />
+
+      {/* 3. Next Treat Progress */}
+      <button
+        type="button"
+        onClick={onTreatClick}
+        aria-label="View rewards catalog"
+        className="flex items-center gap-2 group text-left cursor-pointer transition-transform active:scale-95 min-w-0"
+      >
+        <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center text-[#E11D48] shrink-0">
+          <Gift className="w-4 h-4 text-[#E11D48]" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 leading-none truncate">
+            {pointsToNext > 0 ? `${pointsToNext} pts to next treat` : "Ready to claim treat!"}
+          </div>
+          <div className="w-16 sm:w-24 h-1.5 bg-rose-100 dark:bg-zinc-800 rounded-full mt-1.5 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-rose-500 to-[#E11D48] rounded-full transition-all duration-500"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      </button>
     </div>
   );
 }
@@ -1337,150 +1398,41 @@ export default function CustomerPublicCardPage() {
           </div>
         )}
 
-        {/* HOME VIEW: EXACT REPLICA OF USER TARGET DESIGN */}
+        {/* HOME VIEW: EXACT REPLICA OF USER TARGET DESIGN (SLEEK COMPACT) */}
         {activeTab === "home" && (
           <div className="space-y-4">
             {/* Greeting Hero */}
             <div className="flex items-center justify-between gap-2 pt-1">
               <div className="min-w-0 flex-1">
                 <h2 className="text-2xl sm:text-3xl font-serif font-black text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight flex items-center gap-1.5 flex-wrap">
-                  <span>Hey {customerFirstName}!</span>
+                  <span>Hey, {customerFirstName}!</span>
                   <span className="inline-block text-2xl">👋</span>
                 </h2>
-                <p className="mt-1 text-sm sm:text-base font-medium text-zinc-600 dark:text-zinc-300 leading-snug">
-                  {card.pointsBalance} points and more good coffee moments ahead.
+                <p className="mt-1 text-sm sm:text-base font-normal text-zinc-500 dark:text-zinc-400 leading-snug">
+                  Good things are brewing.
                 </p>
               </div>
-              <CuteCoffeeMascot />
+              <CuteCoffeeMascot showTagline={false} size="sm" />
             </div>
 
-            {/* Motivational Welcome Bonus / Free Treat Milestone Banner */}
-            {card.pointsBalance >= 40 && card.pointsBalance < 50 && (
-              <div className="relative rounded-2xl p-3.5 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-pink-500/10 dark:from-amber-950/30 dark:to-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 shadow-2xs overflow-hidden">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs font-bold text-sm">
-                      🎁
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-black text-zinc-900 dark:text-zinc-100 leading-tight flex items-center gap-1.5">
-                        <span>40 Welcome Points Active!</span>
-                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">80% to Free Chai</span>
-                      </div>
-                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-tight mt-0.5">
-                        Earn just <strong>10 more points</strong> (₹100 spend) to get your <strong>Free Regular Chai</strong>!
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuTargetCategory("all");
-                      handleTabChange("menu");
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-[11px] font-bold shrink-0 shadow-xs active:scale-95 transition-transform cursor-pointer"
-                  >
-                    Order Now →
-                  </button>
-                </div>
-                <div className="w-full h-1.5 bg-rose-200/60 dark:bg-zinc-800 rounded-full mt-2.5 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full" style={{ width: "80%" }} />
-                </div>
-              </div>
-            )}
+            {/* UNIFIED COMPACT BALANCE BAR (Radial Gauge + Store Credit + Next Treat Progress) */}
+            <CompactBalanceBar
+              points={card.pointsBalance}
+              credit={card.redeemableAmount}
+              currency={business.currency}
+              targetPoints={nextReward?.points_required || 30}
+              onCreditClick={() => setShowCreditModal(true)}
+              onTreatClick={() => setActiveTab("rewards")}
+            />
 
-            {card.pointsBalance >= 50 && (
-              <div className="relative rounded-2xl p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-rose-500/10 dark:from-emerald-950/30 dark:to-rose-950/30 border border-emerald-200/80 dark:border-emerald-900/50 shadow-2xs flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs text-sm">
-                    ✨
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block leading-tight">
-                      Free Reward Unlocked!
-                    </span>
-                    <span className="text-[11px] text-zinc-600 dark:text-zinc-400 block truncate mt-0.5">
-                      You have enough points to claim a treat at the counter!
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("rewards")}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shrink-0 shadow-xs active:scale-95 transition-transform cursor-pointer"
-                >
-                  Redeem →
-                </button>
-              </div>
-            )}
-
-            {/* 2-Column Points Ring & Wallets */}
-            <div className="grid grid-cols-2 gap-3 items-stretch">
-              {/* Left: Radial Points Gauge */}
-              <RadialPointsGauge
-                currentPoints={card.pointsBalance}
-                targetPoints={nextReward?.points_required || 50}
-              />
-
-              {/* Right: Stacked Action Cards */}
-              <div className="flex flex-col gap-2.5 justify-between">
-                {/* Store Credit Card */}
-                <button
-                  type="button"
-                  onClick={() => setShowCreditModal(true)}
-                  className="w-full bg-[#FDF2F4] dark:bg-rose-950/30 hover:bg-[#FCE7EB] dark:hover:bg-rose-950/40 rounded-2xl p-3 border border-rose-100/80 dark:border-rose-900/40 flex items-center justify-between text-left transition-all group shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#E11D48] flex items-center justify-center text-white shrink-0 shadow-xs">
-                      <Wallet className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-lg font-black text-zinc-900 dark:text-zinc-100 leading-none">
-                        {formatCurrency(card.redeemableAmount, business.currency)}
-                      </div>
-                      <div className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mt-0.5 truncate">
-                        Store Credit
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-rose-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-
-                {/* Next Treat Card */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("rewards")}
-                  className="w-full bg-[#FDF2F4] dark:bg-rose-950/30 hover:bg-[#FCE7EB] dark:hover:bg-rose-950/40 rounded-2xl p-3 border border-rose-100/80 dark:border-rose-900/40 flex items-center justify-between text-left transition-all group shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#E11D48] flex items-center justify-center text-white shrink-0 shadow-xs">
-                      <Gift className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 leading-tight truncate">
-                        Your next treat awaits!
-                      </div>
-                      <div className="text-[10px] text-zinc-600 dark:text-zinc-400 mt-0.5 line-clamp-2 leading-tight">
-                        {pointsToNext > 0
-                          ? `Collect ${pointsToNext} more points for a ${nextReward?.name.toLowerCase() || "free chai"}`
-                          : `Ready to claim your ${nextReward?.name.toLowerCase()}!`}
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-rose-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </div>
-            </div>
-
-            {/* QUICK "GO TO MENU & ORDER" SECTION */}
+            {/* ORDER FOOD & DRINKS (2-Column Sleek Horizontal Cards) */}
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-1.5">
-                    <span>Order Food & Drinks</span>
-                    <span className="text-xs">☕</span>
+                  <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    Order Food & Drinks
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
                     Freshly prepared • Dine-in & takeaway • Earn points
                   </p>
                 </div>
@@ -1490,156 +1442,111 @@ export default function CustomerPublicCardPage() {
                     setMenuTargetCategory("all");
                     handleTabChange("menu");
                   }}
-                  className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-0.5"
+                  className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-0.5 cursor-pointer"
                 >
                   <span>Full Menu</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* 3x2 Quick Category Shortcuts */}
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("combo");
-                    handleTabChange("menu");
-                  }}
-                  className="p-2.5 rounded-2xl bg-gradient-to-br from-amber-50 to-rose-50 dark:from-amber-950/30 dark:to-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl">🔥</span>
-                    <span className="text-[9px] font-black uppercase tracking-wider text-[#E11D48] bg-rose-100 dark:bg-rose-900/60 px-1.5 py-0.5 rounded-md">Save ₹</span>
-                  </div>
-                  <div>
-                    <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
-                      Combos & Deals
-                    </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
-                      Up to ₹73 off
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("coffee");
-                    handleTabChange("menu");
-                  }}
-                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
-                >
-                  <span className="text-xl">☕</span>
-                  <div>
-                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
-                      Hot Coffee
-                    </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
-                      From ₹39
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("waffle");
-                    handleTabChange("menu");
-                  }}
-                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
-                >
-                  <span className="text-xl">🧇</span>
-                  <div>
-                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
-                      Waffles
-                    </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
-                      From ₹129
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("fries");
-                    handleTabChange("menu");
-                  }}
-                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
-                >
-                  <span className="text-xl">🍟</span>
-                  <div>
-                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
-                      Fries & Spirals
-                    </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
-                      From ₹89
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("mojito");
-                    handleTabChange("menu");
-                  }}
-                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
-                >
-                  <span className="text-xl">🍹</span>
-                  <div>
-                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
-                      Mojitos & Shakes
-                    </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
-                      From ₹99
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("bread");
-                    handleTabChange("menu");
-                  }}
-                  className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 hover:shadow-xs transition-all text-left group flex flex-col justify-between h-20 shadow-2xs cursor-pointer"
-                >
-                  <span className="text-xl">🥪</span>
-                  <div>
-                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight">
-                      Breads & Buns
-                    </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-none">
-                      From ₹99
-                    </span>
-                  </div>
-                </button>
+              {/* 2x3 Quick Category Shortcuts */}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                {[
+                  {
+                    id: "combo",
+                    name: "Combos & Deals",
+                    badge: "SAVE ₹",
+                    subtext: "Up to ₹75 off",
+                    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=160&auto=format&fit=crop&q=80",
+                  },
+                  {
+                    id: "coffee",
+                    name: "Hot Coffee",
+                    subtext: null,
+                    image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=160&auto=format&fit=crop&q=80",
+                  },
+                  {
+                    id: "fries",
+                    name: "Fries & Spirals",
+                    subtext: null,
+                    image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=160&auto=format&fit=crop&q=80",
+                  },
+                  {
+                    id: "waffle",
+                    name: "Waffles",
+                    subtext: null,
+                    image: "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=160&auto=format&fit=crop&q=80",
+                  },
+                  {
+                    id: "mojito",
+                    name: "Mojitos & Shakes",
+                    subtext: null,
+                    image: "/images/menu/watermelon-mojito.jpg",
+                  },
+                  {
+                    id: "bread",
+                    name: "Breads & Buns",
+                    subtext: null,
+                    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=160&auto=format&fit=crop&q=80",
+                  },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setMenuTargetCategory(cat.id);
+                      handleTabChange("menu");
+                    }}
+                    className="p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-rose-100/70 dark:border-zinc-800 shadow-2xs hover:shadow-xs hover:border-rose-200 dark:hover:border-zinc-700 transition-all text-left group flex items-center justify-between cursor-pointer active:scale-[0.98] min-h-[50px]"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden shrink-0 bg-rose-50 dark:bg-zinc-800 flex items-center justify-center">
+                        <img
+                          src={cat.image}
+                          alt={cat.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src =
+                              "https://images.unsplash.com/photo-1550547660-d9450f859349?w=160&auto=format&fit=crop&q=80";
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        {cat.badge && (
+                          <div className="mb-0.5">
+                            <span className="inline-block text-[8px] font-black uppercase tracking-wider text-[#E11D48] bg-rose-100 dark:bg-rose-950/70 px-1.5 py-0.5 rounded leading-none">
+                              {cat.badge}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block group-hover:text-[#E11D48] transition-colors leading-tight truncate">
+                          {cat.name}
+                        </span>
+                        {cat.subtext && (
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-tight mt-0.5 truncate">
+                            {cat.subtext}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* WANNA SAVE MONEY? TRY OUR COMBOS! (Featured Combos directly above "Rewards for you") */}
+            {/* TRY A COMBO & SAVE 🔥 */}
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-1.5">
-                    <span>Wanna save money? Try Combos!</span>
+                    <span>Try a combo & save</span>
                     <span className="text-amber-500">🔥</span>
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
                     Pair your favorites & save up to ₹73 • Earn loyalty points!
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuTargetCategory("combo");
-                    handleTabChange("menu");
-                  }}
-                  className="text-xs font-bold text-[#E11D48] hover:underline cursor-pointer"
-                >
-                  View all {displayCombos.length}
-                </button>
               </div>
 
               {/* Scrollable Horizontal Showcase of Top Combos */}
@@ -1647,10 +1554,10 @@ export default function CustomerPublicCardPage() {
                 {displayCombos.map((combo) => (
                   <div
                     key={combo.name}
-                    className="w-56 shrink-0 bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+                    className="w-[270px] sm:w-[280px] shrink-0 bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
                   >
                     <div>
-                      <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2">
+                      <div className="relative w-full h-32 sm:h-36 rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2.5">
                         <img
                           src={combo.image}
                           alt={combo.name}
@@ -1660,35 +1567,35 @@ export default function CustomerPublicCardPage() {
                               "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80";
                           }}
                         />
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-xs">
+                        <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
                           {combo.badge}
                         </span>
                         {combo.savings > 0 && (
-                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
+                          <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
                             Save ₹{combo.savings}
                           </span>
                         )}
                       </div>
 
-                      <h4 className="text-xs font-serif font-black text-zinc-900 dark:text-zinc-100 truncate">
+                      <h4 className="text-sm font-serif font-black text-zinc-900 dark:text-zinc-100 truncate">
                         {combo.name}
                       </h4>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5 leading-tight font-medium">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5 leading-tight font-medium">
                         {combo.itemsText}
                       </p>
                     </div>
 
-                    <div className="pt-2 mt-2 border-t border-rose-50 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+                    <div className="pt-2.5 mt-2.5 border-t border-rose-50 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
                       <div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-sm font-black text-zinc-900 dark:text-zinc-100">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-base font-black text-zinc-900 dark:text-zinc-100">
                             ₹{combo.price}
                           </span>
-                          <span className="text-[10px] text-zinc-400 line-through">
+                          <span className="text-xs text-zinc-400 line-through">
                             ₹{combo.original}
                           </span>
                         </div>
-                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
                           +{combo.points} pts
                         </span>
                       </div>
@@ -1699,9 +1606,9 @@ export default function CustomerPublicCardPage() {
                           setMenuTargetCategory("combo");
                           handleTabChange("menu");
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-[10px] font-bold shadow-xs active:scale-95 transition-transform shrink-0 cursor-pointer"
+                        className="px-4 py-1.5 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
                       >
-                        Order →
+                        Order
                       </button>
                     </div>
                   </div>
@@ -1709,7 +1616,7 @@ export default function CustomerPublicCardPage() {
               </div>
             </div>
 
-            {/* Rewards for you */}
+            {/* REWARDS FOR YOU */}
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -1718,9 +1625,10 @@ export default function CustomerPublicCardPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("rewards")}
-                  className="text-xs font-bold text-[#E11D48] hover:underline"
+                  className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-0.5 cursor-pointer"
                 >
-                  See all
+                  <span>See all</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -1743,54 +1651,28 @@ export default function CustomerPublicCardPage() {
                         });
                       }
                     }}
-                    className="bg-[#FDF2F4] dark:bg-rose-950/30 hover:bg-[#FCE7EB] dark:hover:bg-rose-950/40 border border-rose-100/70 dark:border-rose-900/30 rounded-2xl p-2.5 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.02] shadow-2xs group"
+                    className="bg-white dark:bg-zinc-900 hover:bg-rose-50/40 dark:hover:bg-zinc-800/60 border border-rose-100/70 dark:border-zinc-800 rounded-2xl p-2 sm:p-2.5 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.02] shadow-2xs group"
                   >
-                    <div className="w-full h-20 sm:h-24 rounded-xl overflow-hidden mb-2 bg-white/70 dark:bg-zinc-800/70 flex items-center justify-center p-1">
+                    <div className="w-full h-20 sm:h-24 rounded-xl overflow-hidden mb-2 bg-rose-50/50 dark:bg-zinc-800">
                       <img
                         src={getRewardImage(reward.name, reward.image_url)}
                         alt={reward.name}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src =
                             "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
                         }}
                       />
                     </div>
-                    <h4 className="text-xs font-serif font-bold text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-2">
+                    <h4 className="text-xs font-serif font-bold text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-1">
                       {reward.name}
                     </h4>
-                    <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
+                    <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
                       at {reward.points_required} points
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Sticky / Floating Show My QR Code Bar */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowQrModal(true)}
-                className="w-full bg-gradient-to-r from-[#E11D48] via-[#E11D48] to-[#D81159] hover:from-[#BE123C] hover:to-[#C00D4E] text-white rounded-2xl p-3.5 sm:p-4 shadow-lg shadow-rose-500/25 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                    <QrCode className="w-5 h-5" />
-                  </div>
-                  <span className="text-base font-bold tracking-tight">
-                    Show My QR Code
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="h-5 w-[1px] bg-white/30 mr-1" />
-                  <span className="text-xs font-medium text-white/95">
-                    Scan at counter
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-white/90" />
-                </div>
-              </button>
             </div>
           </div>
         )}
@@ -3835,7 +3717,7 @@ export default function CustomerPublicCardPage() {
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
-            <Home className="w-5 h-5 stroke-[2.2]" />
+            <Home className={`w-5 h-5 stroke-[2.2] ${activeTab === "home" ? "fill-current" : ""}`} />
             <span className="text-[10px]">Home</span>
           </button>
 
@@ -3848,7 +3730,7 @@ export default function CustomerPublicCardPage() {
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
-            <Coffee className="w-5 h-5 stroke-[2.2]" />
+            <Utensils className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px]">Menu</span>
           </button>
 
@@ -3874,7 +3756,7 @@ export default function CustomerPublicCardPage() {
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
-            <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
+            <Receipt className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px]">Orders</span>
           </button>
 
