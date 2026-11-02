@@ -53,10 +53,10 @@ export async function GET(
 
   const rewards = await sql`
     SELECT
-      id, name, description, image_url, points_required, monetary_value, stock_limit, redeemed_count, status
+      id, name, description, image_url, points_required, monetary_value, stock_limit, redeemed_count, status, sort_order
     FROM public.rewards
     WHERE business_id = ${row.business_id} AND status = 'active'
-    ORDER BY points_required ASC
+    ORDER BY sort_order ASC, points_required ASC, created_at ASC
   `;
 
   const transactions = await sql`

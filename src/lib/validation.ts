@@ -156,11 +156,12 @@ export const claimRejectSchema = z.object({
 export const rewardCreateSchema = z.object({
   name: z.string().min(2, "Reward name is required").max(120),
   description: z.string().max(400).optional().nullable(),
-  imageUrl: z.string().url().optional().nullable().or(z.literal("")),
+  imageUrl: z.string().max(2000).optional().nullable().or(z.literal("")),
   pointsRequired: z.coerce.number().int().positive("Points cost must be > 0"),
   monetaryValue: z.coerce.number().min(0, "Value cannot be negative"),
   stockLimit: z.coerce.number().int().positive().optional().nullable(),
   status: z.enum(["active", "inactive"]).default("active"),
+  sortOrder: z.coerce.number().int().optional().default(100),
 });
 
 export const adminRedemptionSchema = z.object({

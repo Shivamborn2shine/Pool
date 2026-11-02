@@ -107,10 +107,12 @@ interface CardPagePayload {
     id: string;
     name: string;
     description: string | null;
+    image_url?: string | null;
     points_required: number;
     monetary_value: number;
     stock_limit: number | null;
     redeemed_count: number;
+    sort_order?: number;
   }>;
   transactions: Array<{
     id: string;
@@ -154,7 +156,7 @@ function getRewardImage(name: string, fallbackUrl?: string | null): string {
   ) {
     return fallbackUrl;
   }
-  const n = name.toLowerCase();
+  const n = (name || "").toLowerCase();
   if (n.includes("chai") || n.includes("tea")) {
     return "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=80";
   }
@@ -162,23 +164,29 @@ function getRewardImage(name: string, fallbackUrl?: string | null): string {
     return "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80";
   }
   if (n.includes("mojito") || n.includes("cooler") || n.includes("drink")) {
-    return "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&auto=format&fit=crop&q=80";
+    return "/images/menu/watermelon-mojito.jpg";
   }
   if (n.includes("fries") || n.includes("potato") || n.includes("peri peri")) {
-    return "https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&auto=format&fit=crop&q=80";
+    return "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=80";
   }
-  if (n.includes("waffle") || n.includes("biscoff") || n.includes("pastry") || n.includes("croissant") || n.includes("dessert") || n.includes("cake")) {
+  if (n.includes("pastry") || n.includes("croissant") || n.includes("bakery")) {
+    return "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("biscoff")) {
+    return "https://images.unsplash.com/photo-1568051243851-f9b136146e97?w=500&auto=format&fit=crop&q=80";
+  }
+  if (n.includes("waffle") || n.includes("chocolate waffle")) {
     return "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop&q=80";
   }
-  if (n.includes("bill") || n.includes("off") || n.includes("discount") || n.includes("50 off")) {
-    return "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=500&auto=format&fit=crop&q=80";
+  if (n.includes("bill") || n.includes("off") || n.includes("discount") || n.includes("voucher") || n.includes("50 off")) {
+    return "https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=500&auto=format&fit=crop&q=80";
   }
   if (
     n.includes("beverage") ||
     n.includes("shake") ||
     n.includes("frappe")
   ) {
-    return "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=80";
+    return "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=80";
   }
   if (
     n.includes("merchandise") ||
@@ -190,7 +198,7 @@ function getRewardImage(name: string, fallbackUrl?: string | null): string {
     n.includes("pack") ||
     n.includes("sticker")
   ) {
-    return "https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?w=500&auto=format&fit=crop&q=80";
+    return "https://images.unsplash.com/photo-1598532163257-ae3c6b2524b6?w=500&auto=format&fit=crop&q=80";
   }
   return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
 }
@@ -454,6 +462,7 @@ export default function CustomerPublicCardPage() {
     id: string;
     name: string;
     points: number;
+    image_url?: string | null;
   } | null>(null);
   const [redeemCreditAmount, setRedeemCreditAmount] = useState("");
   const [redeemNotes, setRedeemNotes] = useState("");
@@ -979,9 +988,12 @@ export default function CustomerPublicCardPage() {
 
   const customerFirstName = customer.fullName?.split(" ")[0] || "Friend";
 
-  const sortedRewards = [...rewards].sort(
-    (a, b) => a.points_required - b.points_required
-  );
+  const sortedRewards = [...rewards].sort((a, b) => {
+    const orderA = a.sort_order ?? 100;
+    const orderB = b.sort_order ?? 100;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.points_required - b.points_required;
+  });
 
   const nextReward =
     sortedRewards.find((r) => r.points_required > card.pointsBalance) ||
@@ -1658,6 +1670,7 @@ export default function CustomerPublicCardPage() {
                           id: reward.id,
                           name: reward.name,
                           points: reward.points_required,
+                          image_url: reward.image_url,
                         });
                       } else {
                         setFeedback({
@@ -1670,9 +1683,13 @@ export default function CustomerPublicCardPage() {
                   >
                     <div className="w-full h-20 sm:h-24 rounded-xl overflow-hidden mb-2 bg-white/70 dark:bg-zinc-800/70 flex items-center justify-center p-1">
                       <img
-                        src={getRewardImage(reward.name)}
+                        src={getRewardImage(reward.name, reward.image_url)}
                         alt={reward.name}
                         className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
+                        }}
                       />
                     </div>
                     <h4 className="text-xs font-serif font-bold text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-2">
@@ -1951,9 +1968,13 @@ export default function CustomerPublicCardPage() {
                   <div className="bg-white dark:bg-zinc-900 rounded-3xl p-3.5 border border-rose-100 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row gap-3.5 items-center">
                     <div className="w-full sm:w-36 h-36 rounded-2xl overflow-hidden shrink-0 relative bg-zinc-100">
                       <img
-                        src={getRewardImage(readyReward.name)}
+                        src={getRewardImage(readyReward.name, readyReward.image_url)}
                         alt={readyReward.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
+                        }}
                       />
                     </div>
 
@@ -1981,6 +2002,7 @@ export default function CustomerPublicCardPage() {
                               id: readyReward.id,
                               name: readyReward.name,
                               points: readyReward.points_required,
+                              image_url: readyReward.image_url,
                             })
                           }
                           className="px-5 py-2 rounded-full bg-[#E11D48] hover:bg-[#be123c] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-rose-500/25 active:scale-95 transition-all"
@@ -2041,9 +2063,13 @@ export default function CustomerPublicCardPage() {
                           <div className="space-y-2">
                             <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-zinc-100">
                               <img
-                                src={getRewardImage(r.name)}
+                                src={getRewardImage(r.name, r.image_url)}
                                 alt={r.name}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src =
+                                    "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
+                                }}
                               />
                               <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/95 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 shadow-xs backdrop-blur-xs">
                                 {r.points_required} pts
@@ -2885,9 +2911,13 @@ export default function CustomerPublicCardPage() {
             <div className="text-center">
               <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto shadow-md mb-2 bg-zinc-100">
                 <img
-                  src={getRewardImage(selectedReward.name)}
+                  src={getRewardImage(selectedReward.name, selectedReward.image_url)}
                   alt={selectedReward.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
+                  }}
                 />
               </div>
               <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-50">

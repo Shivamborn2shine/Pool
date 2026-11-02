@@ -13,7 +13,7 @@ export async function GET() {
   const rewards = await sql`
     SELECT * FROM public.rewards
     WHERE business_id = ${ctx.business.id}
-    ORDER BY status ASC, points_required ASC, created_at DESC
+    ORDER BY sort_order ASC, points_required ASC, created_at DESC
   `;
 
   return NextResponse.json({ rewards, role: ctx.role });
@@ -52,7 +52,8 @@ export async function POST(request: Request) {
       points_required,
       monetary_value,
       stock_limit,
-      status
+      status,
+      sort_order
     ) VALUES (
       ${ctx.business.id},
       ${d.name.trim()},
@@ -61,7 +62,8 @@ export async function POST(request: Request) {
       ${d.pointsRequired},
       ${d.monetaryValue},
       ${d.stockLimit ?? null},
-      ${d.status}
+      ${d.status},
+      ${d.sortOrder ?? 100}
     )
     RETURNING *
   `;

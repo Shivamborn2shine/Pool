@@ -64,6 +64,11 @@ export async function PATCH(
           ? body.status
           : before.status
       },
+      sort_order = ${
+        body.sortOrder !== undefined
+          ? Number(body.sortOrder)
+          : before.sort_order ?? 100
+      },
       updated_at = NOW()
     WHERE id = ${params.id} AND business_id = ${ctx.business.id}
     RETURNING *
@@ -82,4 +87,51 @@ export async function PATCH(
 
   return NextResponse.json({ success: true, reward: updated });
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { id: string } }
+) {
+  const ctx = await getSessionContext();
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasRolePermission(ctx.role, ["owner", "manager"])) {
+    return NextResponse.json(
+      { error: "Only Owners and Managers can delete rewards." },
+      { status: 403 }
+    );
+  }
+
+  const existingRows = await sql`
+    SELECT * FROM public.rewards
+    WHERE id = ${params.id} AND business_id = ${ctx.business.id}
+    LIMIT 1
+  `;
+
+  if (existingRows.length === 0) {
+    return NextResponse.json({ error: "Reward not found." }, { status: 404 });
+  }
+
+  const before = existingRows[0];
+
+  await sql`
+    DELETE FROM public.rewards
+    WHERE id = ${params.id} AND business_id = ${ctx.business.id}
+  `;
+
+  await writeAuditLog({
+    businessId: ctx.business.id,
+    actorUserId: ctx.user.id,
+    actorRole: ctx.role,
+    action: "reward.deleted",
+    entityType: "reward",
+    entityId: params.id,
+    beforeState: before as Record<string, unknown>,
+  });
+
+  return NextResponse.json({ success: true });
+}
+
 
