@@ -103,3 +103,31 @@
   }
 }
 
+@keyframes toastPopVibrate {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.02);
+  }
+  65% {
+    transform: translateY(2px) scale(0.99) rotate(-1deg);
+  }
+  80% {
+    transform: translateY(-1px) scale(1.005) rotate(1deg);
+  }
+  92% {
+    transform: translateY(1px) scale(1) rotate(-0.4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.animate-toast-pop-vibrate {
+  animation: toastPopVibrate 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

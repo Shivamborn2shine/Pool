@@ -602,6 +602,40 @@ export default function CustomerPublicCardPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  // Auto-dismiss and hardware vibration for floating feedback toast
+  useEffect(() => {
+    if (!feedback) {
+      setIsFadingOut(false);
+      return;
+    }
+
+    // Hardware vibration on mobile devices
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate([40, 50, 40]);
+      } catch {}
+    }
+
+    setIsFadingOut(false);
+
+    // After 3.5 seconds, start slow smooth fade-out
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
+    }, 3500);
+
+    // After fade-out animation completes (4.2 seconds total), unmount feedback
+    const removeTimer = setTimeout(() => {
+      setFeedback(null);
+      setIsFadingOut(false);
+    }, 4200);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [feedback]);
 
   // Submit Claim state
   const [claimAmount, setClaimAmount] = useState("");
@@ -1377,27 +1411,6 @@ export default function CustomerPublicCardPage() {
             : "px-4 pt-3 pb-28 space-y-4"
         } no-print`}
       >
-        {/* Feedback Banner */}
-        {feedback && (
-          <div
-            role={feedback.type === "error" ? "alert" : "status"}
-            className={`p-3 rounded-2xl border text-xs font-semibold flex items-center justify-between gap-2 shadow-xs ${
-              feedback.type === "error"
-                ? "bg-red-50 dark:bg-red-950/60 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
-                : "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-            }`}
-          >
-            <span>{feedback.text}</span>
-            <button
-              type="button"
-              onClick={() => setFeedback(null)}
-              className="p-1 rounded hover:bg-black/5"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
         {/* HOME VIEW: EXACT REPLICA OF USER TARGET DESIGN (SLEEK COMPACT) */}
         {activeTab === "home" && (
           <div className="space-y-4">
@@ -3700,6 +3713,57 @@ export default function CustomerPublicCardPage() {
             onClick={() => setShowMenuDrawer(false)}
           />
         </div>
+      )}
+
+      {/* Floating Pop-up Toast above the bottom navigation strip with vibration & smooth fade */}
+      {feedback && (
+        <aside
+          role={feedback.type === "error" ? "alert" : "status"}
+          aria-live="polite"
+          className={`fixed bottom-18 sm:bottom-20 left-4 right-4 max-w-md mx-auto z-50 pointer-events-auto transition-all duration-700 ease-out ${
+            isFadingOut
+              ? "opacity-0 translate-y-3 scale-95 pointer-events-none"
+              : "animate-toast-pop-vibrate"
+          }`}
+        >
+          <div
+            className={`p-3.5 rounded-2xl border shadow-xl flex items-center justify-between gap-3 backdrop-blur-md ${
+              feedback.type === "error"
+                ? "bg-[#FFF5F6]/95 dark:bg-rose-950/95 border-rose-200/90 dark:border-rose-800 text-rose-950 dark:text-rose-100 shadow-rose-900/15"
+                : "bg-[#F0FDF4]/95 dark:bg-emerald-950/95 border-emerald-200/90 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 shadow-emerald-900/15"
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div
+                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                  feedback.type === "error"
+                    ? "bg-rose-100 dark:bg-rose-900/60 text-[#E11D48] dark:text-rose-300"
+                    : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300"
+                }`}
+              >
+                {feedback.type === "error" ? (
+                  <Sparkles className="w-4 h-4" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+              </div>
+              <p className="text-xs sm:text-[13px] font-semibold leading-snug">
+                {feedback.text}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsFadingOut(true);
+                setTimeout(() => setFeedback(null), 350);
+              }}
+              aria-label="Close notification"
+              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
       )}
 
       {/* Bottom Navigation Bar (Recommended 56–64px) */}
