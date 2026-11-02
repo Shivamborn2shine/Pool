@@ -10,7 +10,7 @@ import {
   Receipt,
   History,
   Printer,
-  ArrowRightLeft,
+  Plus,
   ShieldCheck,
   Loader2,
   Upload,
@@ -1891,32 +1891,64 @@ export default function CustomerPublicCardPage() {
               </div>
 
               {/* Metric Summary Cards */}
-              <div className="grid grid-cols-2 gap-3 mt-4 relative z-10">
-                <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm rounded-2xl p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-xs">
-                    <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-black text-zinc-900 dark:text-zinc-100 leading-none">
-                      {card.pointsBalance}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-4 relative z-10">
+                {/* 1. Points Card */}
+                <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center justify-between gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-xs">
+                      <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
                     </div>
-                    <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Points
+                    <div className="min-w-0">
+                      <div className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 leading-none">
+                        {card.pointsBalance}
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        Points
+                      </div>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById("earn-more-section")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#E11D48] hover:bg-rose-700 text-white font-bold text-[10px] sm:text-[11px] flex items-center gap-0.5 shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
+                  >
+                    <span>Earn More</span>
+                    <span className="text-[11px] leading-none">↓</span>
+                  </button>
                 </div>
 
-                <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm rounded-2xl p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 shadow-xs">
-                    <Wallet className="w-4 h-4" />
+                {/* 2. Store Credit Card */}
+                <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center justify-between gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 shadow-xs">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 leading-none">
+                        {formatCurrency(card.redeemableAmount, business.currency)}
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        Store Credit
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-lg font-black text-zinc-900 dark:text-zinc-100 leading-none">
-                      {formatCurrency(card.redeemableAmount, business.currency)}
-                    </div>
-                    <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Store Credit
-                    </div>
+
+                  <div className="flex flex-col items-center shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreditModal(true)}
+                      aria-label="Convert points to store credit"
+                      title="Convert points to store credit"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E11D48] hover:bg-rose-700 text-white flex items-center justify-center font-bold text-sm shadow-xs active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                    </button>
+                    <span className="text-[8px] sm:text-[9px] font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5 text-center leading-none">
+                      Convert points
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2066,10 +2098,17 @@ export default function CustomerPublicCardPage() {
                           <div className="space-y-2 pt-1">
                             <div className="space-y-1">
                               <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
-                                <span>
-                                  {card.pointsBalance} / {r.points_required} pts
+                                <div className="flex items-baseline gap-0.5">
+                                  <span className="text-sm font-black text-[#E11D48] leading-none">
+                                    {card.pointsBalance}
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                                    {" "}/ {r.points_required} pts
+                                  </span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-900/50 text-[#E11D48] dark:text-rose-300 font-extrabold text-[9px] uppercase tracking-wider shrink-0">
+                                  {pointsNeeded} TO GO
                                 </span>
-                                <span>{pointsNeeded} to go</span>
                               </div>
                               <div className="w-full h-1.5 bg-rose-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                                 <div
@@ -2081,10 +2120,12 @@ export default function CustomerPublicCardPage() {
 
                             <button
                               type="button"
-                              disabled
-                              className="w-full py-2 rounded-xl bg-rose-50 dark:bg-zinc-800/80 text-rose-700/80 dark:text-rose-300/80 text-[11px] font-bold border border-rose-200/60 dark:border-zinc-700/60 flex items-center justify-center gap-1.5 cursor-not-allowed"
+                              onClick={() => {
+                                document.getElementById("earn-more-section")?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="w-full py-2 rounded-xl bg-rose-50/80 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-[#E11D48] dark:text-rose-300 text-[11px] font-bold border border-rose-200/60 dark:border-rose-900/50 flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer"
                             >
-                              <Lock className="w-3 h-3" />
+                              <Lock className="w-3 h-3 text-[#E11D48] dark:text-rose-300" />
                               <span>Keep Earning</span>
                             </button>
                           </div>
@@ -2097,7 +2138,7 @@ export default function CustomerPublicCardPage() {
             })()}
 
             {/* 4. More ways to earn 🪄 */}
-            <div className="space-y-2">
+            <div id="earn-more-section" className="space-y-2 scroll-mt-20">
               <div>
                 <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <span>More ways to earn</span>
@@ -2324,93 +2365,6 @@ export default function CustomerPublicCardPage() {
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* 6. Your Wallet 🪄 */}
-            <div className="space-y-2">
-              <div>
-                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                  <span>Your Wallet</span>
-                  <span className="text-amber-500">🪄</span>
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Use your store credit to enjoy your next order!
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-zinc-900 rounded-3xl p-4 border border-rose-100 dark:border-zinc-800 shadow-sm space-y-3.5">
-                {/* Balance & Use Credit row */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                        {card.pointsBalance}
-                      </span>
-                      <span className="text-[11px] text-zinc-500">Points</span>
-                    </div>
-
-                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
-
-                    <div className="flex items-center gap-1.5">
-                      <Wallet className="w-4 h-4 text-rose-500" />
-                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                        {formatCurrency(
-                          card.redeemableAmount,
-                          business.currency
-                        )}
-                      </span>
-                      <span className="text-[11px] text-zinc-500">
-                        Store Credit
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowCreditModal(true)}
-                    className="px-4 py-2 rounded-full bg-[#E11D48] hover:bg-[#be123c] text-white text-xs font-bold inline-flex items-center gap-1 shadow-md shadow-rose-500/20 active:scale-95 transition-all shrink-0"
-                  >
-                    <span>Use Credit on Your Bill</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <hr className="border-rose-100 dark:border-zinc-800" />
-
-                {/* Conversion row */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                    <ArrowRightLeft className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                    <span>
-                      Convert points to store credit (100 points = ₹100 store
-                      credit)
-                    </span>
-                  </div>
-
-                  {card.pointsBalance >= 100 ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowCreditModal(true)}
-                      className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-[#E11D48] text-xs font-bold border border-rose-200/80 shrink-0 transition"
-                    >
-                      Convert to ₹ Credit &gt;
-                    </button>
-                  ) : (
-                    <span className="px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 text-xs font-medium shrink-0">
-                      Available at 100 pts
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-[10px] text-zinc-400 dark:text-zinc-500 flex items-center gap-1 pt-1 border-t border-rose-100/50 dark:border-zinc-800/50">
-                  <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
-                  <span>
-                    PIN verification required when redeeming rewards or using
-                    store credit.
-                  </span>
-                </div>
-              </div>
             </div>
           </section>
         )}
