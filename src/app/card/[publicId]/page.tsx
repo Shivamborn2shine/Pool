@@ -52,6 +52,18 @@ import {
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
+interface ComboShowcaseItem {
+  id?: string;
+  name: string;
+  price: number;
+  original: number;
+  savings: number;
+  itemsText: string;
+  points: number;
+  image: string;
+  badge: string;
+}
+
 interface CardPagePayload {
   card: {
     id: string;
@@ -114,6 +126,7 @@ interface CardPagePayload {
     redeemed_count: number;
     sort_order?: number;
   }>;
+  combos?: ComboShowcaseItem[];
   transactions: Array<{
     id: string;
     type: string;
@@ -983,7 +996,7 @@ export default function CustomerPublicCardPage() {
     );
   }
 
-  const { card, customer, business, rules, rewards, transactions, claims, redemptions } =
+  const { card, customer, business, rules, rewards, transactions, claims, redemptions, combos } =
     data;
 
   const customerFirstName = customer.fullName?.split(" ")[0] || "Friend";
@@ -1044,6 +1057,99 @@ export default function CustomerPublicCardPage() {
             redeemed_count: 0,
           },
         ];
+
+  // Combos showcase: Use live database combos from API, or fallback to the full 7 updated combos
+  const displayCombos = useMemo<ComboShowcaseItem[]>(() => {
+    if (combos && combos.length > 0) {
+      return combos;
+    }
+    return [
+      {
+        id: "combo-1",
+        name: "The Study Break",
+        price: 109,
+        original: 124,
+        savings: 15,
+        itemsText: "Veg Sandwich (₹99) + Regular Chai (₹25)",
+        points: 5,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594270148-8820b3522fcb.png",
+        badge: "Most Popular",
+      },
+      {
+        id: "combo-2",
+        name: "Fries Before Guys",
+        price: 169,
+        original: 188,
+        savings: 19,
+        itemsText: "Peri Peri Fries (₹89) + Oreo Shake (₹99)",
+        points: 8,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594251133-70e562454a39.png",
+        badge: "Save ₹19",
+      },
+      {
+        id: "combo-3",
+        name: "Sweet Tooth Therapy",
+        price: 199,
+        original: 228,
+        savings: 29,
+        itemsText: "Chocolate Waffle (₹129) + Oreo Shake (₹99)",
+        points: 9,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594230144-9188d78bf9da.png",
+        badge: "Sweet Deal",
+      },
+      {
+        id: "combo-4",
+        name: "Campus Cravings",
+        price: 249,
+        original: 287,
+        savings: 38,
+        itemsText: "Veg Burger (₹99) + Peri Peri Fries (₹89) + Watermelon Mojito (₹99)",
+        points: 12,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594209736-0b7902a842c3.png",
+        badge: "Combo Feast",
+      },
+      {
+        id: "combo-5",
+        name: "Sip & Gossip (For 2)",
+        price: 259,
+        original: 297,
+        savings: 38,
+        itemsText: "Loaded Fries (₹99) + 2x Coolers / Mojitos (₹198)",
+        points: 12,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594179228-339aef2eed9c.png",
+        badge: "Duo Refresh",
+      },
+      {
+        id: "combo-6",
+        name: "Better Together (For 2)",
+        price: 419,
+        original: 485,
+        savings: 66,
+        itemsText: "2x Burgers (₹198) + Fries (₹89) + 2x Mojitos (₹198)",
+        points: 20,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594156281-4c331ef672d6.png",
+        badge: "Duo Deal",
+      },
+      {
+        id: "combo-7",
+        name: "The Whole Gang (Group Deal)",
+        price: 699,
+        original: 772,
+        savings: 73,
+        itemsText: "4x Burgers (₹396) + 2x Fries (₹178) + 2x Mojitos (₹198)",
+        points: 34,
+        image:
+          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594110517-a0219a61ba68.png",
+        badge: "Save ₹73!",
+      },
+    ];
+  }, [combos]);
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] dark:bg-[#121110] text-zinc-900 dark:text-zinc-100 flex flex-col font-sans relative overflow-x-hidden selection:bg-rose-500 selection:text-white">
@@ -1531,66 +1637,15 @@ export default function CustomerPublicCardPage() {
                     setMenuTargetCategory("combo");
                     handleTabChange("menu");
                   }}
-                  className="text-xs font-bold text-[#E11D48] hover:underline"
+                  className="text-xs font-bold text-[#E11D48] hover:underline cursor-pointer"
                 >
-                  View all 7
+                  View all {displayCombos.length}
                 </button>
               </div>
 
               {/* Scrollable Horizontal Showcase of Top Combos */}
               <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pt-1 -mx-4 px-4">
-                {[
-                  {
-                    name: "The Study Break",
-                    price: 109,
-                    original: 124,
-                    savings: 15,
-                    itemsText: "Veg Sandwich + Regular Chai",
-                    points: 5,
-                    image: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&auto=format&fit=crop&q=80",
-                    badge: "Most Popular",
-                  },
-                  {
-                    name: "Sweet Tooth Therapy",
-                    price: 199,
-                    original: 228,
-                    savings: 29,
-                    itemsText: "Chocolate Waffle + Oreo Shake",
-                    points: 9,
-                    image: "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop&q=80",
-                    badge: "Sweet Deal",
-                  },
-                  {
-                    name: "Campus Cravings",
-                    price: 249,
-                    original: 287,
-                    savings: 38,
-                    itemsText: "Veg Burger + Fries + Mojito",
-                    points: 12,
-                    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80",
-                    badge: "Combo Feast",
-                  },
-                  {
-                    name: "Better Together",
-                    price: 419,
-                    original: 485,
-                    savings: 66,
-                    itemsText: "2x Burgers + Fries + 2x Mojitos",
-                    points: 20,
-                    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80",
-                    badge: "Duo Deal",
-                  },
-                  {
-                    name: "The Whole Gang",
-                    price: 699,
-                    original: 772,
-                    savings: 73,
-                    itemsText: "4x Burgers + 2x Fries + 2x Mojitos",
-                    points: 34,
-                    image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500&auto=format&fit=crop&q=80",
-                    badge: "Save ₹73!",
-                  },
-                ].map((combo) => (
+                {displayCombos.map((combo) => (
                   <div
                     key={combo.name}
                     className="w-56 shrink-0 bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
@@ -1601,13 +1656,19 @@ export default function CustomerPublicCardPage() {
                           src={combo.image}
                           alt={combo.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src =
+                              "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80";
+                          }}
                         />
                         <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-xs">
                           {combo.badge}
                         </span>
-                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
-                          Save ₹{combo.savings}
-                        </span>
+                        {combo.savings > 0 && (
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
+                            Save ₹{combo.savings}
+                          </span>
+                        )}
                       </div>
 
                       <h4 className="text-xs font-serif font-black text-zinc-900 dark:text-zinc-100 truncate">
