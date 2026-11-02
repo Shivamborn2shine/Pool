@@ -1052,15 +1052,15 @@ export default function CustomerPublicCardPage() {
       <div className="absolute top-28 -right-16 w-56 h-56 bg-rose-200/35 dark:bg-rose-950/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-[480px] -left-12 w-64 h-36 bg-amber-200/20 dark:bg-amber-950/15 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Target App Header */}
-      <header className="sticky top-0 z-30 bg-[#FAF6F0]/90 dark:bg-[#121110]/90 backdrop-blur-md px-4 py-3 border-b border-rose-100/60 dark:border-zinc-800/60 no-print">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+      {/* Target App Header (Recommended 56–60px) */}
+      <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 dark:bg-[#121110]/95 backdrop-blur-md px-4 h-14 sm:h-15 border-b border-rose-100/60 dark:border-zinc-800/60 no-print flex items-center">
+        <div className="max-w-md mx-auto w-full flex items-center justify-between">
           {activeTab !== "home" ? (
             <button
               type="button"
               onClick={() => handleTabChange("home")}
               aria-label="Back to home"
-              className="w-9 h-9 rounded-full flex items-center justify-center bg-rose-50 dark:bg-rose-950/50 text-[#E11D48] dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 hover:bg-rose-100 transition-colors shadow-xs"
+              className="w-9 h-9 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center bg-rose-50 dark:bg-rose-950/50 text-[#E11D48] dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 hover:bg-rose-100 transition-colors shadow-2xs"
             >
               <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
@@ -1069,7 +1069,7 @@ export default function CustomerPublicCardPage() {
               type="button"
               onClick={() => setShowMenuDrawer(true)}
               aria-label="Open menu navigation"
-              className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
+              className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
             >
               <Menu className="w-6 h-6 stroke-[2.2]" />
             </button>
@@ -1094,7 +1094,7 @@ export default function CustomerPublicCardPage() {
                 });
               }}
               aria-label="Notifications"
-              className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
+              className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
             >
               <Bell className="w-5 h-5 stroke-[2.2]" />
               <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#E11D48] ring-2 ring-[#FAF6F0] dark:ring-[#121110]" />
@@ -1205,7 +1205,11 @@ export default function CustomerPublicCardPage() {
 
       <main
         id="main-content"
-        className="flex-1 max-w-md mx-auto w-full px-4 pt-3 pb-28 space-y-4 no-print"
+        className={`flex-1 max-w-md mx-auto w-full ${
+          activeTab === "menu"
+            ? "px-3.5 pt-1 pb-24 space-y-2.5"
+            : "px-4 pt-3 pb-28 space-y-4"
+        } no-print`}
       >
         {/* Feedback Banner */}
         {feedback && (
@@ -1848,7 +1852,7 @@ export default function CustomerPublicCardPage() {
 
         {/* TAB: SEAMLESS INTEGRATED STORE MENU & ORDERING */}
         {activeTab === "menu" && (
-          <section className="space-y-4 no-print animate-in fade-in duration-200">
+          <section className="space-y-2.5 no-print animate-in fade-in duration-200">
             <StoreOrderingView
               storeSlug={business.slug}
               initialCustomer={{
@@ -3756,16 +3760,16 @@ export default function CustomerPublicCardPage() {
         </div>
       )}
 
-      {/* Bottom Navigation Bar */}
+      {/* Bottom Navigation Bar (Recommended 56–64px) */}
       <nav
         aria-label="Bottom mobile navigation"
-        className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-rose-100/60 dark:border-zinc-800 shadow-lg no-print"
+        className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-rose-100/60 dark:border-zinc-800 shadow-lg no-print h-14 sm:h-16 flex items-center pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="max-w-md mx-auto grid grid-cols-5 py-2 px-1 text-center">
+        <div className="max-w-md mx-auto grid grid-cols-5 w-full h-full px-1 text-center items-center">
           <button
             type="button"
             onClick={() => handleTabChange("home")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
               activeTab === "home"
                 ? "text-[#E11D48] font-bold"
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -3778,7 +3782,7 @@ export default function CustomerPublicCardPage() {
           <button
             type="button"
             onClick={() => handleTabChange("menu")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
               activeTab === "menu"
                 ? "text-[#E11D48] font-bold"
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -3791,7 +3795,7 @@ export default function CustomerPublicCardPage() {
           <button
             type="button"
             onClick={() => handleTabChange("rewards")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
               activeTab === "rewards"
                 ? "text-[#E11D48] font-bold"
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -3804,7 +3808,7 @@ export default function CustomerPublicCardPage() {
           <button
             type="button"
             onClick={() => handleTabChange("history")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
               activeTab === "history"
                 ? "text-[#E11D48] font-bold"
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -3817,7 +3821,7 @@ export default function CustomerPublicCardPage() {
           <button
             type="button"
             onClick={() => handleTabChange("privacy")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
               activeTab === "privacy"
                 ? "text-[#E11D48] font-bold"
                 : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"

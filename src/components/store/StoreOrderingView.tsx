@@ -334,13 +334,18 @@ function getCategoryIcon(name: string): string {
   return "🍽️";
 }
 
-function CuteCoffeeMascot() {
+function CuteCoffeeMascot({ size = "md" }: { size?: "sm" | "md" } = {}) {
+  const isSm = size === "sm";
   return (
     <div className="relative flex flex-col items-center select-none shrink-0">
-      <div className="relative w-24 h-24 sm:w-28 sm:h-28">
+      <div
+        className={`relative ${
+          isSm ? "w-11 h-11 sm:w-12 sm:h-12" : "w-24 h-24 sm:w-28 sm:h-28"
+        }`}
+      >
         <svg
           viewBox="0 0 160 160"
-          className="w-full h-full drop-shadow-sm overflow-visible"
+          className="w-full h-full drop-shadow-xs overflow-visible"
         >
           {/* Coffee Splash Droplets */}
           <path
@@ -437,11 +442,13 @@ function CuteCoffeeMascot() {
           <ellipse cx="92" cy="125" rx="5" ry="3" fill="#3D2619" />
         </svg>
       </div>
-      <div className="text-[10px] font-black leading-tight text-center text-[#B23B44] -mt-1.5 tracking-tight whitespace-nowrap rotate-[-3deg]">
-        Good Coffee
-        <br />
-        Happier You!
-      </div>
+      {!isSm && (
+        <div className="text-[10px] font-black leading-tight text-center text-[#B23B44] -mt-1.5 tracking-tight whitespace-nowrap rotate-[-3deg]">
+          Good Coffee
+          <br />
+          Happier You!
+        </div>
+      )}
     </div>
   );
 }
@@ -499,6 +506,56 @@ export default function StoreOrderingView({
   }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
+
+  // Track window scroll for transitioning between Version 1 (Default Menu) & Version 2 (Browsing State)
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 80);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Persist customer favorite menu items locally for 1-tap wishlist access
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("loopa_favorite_menu_items");
+      if (saved) {
+        setFavoriteIds(new Set(JSON.parse(saved)));
+      }
+    } catch {}
+  }, []);
+
+  const toggleFavoriteItem = (itemId: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      try {
+        localStorage.setItem("loopa_favorite_menu_items", JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleDecrementItem = (item: StoreMenuItem) => {
+    const cartKey = `${item.id}_default`;
+    setCart((prev) => {
+      const existing = prev.find((c) => c.cartKey === cartKey);
+      if (!existing) return prev;
+      if (existing.quantity <= 1) {
+        return prev.filter((c) => c.cartKey !== cartKey);
+      }
+      return prev.map((c) =>
+        c.cartKey === cartKey ? { ...c, quantity: c.quantity - 1 } : c
+      );
+    });
+  };
 
   // Auto-select category if initialCategory prop is supplied
   useEffect(() => {
@@ -1517,7 +1574,10 @@ export default function StoreOrderingView({
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesCat =
-        selectedCategory === "all" || item.category_id === selectedCategory;
+        selectedCategory === "all" ||
+        (selectedCategory === "favorites"
+          ? favoriteIds.has(item.id)
+          : item.category_id === selectedCategory);
       const matchesQuery =
         !searchQuery.trim() ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1526,7 +1586,7 @@ export default function StoreOrderingView({
           .includes(searchQuery.toLowerCase());
       return matchesCat && matchesQuery;
     });
-  }, [items, selectedCategory, searchQuery]);
+  }, [items, selectedCategory, searchQuery, favoriteIds]);
 
   if (loading) {
     return (
@@ -1666,62 +1726,72 @@ export default function StoreOrderingView({
       </header>
       )}
 
-      <main className="max-w-xl mx-auto px-4 pt-3 space-y-4">
-        {/* Hero Promo Banner */}
-        <div className="bg-gradient-to-r from-[#FDE8E1] via-[#FDF2F4] to-[#FCE7EB] dark:from-rose-950/40 dark:to-amber-950/20 rounded-3xl p-4 sm:p-5 border border-rose-100/70 dark:border-rose-900/40 relative overflow-hidden flex items-center justify-between shadow-xs">
-          <div className="space-y-1.5 max-w-[210px] sm:max-w-xs z-10">
-            <h2 className="font-serif italic font-black text-2xl sm:text-3xl text-[#C2185B] dark:text-rose-400 leading-[1.15] tracking-tight">
-              Cravings look better with rewards!
-            </h2>
-            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 pt-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-current" />
-              <span>Earn 1 point for every ₹10 spent</span>
-            </p>
+      <main
+        className={`max-w-xl mx-auto ${
+          embedded
+            ? "px-0 pt-0 space-y-2.5"
+            : "px-3.5 sm:px-4 pt-2 pb-24 space-y-2.5 sm:space-y-3"
+        }`}
+      >
+        {/* Version 1: Slim Single-Line Rewards Banner (Recommended 60–72px) */}
+        <div className="bg-gradient-to-r from-[#FFF0EC] via-[#FFF3F5] to-[#FCE8ED] dark:from-rose-950/40 dark:to-amber-950/20 rounded-2xl px-3.5 py-2 border border-rose-100/80 dark:border-rose-900/40 relative overflow-hidden flex items-center justify-between shadow-2xs h-[64px]">
+          <div className="flex items-center gap-2.5 min-w-0 z-10">
+            <div className="w-7 h-7 rounded-full bg-amber-100/90 dark:bg-amber-950/60 flex items-center justify-center text-amber-500 shrink-0 text-xs font-black shadow-2xs">
+              ✦
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-serif font-black text-xs sm:text-sm text-[#931B46] dark:text-rose-300 tracking-tight leading-tight truncate">
+                Good coffee, better rewards
+              </h2>
+              <p className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 leading-tight mt-0.5 truncate">
+                Earn 1 point for every ₹{loyaltyOffer?.currency_unit || 10} spent
+              </p>
+            </div>
           </div>
-          <div className="shrink-0 relative z-10 -mr-1">
-            <CuteCoffeeMascot />
+          <div className="shrink-0 relative z-10 ml-2">
+            <CuteCoffeeMascot size="sm" />
           </div>
         </div>
 
-        {/* Navigation Tabs (Pill style matching target design) */}
-        <div className="flex items-center gap-2 max-w-xl mx-auto">
+        {/* Compact Menu, Cart, Orders Tabs (Recommended 40–44px) */}
+        <div className="grid grid-cols-3 gap-2 max-w-xl mx-auto h-10 sm:h-11">
           <button
             type="button"
             onClick={() => setActiveTab("menu")}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`h-full min-h-[40px] max-h-[44px] px-2 sm:px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
               activeTab === "menu"
-                ? "bg-[#E11D48] text-white shadow-md shadow-rose-500/20"
-                : "bg-white/80 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-300 hover:bg-rose-50 border border-rose-100/60"
+                ? "bg-[#E11D48] text-white shadow-xs font-black"
+                : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-rose-50/60 border border-stone-200/80 dark:border-zinc-800 shadow-2xs"
             }`}
           >
-            <Utensils className="w-3.5 h-3.5" />
-            <span>Menu ({items.length})</span>
+            <Utensils className="w-3.5 h-3.5 shrink-0 stroke-[2.3]" />
+            <span className="truncate">Menu ({items.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("cart")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`h-full min-h-[40px] max-h-[44px] px-2 sm:px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
               activeTab === "cart"
-                ? "bg-[#E11D48] text-white shadow-md shadow-rose-500/20"
-                : "bg-white/80 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-300 hover:bg-rose-50 border border-rose-100/60"
+                ? "bg-[#E11D48] text-white shadow-xs font-black"
+                : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-rose-50/60 border border-stone-200/80 dark:border-zinc-800 shadow-2xs"
             }`}
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Cart ({cartTotals.totalItems})</span>
+            <ShoppingBag className="w-3.5 h-3.5 shrink-0 stroke-[2.3]" />
+            <span className="truncate">Cart ({cartTotals.totalItems})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("order")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`h-full min-h-[40px] max-h-[44px] px-2 sm:px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
               activeTab === "order"
-                ? "bg-[#E11D48] text-white shadow-md shadow-rose-500/20"
-                : "bg-white/80 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-300 hover:bg-rose-50 border border-rose-100/60"
+                ? "bg-[#E11D48] text-white shadow-xs font-black"
+                : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-rose-50/60 border border-stone-200/80 dark:border-zinc-800 shadow-2xs"
             }`}
           >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>
+            <Receipt className="w-3.5 h-3.5 shrink-0 stroke-[2.3]" />
+            <span className="truncate">
               Orders ({orders.length > 0 ? orders.length : recentOrders.length})
             </span>
           </button>
@@ -1729,19 +1799,19 @@ export default function StoreOrderingView({
 
         {/* Customer Quick Registration Card if not logged in */}
         {!customer && activeTab === "menu" && (
-          <Card className="p-4 border border-rose-200/80 bg-white/90 dark:bg-zinc-900 rounded-3xl flex items-center justify-between gap-3 shadow-xs">
+          <Card className="p-3 border border-rose-200/80 bg-white/90 dark:bg-zinc-900 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
             <div>
-              <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                Register with your phone number in 5 seconds
+              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                Register with phone number in 5 seconds
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                No app download or OTP required. Earn automatic loyalty points on every order.
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                No app download or OTP needed. Earn automatic points on every order.
               </p>
             </div>
             <Button
               size="sm"
               onClick={() => setShowAuthModal(true)}
-              className="bg-[#E11D48] text-white rounded-xl px-3.5 text-xs font-bold hover:bg-[#BE123C] shrink-0"
+              className="bg-[#E11D48] text-white rounded-xl px-3 text-xs font-bold hover:bg-[#BE123C] shrink-0 h-8"
             >
               Enter Phone
             </Button>
@@ -1750,29 +1820,30 @@ export default function StoreOrderingView({
 
         {/* TAB 1: DIGITAL MENU */}
         {activeTab === "menu" && (
-          <div className="space-y-4">
-            {/* Customer Quick Reorder Card */}
+          <div className="space-y-2.5 sm:space-y-3">
+            {/* Slimmer Quick Reorder Section (Recommended 52–60px) */}
             {customer && (
-              <div className="bg-[#FDF2F4] dark:bg-rose-950/30 rounded-2xl p-3 sm:p-3.5 border border-rose-100/80 dark:border-rose-900/40 flex items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-[#E11D48] flex items-center justify-center text-white shrink-0 shadow-xs">
-                    <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+              <div className="bg-[#FFF5F6] dark:bg-rose-950/20 rounded-2xl px-3 py-2 border border-rose-100/80 dark:border-rose-900/30 flex items-center justify-between gap-2.5 shadow-2xs h-[54px]">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-[#E11D48] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                    <RotateCcw className="w-3.5 h-3.5 stroke-[2.8]" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
-                      <span>Your usual, {customer.displayName || customer.fullName?.split(" ")[0] || "Friend"}?</span>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate leading-tight">
+                      Your usual{customer.displayName || customer.fullName ? "" : "?"}
+                      {customer.displayName ? `, ${customer.displayName.split(" ")[0]}?` : "?"}
                     </p>
-                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate mt-0.5 font-medium">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 font-medium leading-tight">
                       {favoriteItems.length > 0
                         ? favoriteItems.map((i) => i.item_name).join(" + ")
-                        : "Kesar Chai + Potato Spiral"}
+                        : "Potato Spiral"}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleReorderFavorites}
-                  className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white shrink-0 flex items-center gap-1.5 active:scale-95 transition-all shadow-xs"
+                  className="h-8 px-3.5 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold shrink-0 flex items-center gap-1.5 active:scale-95 transition-all shadow-2xs cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3 stroke-[2.5]" />
                   <span>Reorder</span>
@@ -1780,69 +1851,78 @@ export default function StoreOrderingView({
               </div>
             )}
 
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="What are you craving today?"
-                className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm rounded-2xl border border-rose-100/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#E11D48]/30 shadow-2xs"
-              />
-              {searchQuery && (
+            {/* Search Input & Category Filter Chips - Sticky in browsing state */}
+            <div
+              className={`transition-all duration-200 space-y-2 ${
+                isScrolled
+                  ? `sticky ${embedded ? "top-14" : "top-14"} z-20 bg-[#FAF6F0]/95 dark:bg-[#121110]/95 backdrop-blur-md -mx-3.5 px-3.5 py-1.5 border-b border-rose-100/70 dark:border-zinc-800 shadow-2xs`
+                  : ""
+              }`}
+            >
+              {/* Search Input (Recommended 44–48px) */}
+              <div className="relative h-11">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="What are you craving today?"
+                  className="w-full h-full pl-10 pr-9 text-xs sm:text-sm rounded-full border border-stone-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#E11D48]/30 shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 text-xs p-1"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Category Filter Chips (Recommended 36–40px) */}
+              <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar h-10 items-center">
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 text-xs p-1"
+                  onClick={() => setSelectedCategory("all")}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 active:scale-95 ${
+                    selectedCategory === "all"
+                      ? "bg-[#E11D48] text-white shadow-xs font-black"
+                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-stone-200/80 hover:bg-rose-50/60 shadow-2xs"
+                  }`}
                 >
-                  ✕
+                  <span className="text-[11px]">⊞</span>
+                  <span>All</span>
                 </button>
-              )}
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar pt-0.5">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory("all")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
-                  selectedCategory === "all"
-                    ? "bg-[#E11D48] text-white shadow-xs"
-                    : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-rose-100/70 hover:bg-rose-50"
-                }`}
-              >
-                <span>⊞</span>
-                <span>All</span>
-              </button>
-              {categories.map((cat) => {
-                const isComboCat = /combo|deal/i.test(cat.name);
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
-                      isComboCat
-                        ? isSelected
-                          ? "bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white font-black shadow-md ring-2 ring-rose-400/50"
-                          : "bg-gradient-to-r from-amber-50 via-rose-50 to-pink-50 dark:from-amber-950/40 dark:to-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-extrabold hover:bg-rose-100 shadow-2xs"
-                        : isSelected
-                        ? "bg-[#E11D48] text-white shadow-xs font-bold"
-                        : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-rose-100/70 hover:bg-rose-50 font-semibold"
-                    }`}
-                  >
-                    <span>{isComboCat ? "🔥" : getCategoryIcon(cat.name)}</span>
-                    <span>{cat.name}</span>
-                    {isComboCat && (
-                      <span className="px-1.5 py-0.5 bg-rose-500 text-white rounded-md text-[9px] font-black uppercase tracking-wider shadow-2xs">
-                        Save ₹
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                {categories.map((cat) => {
+                  const isComboCat = /combo|deal/i.test(cat.name);
+                  const isSelected = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`h-9 px-3.5 rounded-xl text-xs whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 active:scale-95 ${
+                        isComboCat
+                          ? isSelected
+                            ? "bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white font-black shadow-xs ring-1 ring-rose-400/50"
+                            : "bg-gradient-to-r from-amber-50 via-rose-50 to-pink-50 dark:from-amber-950/40 dark:to-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300/80 dark:border-rose-800 font-extrabold hover:bg-rose-100/60 shadow-2xs"
+                          : isSelected
+                          ? "bg-[#E11D48] text-white shadow-xs font-black"
+                          : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-stone-200/80 hover:bg-rose-50/60 font-semibold shadow-2xs"
+                      }`}
+                    >
+                      <span>{isComboCat ? "🔥" : getCategoryIcon(cat.name)}</span>
+                      <span>{cat.name}</span>
+                      {isComboCat && (
+                        <span className="px-1.5 py-0.5 bg-rose-500 text-white rounded-md text-[9px] font-black uppercase tracking-wider shadow-2xs">
+                          Save ₹
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Special Highlight Banner when viewing Combos */}
@@ -1850,7 +1930,7 @@ export default function StoreOrderingView({
               categories.some(
                 (c) => c.id === selectedCategory && /combo|deal/i.test(c.name)
               ) && (
-                <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white p-3.5 rounded-2xl shadow-sm flex items-center justify-between gap-2.5 text-xs">
+                <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white p-3.5 rounded-2xl shadow-xs flex items-center justify-between gap-2.5 text-xs">
                   <div className="flex items-center gap-2.5">
                     <span className="text-2xl animate-bounce">🔥</span>
                     <div>
@@ -1868,18 +1948,33 @@ export default function StoreOrderingView({
                 </div>
               )}
 
-            {/* Section Heading: "Made for your cravings" */}
-            <div className="flex items-center justify-between pt-1">
+            {/* Section Heading: "Made for your cravings ✨" */}
+            <div className="flex items-center justify-between pt-0.5 pb-0.5">
               <div>
-                <h3 className="font-serif font-black text-xl text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight flex items-center gap-1.5">
+                <h3 className="font-serif font-black text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight flex items-center gap-1.5">
                   <span>Made for your cravings</span>
                   <span className="text-amber-500 text-xs">✨</span>
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-none">
                   Every bite earns you points
                 </p>
               </div>
-              <span className="text-[#E11D48] text-lg font-bold">♡</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory((prev) => (prev === "favorites" ? "all" : "favorites"));
+                }}
+                title={selectedCategory === "favorites" ? "Show all items" : "Show favorite items"}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                  selectedCategory === "favorites"
+                    ? "bg-rose-100 text-[#E11D48]"
+                    : "text-[#E11D48] hover:bg-rose-50"
+                }`}
+              >
+                <span className="text-xl font-bold leading-none">
+                  {selectedCategory === "favorites" ? "♥" : "♡"}
+                </span>
+              </button>
             </div>
 
             {/* Menu Items List (2-COLUMN GRID with Rich Imagery!) */}
@@ -1892,7 +1987,7 @@ export default function StoreOrderingView({
                 </p>
               </Card>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
                 {filteredItems.map((item) => {
                   const inCartQty = cart
                     .filter((c) => c.menuItem.id === item.id)
@@ -1911,9 +2006,9 @@ export default function StoreOrderingView({
                   const originalMatch = item.description?.match(/Menu Total ₹(\d+)/i);
                   const originalTotal = originalMatch ? originalMatch[1] : null;
 
-                  // Specification Section 13:
-                  // Combos earn 1 pt per ₹20 spent (floor(price / 20))
-                  // Regular items earn 1 pt per ₹10 spent (floor(price / 10))
+                  // Specifications:
+                  // Combos earn 1 pt per ₹20 spent
+                  // Regular items earn 1 pt per ₹10 spent
                   const pointsEarned = isComboItem
                     ? Math.floor(item.price / 20)
                     : Math.floor(
@@ -1925,22 +2020,39 @@ export default function StoreOrderingView({
                   return (
                     <div
                       key={item.id}
-                      className={`bg-white dark:bg-zinc-900 rounded-3xl p-2.5 sm:p-3 border shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden ${
+                      className={`bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 border shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden ${
                         isComboItem
                           ? "border-rose-200/90 dark:border-rose-900/60 ring-1 ring-rose-200/50"
                           : "border-rose-100/70 dark:border-zinc-800/80"
                       } ${!item.is_available ? "opacity-60" : ""}`}
                     >
                       <div>
-                        {/* Food Image */}
-                        <div className="h-32 sm:h-36 w-full rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2 relative">
+                        {/* Food Image with Floating Favorite Heart */}
+                        <div className="h-28 sm:h-32 w-full rounded-xl sm:rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-1.5 relative">
                           <img
                             src={getItemImage(item.name, item.image_url)}
                             alt={item.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
                           />
+
+                          {/* Top-Right Favorite Heart Circle Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavoriteItem(item.id);
+                            }}
+                            aria-label="Save to favorites"
+                            className="absolute top-1.5 right-1.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/95 dark:bg-zinc-900/90 shadow-2xs flex items-center justify-center text-[#E11D48] hover:scale-110 active:scale-90 transition-transform z-10 cursor-pointer"
+                          >
+                            <span className="text-xs sm:text-sm font-bold leading-none">
+                              {favoriteIds.has(item.id) ? "♥" : "♡"}
+                            </span>
+                          </button>
+
                           {!item.is_available && (
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-2xs flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-2xs flex items-center justify-center z-10">
                               <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                                 Sold Out
                               </span>
@@ -1948,95 +2060,70 @@ export default function StoreOrderingView({
                           )}
 
                           {isComboItem && (
-                            <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                            <div className="absolute top-1.5 left-1.5 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5 z-10">
                               <span>🔥</span>
                               <span>COMBO</span>
                             </div>
                           )}
 
                           {isComboItem && savingsAmount && (
-                            <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
+                            <div className="absolute top-1.5 right-8 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs z-10">
                               SAVE ₹{savingsAmount}
                             </div>
                           )}
 
                           {!isComboItem && item.loyalty_multiplier > 1 && (
-                            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs">
+                            <div className="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs z-10">
                               {item.loyalty_multiplier}x Pts
                             </div>
                           )}
                         </div>
 
                         {/* Title & Description */}
-                        <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-1">
+                        <h4 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-1">
                           {item.name}
                         </h4>
                         {item.description && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-snug">
+                          <p className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5 leading-snug">
                             {item.description}
                           </p>
                         )}
                       </div>
 
-                      {/* Bottom Row: Price, Points & Add Button */}
-                      <div className="pt-2 flex items-center justify-between gap-1.5 mt-auto">
-                        <div>
-                          <div className="flex items-baseline gap-1">
+                      {/* Action Area: Version 1 (Initial Menu) vs Version 2 (Browsing State) */}
+                      {!isScrolled ? (
+                        /* Version 1 Layout: Price row, then Add Pill Button */
+                        <div className="pt-1.5 mt-auto space-y-1.5">
+                          <div className="flex items-center justify-between">
                             <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
                               {formatCurrency(item.price, store.currency)}
                             </span>
-                            {isComboItem && originalTotal && (
-                              <span className="text-[10px] text-zinc-400 line-through">
-                                ₹{originalTotal}
-                              </span>
+                            {loyaltyOffer && (
+                              <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-0.5">
+                                <span className="text-amber-500 text-[10px]">✦</span>
+                                <span>+{pointsEarned} pts</span>
+                              </div>
                             )}
                           </div>
-                          {loyaltyOffer && (
-                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                              <span className="text-[11px]">☆</span>
-                              <span>+{pointsEarned} pts</span>
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Add to Cart / Quantity Stepper */}
-                        <div className="shrink-0">
                           {inCartQty > 0 &&
                           (item.variants?.length || 0) === 0 &&
                           (item.addons?.length || 0) === 0 ? (
-                            <div className="flex items-center gap-1 bg-[#FDF2F4] dark:bg-zinc-800 rounded-xl p-0.5 border border-rose-200">
+                            <div className="flex items-center justify-between bg-[#FDF2F4] dark:bg-zinc-800 rounded-full p-0.5 border border-rose-200">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const cartKey = `${item.id}_default`;
-                                  setCart((prev) => {
-                                    const existing = prev.find(
-                                      (c) => c.cartKey === cartKey
-                                    );
-                                    if (!existing) return prev;
-                                    if (existing.quantity <= 1) {
-                                      return prev.filter(
-                                        (c) => c.cartKey !== cartKey
-                                      );
-                                    }
-                                    return prev.map((c) =>
-                                      c.cartKey === cartKey
-                                        ? { ...c, quantity: c.quantity - 1 }
-                                        : c
-                                    );
-                                  });
-                                }}
-                                className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-700 hover:bg-white"
+                                onClick={() => handleDecrementItem(item)}
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-700 hover:bg-white active:scale-95 transition-transform"
                               >
                                 <Minus className="w-3 h-3 stroke-[2.5]" />
                               </button>
-                              <span className="text-xs font-bold w-4 text-center tabular-nums">
+                              <span className="text-xs font-bold tabular-nums">
                                 {inCartQty}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => handleAddItemClick(item)}
-                                className="w-6 h-6 rounded-lg bg-[#E11D48] text-white flex items-center justify-center hover:bg-[#BE123C]"
+                                className="w-7 h-7 rounded-full bg-[#E11D48] text-white flex items-center justify-center hover:bg-[#BE123C] active:scale-95 transition-transform"
                               >
                                 <Plus className="w-3 h-3 stroke-[2.5]" />
                               </button>
@@ -2046,13 +2133,71 @@ export default function StoreOrderingView({
                               type="button"
                               disabled={!item.is_available}
                               onClick={() => handleAddItemClick(item)}
-                              className="w-8 h-8 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform disabled:opacity-50"
+                              className="w-full h-8 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                             >
-                              <Plus className="w-4 h-4 stroke-[2.5]" />
+                              <span>Add</span>
+                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                             </button>
                           )}
                         </div>
-                      </div>
+                      ) : (
+                        /* Version 2 Layout: Compact single-row price & circular (+) button */
+                        <div className="pt-1.5 flex items-center justify-between gap-1 mt-auto">
+                          <div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
+                                {formatCurrency(item.price, store.currency)}
+                              </span>
+                              {isComboItem && originalTotal && (
+                                <span className="text-[10px] text-zinc-400 line-through">
+                                  ₹{originalTotal}
+                                </span>
+                              )}
+                            </div>
+                            {loyaltyOffer && (
+                              <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 mt-0.5">
+                                <span className="text-amber-500 text-[10px]">✦</span>
+                                <span>+{pointsEarned} pts</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="shrink-0">
+                            {inCartQty > 0 &&
+                            (item.variants?.length || 0) === 0 &&
+                            (item.addons?.length || 0) === 0 ? (
+                              <div className="flex items-center gap-1 bg-[#FDF2F4] dark:bg-zinc-800 rounded-full p-0.5 border border-rose-200">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDecrementItem(item)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-zinc-700 hover:bg-white"
+                                >
+                                  <Minus className="w-3 h-3 stroke-[2.5]" />
+                                </button>
+                                <span className="text-xs font-bold w-4 text-center tabular-nums">
+                                  {inCartQty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddItemClick(item)}
+                                  className="w-6 h-6 rounded-full bg-[#E11D48] text-white flex items-center justify-center hover:bg-[#BE123C]"
+                                >
+                                  <Plus className="w-3 h-3 stroke-[2.5]" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={!item.is_available}
+                                onClick={() => handleAddItemClick(item)}
+                                className="w-8 h-8 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white flex items-center justify-center shadow-2xs active:scale-95 transition-transform disabled:opacity-50 cursor-pointer"
+                              >
+                                <Plus className="w-4 h-4 stroke-[2.5]" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2985,31 +3130,31 @@ export default function StoreOrderingView({
         )}
       </main>
 
-      {/* Sticky Bottom View Cart Pill Bar */}
-      {activeTab === "menu" && (
-        <div className={`fixed ${embedded ? "bottom-20" : "bottom-20"} inset-x-0 z-40 px-4 max-w-xl mx-auto pointer-events-none`}>
+      {/* Sticky Slim View Cart Bar — Non-empty only (Recommended 48–56px) */}
+      {activeTab === "menu" && cartTotals.totalItems > 0 && (
+        <div className="fixed bottom-[68px] inset-x-0 z-40 px-4 max-w-xl mx-auto pointer-events-none animate-in slide-in-from-bottom-3 duration-200">
           <button
             type="button"
             onClick={() => setActiveTab("cart")}
-            className="w-full pointer-events-auto bg-gradient-to-r from-[#E11D48] via-[#E11D48] to-[#D81159] hover:from-[#BE123C] hover:to-[#C00D4E] text-white rounded-2xl p-3.5 sm:p-4 shadow-xl shadow-rose-500/25 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.99]"
+            className="w-full h-12 sm:h-13 pointer-events-auto bg-gradient-to-r from-[#E11D48] via-[#E11D48] to-[#D81159] hover:from-[#BE123C] hover:to-[#C00D4E] text-white rounded-2xl px-4 shadow-lg shadow-rose-500/25 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.99]"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-white stroke-[2.2]" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                <ShoppingBag className="w-4 h-4 text-white stroke-[2.4]" />
               </div>
-              <div className="text-left">
-                <div className="text-base font-bold leading-tight">
-                  View Cart
-                </div>
-                <div className="text-xs text-white/90">
-                  {cartTotals.totalItems} {cartTotals.totalItems === 1 ? "item" : "items"}
-                  {cartTotals.totalItems > 0 &&
-                    ` · ${formatCurrency(cartTotals.total, store.currency)}`}
-                </div>
+              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                <span>View Cart</span>
+                <span className="opacity-80">·</span>
+                <span>
+                  {cartTotals.totalItems}{" "}
+                  {cartTotals.totalItems === 1 ? "item" : "items"}
+                </span>
+                <span className="opacity-80">·</span>
+                <span>{formatCurrency(cartTotals.total, store.currency)}</span>
               </div>
             </div>
 
-            <ChevronRight className="w-5 h-5 text-white/90 stroke-[2.5]" />
+            <ChevronRight className="w-4 h-4 text-white/90 stroke-[2.8]" />
           </button>
         </div>
       )}
@@ -3736,17 +3881,17 @@ export default function StoreOrderingView({
         </div>
       )}
 
-      {/* 5-Tab Bottom Navigation Bar when viewed directly as standalone */}
+      {/* 5-Tab Bottom Navigation Bar when viewed directly as standalone (Recommended 56–64px) */}
       {!embedded && (
         <nav
           aria-label="Store navigation"
-          className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-rose-100/60 dark:border-zinc-800 shadow-lg no-print"
+          className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-rose-100/60 dark:border-zinc-800 shadow-lg no-print h-14 sm:h-16 flex items-center pb-[env(safe-area-inset-bottom)]"
         >
-          <div className="max-w-md mx-auto grid grid-cols-5 py-2 px-1 text-center">
+          <div className="max-w-md mx-auto grid grid-cols-5 w-full h-full px-1 text-center items-center">
             {customer ? (
               <Link
                 href={`/card/${customer.cardPublicId}`}
-                className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <Home className="w-5 h-5 stroke-[2.2]" />
                 <span className="text-[10px]">Home</span>
@@ -3755,7 +3900,7 @@ export default function StoreOrderingView({
               <button
                 type="button"
                 onClick={() => setShowAuthModal(true)}
-                className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <Home className="w-5 h-5 stroke-[2.2]" />
                 <span className="text-[10px]">Home</span>
@@ -3765,7 +3910,7 @@ export default function StoreOrderingView({
             <button
               type="button"
               onClick={() => setActiveTab("menu")}
-              className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
                 activeTab === "menu"
                   ? "text-[#E11D48] font-bold"
                   : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -3778,7 +3923,7 @@ export default function StoreOrderingView({
             {customer ? (
               <Link
                 href={`/card/${customer.cardPublicId}?tab=rewards`}
-                className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <Gift className="w-5 h-5 stroke-[2.2]" />
                 <span className="text-[10px]">Rewards</span>
@@ -3787,7 +3932,7 @@ export default function StoreOrderingView({
               <button
                 type="button"
                 onClick={() => setShowAuthModal(true)}
-                className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <Gift className="w-5 h-5 stroke-[2.2]" />
                 <span className="text-[10px]">Rewards</span>
@@ -3797,7 +3942,7 @@ export default function StoreOrderingView({
             <button
               type="button"
               onClick={() => setActiveTab("order")}
-              className={`flex flex-col items-center justify-center gap-1 py-1 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 transition-colors ${
                 activeTab === "order"
                   ? "text-[#E11D48] font-bold"
                   : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -3811,7 +3956,7 @@ export default function StoreOrderingView({
               <button
                 type="button"
                 onClick={() => setShowAccountDrawer(true)}
-                className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <User className="w-5 h-5 stroke-[2.2]" />
                 <span className="text-[10px]">Profile</span>
@@ -3820,7 +3965,7 @@ export default function StoreOrderingView({
               <button
                 type="button"
                 onClick={() => setShowAuthModal(true)}
-                className="flex flex-col items-center justify-center gap-1 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 h-full min-h-[44px] py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <User className="w-5 h-5 stroke-[2.2]" />
                 <span className="text-[10px]">Profile</span>
