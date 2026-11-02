@@ -111,9 +111,11 @@ export default function PlatformAdminPage() {
     >
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded bg-amber-100 text-amber-800">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
+          <img
+            src="/loopa-logo.png"
+            alt="Loopa"
+            className="w-10 h-10 rounded-xl object-contain shadow-xs shrink-0"
+          />
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               Loopa SaaS Platform Administration

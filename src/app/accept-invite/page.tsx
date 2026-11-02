@@ -47,13 +47,22 @@ function AcceptInviteForm() {
       <span className="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded-xs bg-surface-elevated border border-border text-accent">
         Staff Invitation
       </span>
-      <h1 className="mt-3 text-2xl font-bold text-foreground">
-        Accept Staff Invitation
-      </h1>
-      <p className="mt-1 text-sm text-muted">
-        Complete your staff profile and set a password to access your business
-        loyalty workspace.
-      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <img
+          src="/loopa-logo.png"
+          alt="Loopa"
+          className="w-10 h-10 rounded-xl object-contain shadow-xs shrink-0"
+        />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Accept Staff Invitation
+          </h1>
+          <p className="text-xs text-muted">
+            Complete your staff profile and set a password to access your business
+            loyalty workspace.
+          </p>
+        </div>
+      </div>
 
       {error && (
         <div

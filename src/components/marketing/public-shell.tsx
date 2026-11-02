@@ -95,9 +95,11 @@ export function PublicHeader() {
           href="/"
           className="inline-flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground"
         >
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 border-b-2 border-accent font-mono text-sm font-extrabold">
-            L
-          </span>
+          <img
+            src="/loopa-logo.png"
+            alt={SITE_CONFIG.name}
+            className="w-8 h-8 rounded-lg object-contain shrink-0 shadow-xs"
+          />
           <span>{SITE_CONFIG.name}</span>
           <span className="hidden sm:inline-block text-[11px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-xs bg-surface-elevated border border-border text-muted">
             Loyalty Ledger
@@ -286,9 +288,11 @@ export function PublicFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 font-bold text-base">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-brand text-white dark:bg-zinc-100 dark:text-zinc-900 border-b-2 border-accent font-mono text-xs">
-                L
-              </span>
+              <img
+                src="/loopa-logo.png"
+                alt={SITE_CONFIG.name}
+                className="w-7 h-7 rounded-md object-contain shrink-0 shadow-xs"
+              />
               <span>{SITE_CONFIG.name}</span>
             </div>
             <p className="mt-3 text-xs text-muted leading-relaxed">

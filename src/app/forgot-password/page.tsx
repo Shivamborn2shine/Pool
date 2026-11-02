@@ -71,9 +71,16 @@ function ForgotPasswordForm() {
 
   return (
     <div className="w-full max-w-md border border-border bg-surface rounded p-6 sm:p-8 shadow-sm">
-      <h1 className="text-2xl font-bold text-foreground">
-        {tokenFromUrl ? "Set a new password" : "Reset your password"}
-      </h1>
+      <div className="flex items-center gap-3 mb-3">
+        <img
+          src="/loopa-logo.png"
+          alt="Loopa"
+          className="w-10 h-10 rounded-xl object-contain shadow-xs shrink-0"
+        />
+        <h1 className="text-2xl font-bold text-foreground">
+          {tokenFromUrl ? "Set a new password" : "Reset your password"}
+        </h1>
+      </div>
       <p className="mt-1 text-sm text-muted">
         {tokenFromUrl
           ? "Enter a new password of at least 8 characters for your Loopa account."

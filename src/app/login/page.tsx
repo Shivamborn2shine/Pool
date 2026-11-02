@@ -68,12 +68,21 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold text-foreground">
-            Sign in to Loopa
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Access your counter loyalty terminal, claims queue, and ledger.
-          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <img
+              src="/loopa-logo.png"
+              alt="Loopa"
+              className="w-10 h-10 rounded-xl object-contain shadow-xs shrink-0"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                Sign in to Loopa
+              </h1>
+              <p className="text-xs text-muted">
+                Access your counter loyalty terminal, claims queue, and ledger.
+              </p>
+            </div>
+          </div>
 
           {/* Instant Demo Credentials Selector */}
           <div className="mt-5 p-3 rounded bg-surface-elevated border border-border">

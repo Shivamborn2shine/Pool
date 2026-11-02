@@ -26,6 +26,16 @@ export const metadata: Metadata = {
     title: `${SITE_CONFIG.name} — Digital QR Loyalty Cards`,
     description: SITE_CONFIG.description,
   },
+  icons: {
+    icon: [
+      { url: "/loopa-logo.png", sizes: "1024x1024", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/loopa-logo.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: ["/loopa-logo.png"],
+  },
 };
 
 export default function RootLayout({

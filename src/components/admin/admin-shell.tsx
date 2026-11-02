@@ -452,13 +452,21 @@ export function AdminShell({
             <div className="text-muted">
               Record purchases and scan customer QR cards in under 15 seconds.
             </div>
-            <div className="pt-1 flex gap-2">
+            <div className="pt-1 flex items-center justify-between">
               <Link
                 href="/docs"
                 className="text-accent hover:underline font-medium"
               >
                 Staff Guide →
               </Link>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted">
+                <img
+                  src="/loopa-logo.png"
+                  alt="Loopa"
+                  className="w-3.5 h-3.5 rounded-xs object-contain"
+                />
+                <span className="font-medium">Loopa</span>
+              </div>
             </div>
           </div>
         </aside>

@@ -68,9 +68,16 @@ export default function RegisterPage() {
       <main id="main-content" className="flex-1 py-12 px-4">
         <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-5 space-y-5">
-            <span className="inline-block px-2.5 py-1 text-xs font-mono uppercase tracking-wider bg-surface-elevated border border-border rounded-xs text-accent">
-              2-Minute Merchant Setup
-            </span>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/loopa-logo.png"
+                alt="Loopa"
+                className="w-7 h-7 rounded-lg object-contain shadow-xs shrink-0"
+              />
+              <span className="inline-block px-2.5 py-1 text-xs font-mono uppercase tracking-wider bg-surface-elevated border border-border rounded-xs text-accent">
+                2-Minute Merchant Setup
+              </span>
+            </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
               Launch your digital QR loyalty program today.
             </h1>

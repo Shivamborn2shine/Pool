@@ -2202,6 +2202,32 @@ export default function StoreOrderingView({
                 })}
               </div>
             )}
+
+            {/* Footer with Powered by Loopa */}
+            <div className="pt-8 pb-4 text-center space-y-2 border-t border-stone-200/60 dark:border-zinc-800">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <span>Powered by</span>
+                <img
+                  src="/loopa-logo.png"
+                  alt="Loopa"
+                  className="w-4 h-4 rounded-xs object-contain inline-block shadow-2xs"
+                />
+                <span className="font-semibold text-zinc-700 dark:text-zinc-300">Loopa</span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-[11px] text-zinc-400">
+                <Link href="/privacy" className="underline hover:text-foreground">
+                  Privacy Policy
+                </Link>
+                <span>·</span>
+                <Link href="/terms" className="underline hover:text-foreground">
+                  Terms
+                </Link>
+                <span>·</span>
+                <Link href="/contact" className="underline hover:text-foreground">
+                  Help & Support
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 

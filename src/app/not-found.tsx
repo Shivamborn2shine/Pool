@@ -8,6 +8,11 @@ export default function NotFoundPage() {
       className="flex-1 flex items-center justify-center px-4 py-20"
     >
       <div className="max-w-lg w-full border border-border bg-surface rounded p-8 text-center">
+        <img
+          src="/loopa-logo.png"
+          alt={SITE_CONFIG.name}
+          className="w-12 h-12 rounded-xl object-contain mx-auto mb-3 shadow-xs"
+        />
         <span className="inline-block px-2.5 py-1 text-xs font-mono uppercase tracking-wider bg-surface-elevated border border-border rounded-xs text-accent">
           Error 404
         </span>

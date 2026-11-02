@@ -705,6 +705,17 @@ export default function CustomerAccountDrawer({
                 </div>
               )}
             </div>
+
+            {/* Powered by Loopa Branding */}
+            <div className="pt-2 pb-1 text-center flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
+              <span>Powered by</span>
+              <img
+                src="/loopa-logo.png"
+                alt="Loopa"
+                className="w-3.5 h-3.5 rounded-xs object-contain"
+              />
+              <span className="font-semibold text-zinc-600 dark:text-zinc-400">Loopa Loyalty</span>
+            </div>
           </div>
         </div>
       </div>

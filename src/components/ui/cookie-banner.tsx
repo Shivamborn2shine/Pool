@@ -37,8 +37,13 @@ export function CookieBanner() {
       aria-label="Cookie consent preferences"
       className="cookie-banner no-print fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-lg z-50 bg-surface border border-border rounded p-4 shadow-xl"
     >
-      <div className="text-sm font-semibold text-foreground">
-        Privacy & Cookie Preferences (DPDP Act 2023)
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <img
+          src="/loopa-logo.png"
+          alt="Loopa"
+          className="w-4 h-4 rounded-xs object-contain"
+        />
+        <span>Privacy & Cookie Preferences (DPDP Act 2023)</span>
       </div>
       <p className="mt-1 text-xs text-muted leading-relaxed">
         Loopa uses essential HTTP-only session cookies to keep your loyalty card

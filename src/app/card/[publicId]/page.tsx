@@ -1171,9 +1171,14 @@ export default function CustomerPublicCardPage() {
             </button>
             <Link
               href="/"
-              className="px-4 py-2 text-xs font-semibold rounded border border-border bg-surface text-foreground"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded border border-border bg-surface text-foreground hover:bg-surface-elevated"
             >
-              Loopa Home
+              <img
+                src="/loopa-logo.png"
+                alt="Loopa"
+                className="w-3.5 h-3.5 rounded-xs object-contain"
+              />
+              <span>Loopa Home</span>
             </Link>
           </div>
         </div>
@@ -2821,7 +2826,15 @@ export default function CustomerPublicCardPage() {
                 Help & Support
               </Link>
             </div>
-            <span>Powered by Loopa</span>
+            <div className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 font-medium">
+              <span>Powered by</span>
+              <img
+                src="/loopa-logo.png"
+                alt="Loopa"
+                className="w-4 h-4 rounded-xs object-contain inline-block shadow-2xs"
+              />
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Loopa</span>
+            </div>
           </div>
         </footer>
       </main>
