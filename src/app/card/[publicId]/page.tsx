@@ -64,6 +64,93 @@ interface ComboShowcaseItem {
   badge: string;
 }
 
+const DEFAULT_COMBOS: ComboShowcaseItem[] = [
+  {
+    id: "combo-1",
+    name: "The Study Break",
+    price: 109,
+    original: 124,
+    savings: 15,
+    itemsText: "Veg Sandwich (₹99) + Regular Chai (₹25)",
+    points: 5,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594270148-8820b3522fcb.png",
+    badge: "Most Popular",
+  },
+  {
+    id: "combo-2",
+    name: "Fries Before Guys",
+    price: 169,
+    original: 188,
+    savings: 19,
+    itemsText: "Peri Peri Fries (₹89) + Oreo Shake (₹99)",
+    points: 8,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594251133-70e562454a39.png",
+    badge: "Save ₹19",
+  },
+  {
+    id: "combo-3",
+    name: "Sweet Tooth Therapy",
+    price: 199,
+    original: 228,
+    savings: 29,
+    itemsText: "Chocolate Waffle (₹129) + Oreo Shake (₹99)",
+    points: 9,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594230144-9188d78bf9da.png",
+    badge: "Sweet Deal",
+  },
+  {
+    id: "combo-4",
+    name: "Campus Cravings",
+    price: 249,
+    original: 287,
+    savings: 38,
+    itemsText: "Veg Burger (₹99) + Peri Peri Fries (₹89) + Watermelon Mojito (₹99)",
+    points: 12,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594209736-0b7902a842c3.png",
+    badge: "Combo Feast",
+  },
+  {
+    id: "combo-5",
+    name: "Sip & Gossip (For 2)",
+    price: 259,
+    original: 297,
+    savings: 38,
+    itemsText: "Loaded Fries (₹99) + 2x Coolers / Mojitos (₹198)",
+    points: 12,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594179228-339aef2eed9c.png",
+    badge: "Duo Refresh",
+  },
+  {
+    id: "combo-6",
+    name: "Better Together (For 2)",
+    price: 419,
+    original: 485,
+    savings: 66,
+    itemsText: "2x Burgers (₹198) + Fries (₹89) + 2x Mojitos (₹198)",
+    points: 20,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594156281-4c331ef672d6.png",
+    badge: "Duo Deal",
+  },
+  {
+    id: "combo-7",
+    name: "The Whole Gang (Group Deal)",
+    price: 699,
+    original: 772,
+    savings: 73,
+    itemsText: "4x Burgers (₹396) + 2x Fries (₹178) + 2x Mojitos (₹198)",
+    points: 34,
+    image:
+      "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594110517-a0219a61ba68.png",
+    badge: "Save ₹73!",
+  },
+];
+
 interface CardPagePayload {
   card: {
     id: string;
@@ -999,9 +1086,10 @@ export default function CustomerPublicCardPage() {
   const { card, customer, business, rules, rewards, transactions, claims, redemptions, combos } =
     data;
 
-  const customerFirstName = customer.fullName?.split(" ")[0] || "Friend";
+  const customerFirstName = customer?.fullName?.split(" ")[0] || "Friend";
 
-  const sortedRewards = [...rewards].sort((a, b) => {
+  const safeRewards = Array.isArray(rewards) ? rewards : [];
+  const sortedRewards = [...safeRewards].sort((a, b) => {
     const orderA = a.sort_order ?? 100;
     const orderB = b.sort_order ?? 100;
     if (orderA !== orderB) return orderA - orderB;
@@ -1059,97 +1147,8 @@ export default function CustomerPublicCardPage() {
         ];
 
   // Combos showcase: Use live database combos from API, or fallback to the full 7 updated combos
-  const displayCombos = useMemo<ComboShowcaseItem[]>(() => {
-    if (combos && combos.length > 0) {
-      return combos;
-    }
-    return [
-      {
-        id: "combo-1",
-        name: "The Study Break",
-        price: 109,
-        original: 124,
-        savings: 15,
-        itemsText: "Veg Sandwich (₹99) + Regular Chai (₹25)",
-        points: 5,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594270148-8820b3522fcb.png",
-        badge: "Most Popular",
-      },
-      {
-        id: "combo-2",
-        name: "Fries Before Guys",
-        price: 169,
-        original: 188,
-        savings: 19,
-        itemsText: "Peri Peri Fries (₹89) + Oreo Shake (₹99)",
-        points: 8,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594251133-70e562454a39.png",
-        badge: "Save ₹19",
-      },
-      {
-        id: "combo-3",
-        name: "Sweet Tooth Therapy",
-        price: 199,
-        original: 228,
-        savings: 29,
-        itemsText: "Chocolate Waffle (₹129) + Oreo Shake (₹99)",
-        points: 9,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594230144-9188d78bf9da.png",
-        badge: "Sweet Deal",
-      },
-      {
-        id: "combo-4",
-        name: "Campus Cravings",
-        price: 249,
-        original: 287,
-        savings: 38,
-        itemsText: "Veg Burger (₹99) + Peri Peri Fries (₹89) + Watermelon Mojito (₹99)",
-        points: 12,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594209736-0b7902a842c3.png",
-        badge: "Combo Feast",
-      },
-      {
-        id: "combo-5",
-        name: "Sip & Gossip (For 2)",
-        price: 259,
-        original: 297,
-        savings: 38,
-        itemsText: "Loaded Fries (₹99) + 2x Coolers / Mojitos (₹198)",
-        points: 12,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594179228-339aef2eed9c.png",
-        badge: "Duo Refresh",
-      },
-      {
-        id: "combo-6",
-        name: "Better Together (For 2)",
-        price: 419,
-        original: 485,
-        savings: 66,
-        itemsText: "2x Burgers (₹198) + Fries (₹89) + 2x Mojitos (₹198)",
-        points: 20,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594156281-4c331ef672d6.png",
-        badge: "Duo Deal",
-      },
-      {
-        id: "combo-7",
-        name: "The Whole Gang (Group Deal)",
-        price: 699,
-        original: 772,
-        savings: 73,
-        itemsText: "4x Burgers (₹396) + 2x Fries (₹178) + 2x Mojitos (₹198)",
-        points: 34,
-        image:
-          "https://axkhqktmixesmrafcrju.supabase.co/storage/v1/object/public/business-assets/1793594110517-a0219a61ba68.png",
-        badge: "Save ₹73!",
-      },
-    ];
-  }, [combos]);
+  const displayCombos: ComboShowcaseItem[] =
+    combos && combos.length > 0 ? combos : DEFAULT_COMBOS;
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] dark:bg-[#121110] text-zinc-900 dark:text-zinc-100 flex flex-col font-sans relative overflow-x-hidden selection:bg-rose-500 selection:text-white">

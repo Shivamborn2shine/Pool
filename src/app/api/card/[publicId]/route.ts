@@ -119,49 +119,65 @@ export async function GET(
     row.business_primary_color
   );
 
-  const comboRows = await sql`
-    SELECT 
-      mi.id,
-      mi.name,
-      mi.description,
-      mi.price,
-      mi.image_url,
-      mi.sort_order
-    FROM menu_items mi
-    JOIN menu_categories mc ON mc.id = mi.category_id
-    WHERE mi.business_id = ${row.business_id}
-      AND mi.is_visible = true
-      AND (mc.name ILIKE '%combo%' OR mc.name ILIKE '%deal%' OR mi.name ILIKE '%combo%')
-    ORDER BY mi.sort_order ASC, mi.name ASC
-  `;
+  let combos: Array<{
+    id: string;
+    name: string;
+    price: number;
+    original: number;
+    savings: number;
+    itemsText: string;
+    points: number;
+    image: string;
+    badge: string;
+  }> = [];
 
-  const combos = comboRows.map((c) => {
-    const savingsMatch = c.description?.match(/Save ₹(\d+)/i);
-    const savings = savingsMatch ? Number(savingsMatch[1]) : 0;
-    const origMatch = c.description?.match(/Menu Total ₹(\d+)/i);
-    const original = origMatch
-      ? Number(origMatch[1])
-      : Math.round(Number(c.price) + savings);
-    const points = Math.floor(Number(c.price) / 20);
-    return {
-      id: c.id,
-      name: c.name,
-      price: Number(c.price),
-      original,
-      savings,
-      itemsText: c.description ? c.description.split("•")[0].trim() : "",
-      points,
-      image: c.image_url || "",
-      badge:
-        savings >= 70
-          ? `Save ₹${savings}!`
-          : savings >= 35
-          ? "Combo Feast"
-          : savings >= 25
-          ? "Sweet Deal"
-          : "Most Popular",
-    };
-  });
+  try {
+    const comboRows = await sql`
+      SELECT 
+        mi.id,
+        mi.name,
+        mi.description,
+        mi.price,
+        mi.image_url,
+        mi.sort_order
+      FROM menu_items mi
+      JOIN menu_categories mc ON mc.id = mi.category_id
+      WHERE mi.business_id = ${row.business_id}
+        AND mi.is_visible = true
+        AND (mc.name ILIKE '%combo%' OR mc.name ILIKE '%deal%' OR mi.name ILIKE '%combo%')
+      ORDER BY mi.sort_order ASC, mi.name ASC
+    `;
+
+    combos = comboRows.map((c) => {
+      const savingsMatch = c.description?.match(/Save ₹(\d+)/i);
+      const savings = savingsMatch ? Number(savingsMatch[1]) : 0;
+      const origMatch = c.description?.match(/Menu Total ₹(\d+)/i);
+      const original = origMatch
+        ? Number(origMatch[1])
+        : Math.round(Number(c.price) + savings);
+      const points = Math.floor(Number(c.price) / 20);
+      return {
+        id: c.id,
+        name: c.name,
+        price: Number(c.price),
+        original,
+        savings,
+        itemsText: c.description ? c.description.split("•")[0].trim() : "",
+        points,
+        image: c.image_url || "",
+        badge:
+          savings >= 70
+            ? `Save ₹${savings}!`
+            : savings >= 35
+            ? "Combo Feast"
+            : savings >= 25
+            ? "Sweet Deal"
+            : "Most Popular",
+      };
+    });
+  } catch (err) {
+    console.warn("Failed to load combos for card API:", err);
+  }
 
   return NextResponse.json({
     card: {
