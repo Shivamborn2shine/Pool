@@ -42,7 +42,9 @@ import {
   Users,
   Pencil,
   LogOut,
+  Award,
 } from "lucide-react";
+import CustomerAccountDrawer from "@/components/store/CustomerAccountDrawer";
 import {
   CopyButton,
   StatusBadge,
@@ -590,6 +592,7 @@ export default function CustomerPublicCardPage() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
+  const [showAccountDrawer, setShowAccountDrawer] = useState(false);
   const [showAllRewardsModal, setShowAllRewardsModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -1288,27 +1291,25 @@ export default function CustomerPublicCardPage() {
             onClick={() => {
               if (typeof window !== "undefined" && "vibrate" in navigator) {
                 try {
-                  navigator.vibrate([40, 30, 40]);
+                  navigator.vibrate([30, 20, 30]);
                 } catch {}
               }
-              setFeedback({
-                type: "success",
-                text: `${customerFirstName}: You have ${card.pointsBalance} active points! ${pointsToNext > 0 ? `${pointsToNext} pts to your next treat.` : "Free treat ready to claim!"}`,
-              });
-              if (activeTab !== "rewards") {
-                handleTabChange("rewards");
-              }
+              setShowAccountDrawer(true);
             }}
-            aria-label={`View loyalty rewards for ${customerFirstName}`}
-            title="View Rewards & Points Balance"
+            aria-label={`Open account and loyalty details for ${customerFirstName}`}
+            title="My Account & Loyalty"
             className="bg-[#FDF2F4] dark:bg-rose-950/40 rounded-full sm:rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 border border-rose-200/70 dark:border-rose-900/40 flex items-center gap-2 transition-all hover:shadow-xs active:scale-95 cursor-pointer shadow-2xs shrink-0"
           >
-            <div className="w-6 h-6 rounded-full bg-[#E11D48] text-white font-black text-xs flex items-center justify-center shadow-xs uppercase shrink-0">
+            <div
+              className="w-6 h-6 rounded-full text-white font-black text-xs flex items-center justify-center shadow-xs uppercase shrink-0"
+              style={{ backgroundColor: business.primaryColor || "#E11D48" }}
+            >
               {(customer?.fullName || "S").slice(0, 1)}
             </div>
             <div className="flex flex-col text-left leading-none">
-              <span className="font-black text-xs text-zinc-900 dark:text-zinc-100 tabular-nums">
-                {card.pointsBalance} pts
+              <span className="font-black text-xs text-zinc-900 dark:text-zinc-100 tabular-nums flex items-center gap-1">
+                <Award className="w-3.5 h-3.5 text-[#E11D48] dark:text-rose-400 shrink-0" />
+                <span>{card.pointsBalance} pts</span>
               </span>
               <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 truncate max-w-[65px] sm:max-w-[100px] mt-0.5">
                 {customerFirstName}
@@ -3844,6 +3845,61 @@ export default function CustomerPublicCardPage() {
           </button>
         </div>
       </nav>
+
+      {/* Customer Account & Loyalty Drawer (My Account & Loyalty) */}
+      <CustomerAccountDrawer
+        isOpen={showAccountDrawer}
+        onClose={() => setShowAccountDrawer(false)}
+        customer={{
+          cardPublicId: card.publicId,
+          cardNumber: card.cardNumber,
+          fullName: customer.fullName,
+          displayName: customer.fullName,
+          maskedPhone: customer.maskedPhone,
+          phone: customer.maskedPhone,
+          pointsBalance: card.pointsBalance,
+          redeemableAmount: card.redeemableAmount,
+          email: (customer as any).email || null,
+          birthdayDay: (customer as any).birthdayDay || null,
+          birthdayMonth: (customer as any).birthdayMonth || null,
+          marketingConsent: (customer as any).marketingConsent,
+        }}
+        store={{
+          name: business.name,
+          slug: business.slug,
+          primaryColor: business.primaryColor || "#E11D48",
+          currency: business.currency || "INR",
+        }}
+        onCustomerUpdate={(updated) => {
+          setData((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              customer: {
+                ...prev.customer,
+                ...(updated.fullName && { fullName: updated.fullName }),
+                ...(updated.email !== undefined && { email: updated.email }),
+                ...(updated.birthdayDay !== undefined && { birthdayDay: updated.birthdayDay }),
+                ...(updated.birthdayMonth !== undefined && { birthdayMonth: updated.birthdayMonth }),
+                ...(updated.marketingConsent !== undefined && { marketingConsent: updated.marketingConsent }),
+              },
+              card: {
+                ...prev.card,
+                ...(updated.pointsBalance !== undefined && { pointsBalance: updated.pointsBalance }),
+                ...(updated.redeemableAmount !== undefined && { redeemableAmount: updated.redeemableAmount }),
+              },
+            };
+          });
+        }}
+        onNavigateTab={(tab) => {
+          if (tab === "home") handleTabChange("home");
+          else if (tab === "menu") handleTabChange("menu");
+          else if (tab === "rewards") handleTabChange("rewards");
+          else if (tab === "orders" || tab === "history") handleTabChange("history");
+          else if (tab === "profile" || tab === "privacy") handleTabChange("privacy");
+        }}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }
