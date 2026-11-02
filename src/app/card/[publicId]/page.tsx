@@ -1425,7 +1425,147 @@ export default function CustomerPublicCardPage() {
               onTreatClick={() => setActiveTab("rewards")}
             />
 
-            {/* ORDER FOOD & DRINKS (2-Column Sleek Horizontal Cards) */}
+            {/* REWARDS FOR YOU (At the very first on top) */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+                  Rewards for you
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("rewards")}
+                  className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  <span>See all</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                {displayRewards.map((reward) => (
+                  <div
+                    key={reward.id}
+                    onClick={() => {
+                      if (card.pointsBalance >= reward.points_required) {
+                        setSelectedReward({
+                          id: reward.id,
+                          name: reward.name,
+                          points: reward.points_required,
+                          image_url: reward.image_url,
+                        });
+                      } else {
+                        setFeedback({
+                          type: "error",
+                          text: `You need ${reward.points_required - card.pointsBalance} more points to claim ${reward.name}. Show your QR at checkout to earn!`,
+                        });
+                      }
+                    }}
+                    className="bg-white dark:bg-zinc-900 hover:bg-rose-50/40 dark:hover:bg-zinc-800/60 border border-rose-100/70 dark:border-zinc-800 rounded-2xl p-2 sm:p-2.5 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.02] shadow-2xs group"
+                  >
+                    <div className="w-full h-20 sm:h-24 rounded-xl overflow-hidden mb-2 bg-rose-50/50 dark:bg-zinc-800">
+                      <img
+                        src={getRewardImage(reward.name, reward.image_url)}
+                        alt={reward.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
+                        }}
+                      />
+                    </div>
+                    <h4 className="text-xs font-serif font-bold text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-1">
+                      {reward.name}
+                    </h4>
+                    <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
+                      at {reward.points_required} points
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* TRY A COMBO & SAVE 🔥 (Kept in the middle) */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-1.5">
+                    <span>Try a combo & save</span>
+                    <span className="text-amber-500">🔥</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    Pair your favorites & save up to ₹73 • Earn loyalty points!
+                  </p>
+                </div>
+              </div>
+
+              {/* Scrollable Horizontal Showcase of Top Combos */}
+              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pt-1 -mx-4 px-4">
+                {displayCombos.map((combo) => (
+                  <div
+                    key={combo.name}
+                    className="w-[270px] sm:w-[280px] shrink-0 bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+                  >
+                    <div>
+                      <div className="relative w-full h-32 sm:h-36 rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2.5">
+                        <img
+                          src={combo.image}
+                          alt={combo.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src =
+                              "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80";
+                          }}
+                        />
+                        <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
+                          {combo.badge}
+                        </span>
+                        {combo.savings > 0 && (
+                          <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
+                            Save ₹{combo.savings}
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="text-sm font-serif font-black text-zinc-900 dark:text-zinc-100 truncate">
+                        {combo.name}
+                      </h4>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5 leading-tight font-medium">
+                        {combo.itemsText}
+                      </p>
+                    </div>
+
+                    <div className="pt-2.5 mt-2.5 border-t border-rose-50 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+                      <div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-base font-black text-zinc-900 dark:text-zinc-100">
+                            ₹{combo.price}
+                          </span>
+                          <span className="text-xs text-zinc-400 line-through">
+                            ₹{combo.original}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                          +{combo.points} pts
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuTargetCategory("combo");
+                          handleTabChange("menu");
+                        }}
+                        className="px-4 py-1.5 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
+                      >
+                        Order
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ORDER FOOD & DRINKS (Shifted to the bottom) */}
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <div>
@@ -1531,146 +1671,6 @@ export default function CustomerPublicCardPage() {
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-zinc-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* TRY A COMBO & SAVE 🔥 */}
-            <div className="space-y-2.5 pt-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-1.5">
-                    <span>Try a combo & save</span>
-                    <span className="text-amber-500">🔥</span>
-                  </h3>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                    Pair your favorites & save up to ₹73 • Earn loyalty points!
-                  </p>
-                </div>
-              </div>
-
-              {/* Scrollable Horizontal Showcase of Top Combos */}
-              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pt-1 -mx-4 px-4">
-                {displayCombos.map((combo) => (
-                  <div
-                    key={combo.name}
-                    className="w-[270px] sm:w-[280px] shrink-0 bg-white dark:bg-zinc-900 rounded-3xl p-3 border border-rose-100/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
-                  >
-                    <div>
-                      <div className="relative w-full h-32 sm:h-36 rounded-2xl overflow-hidden bg-rose-50 dark:bg-zinc-800 mb-2.5">
-                        <img
-                          src={combo.image}
-                          alt={combo.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src =
-                              "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=80";
-                          }}
-                        />
-                        <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
-                          {combo.badge}
-                        </span>
-                        {combo.savings > 0 && (
-                          <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
-                            Save ₹{combo.savings}
-                          </span>
-                        )}
-                      </div>
-
-                      <h4 className="text-sm font-serif font-black text-zinc-900 dark:text-zinc-100 truncate">
-                        {combo.name}
-                      </h4>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5 leading-tight font-medium">
-                        {combo.itemsText}
-                      </p>
-                    </div>
-
-                    <div className="pt-2.5 mt-2.5 border-t border-rose-50 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
-                      <div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-base font-black text-zinc-900 dark:text-zinc-100">
-                            ₹{combo.price}
-                          </span>
-                          <span className="text-xs text-zinc-400 line-through">
-                            ₹{combo.original}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
-                          +{combo.points} pts
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuTargetCategory("combo");
-                          handleTabChange("menu");
-                        }}
-                        className="px-4 py-1.5 rounded-full bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
-                      >
-                        Order
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* REWARDS FOR YOU */}
-            <div className="space-y-2.5 pt-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-serif font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
-                  Rewards for you
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("rewards")}
-                  className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-0.5 cursor-pointer"
-                >
-                  <span>See all</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                {displayRewards.map((reward) => (
-                  <div
-                    key={reward.id}
-                    onClick={() => {
-                      if (card.pointsBalance >= reward.points_required) {
-                        setSelectedReward({
-                          id: reward.id,
-                          name: reward.name,
-                          points: reward.points_required,
-                          image_url: reward.image_url,
-                        });
-                      } else {
-                        setFeedback({
-                          type: "error",
-                          text: `You need ${reward.points_required - card.pointsBalance} more points to claim ${reward.name}. Show your QR at checkout to earn!`,
-                        });
-                      }
-                    }}
-                    className="bg-white dark:bg-zinc-900 hover:bg-rose-50/40 dark:hover:bg-zinc-800/60 border border-rose-100/70 dark:border-zinc-800 rounded-2xl p-2 sm:p-2.5 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.02] shadow-2xs group"
-                  >
-                    <div className="w-full h-20 sm:h-24 rounded-xl overflow-hidden mb-2 bg-rose-50/50 dark:bg-zinc-800">
-                      <img
-                        src={getRewardImage(reward.name, reward.image_url)}
-                        alt={reward.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&auto=format&fit=crop&q=80";
-                        }}
-                      />
-                    </div>
-                    <h4 className="text-xs font-serif font-bold text-zinc-900 dark:text-zinc-100 leading-tight line-clamp-1">
-                      {reward.name}
-                    </h4>
-                    <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
-                      at {reward.points_required} points
-                    </span>
-                  </div>
                 ))}
               </div>
             </div>
