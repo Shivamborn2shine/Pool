@@ -27,7 +27,6 @@ import {
   Home,
   Coffee,
   Utensils,
-  Bell,
   Menu,
   Wallet,
   ChevronRight,
@@ -1275,31 +1274,47 @@ export default function CustomerPublicCardPage() {
             </button>
           )}
 
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-xl sm:text-2xl font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-none">
+          <div className="flex flex-col items-center text-center min-w-0 px-1">
+            <h1 className="text-lg sm:text-xl font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-none truncate">
               {business.name}
             </h1>
-            <span className="text-[9px] font-bold tracking-[0.22em] text-zinc-500 dark:text-zinc-400 uppercase mt-1">
+            <span className="text-[9px] font-bold tracking-[0.2em] text-zinc-500 dark:text-zinc-400 uppercase mt-1 truncate">
               GOOD COFFEE · BRIGHTER DAYS
             </span>
           </div>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setFeedback({
-                  type: "success",
-                  text: `${pointsToNext > 0 ? `${pointsToNext} points to your next treat!` : "You have enough points to claim a treat!"} Scan at counter anytime.`,
-                });
-              }}
-              aria-label="Notifications"
-              className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-zinc-800 dark:text-zinc-200 hover:bg-rose-100/50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              <Bell className="w-5 h-5 stroke-[2.2]" />
-              <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#E11D48] ring-2 ring-[#FAF6F0] dark:ring-[#121110]" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && "vibrate" in navigator) {
+                try {
+                  navigator.vibrate([40, 30, 40]);
+                } catch {}
+              }
+              setFeedback({
+                type: "success",
+                text: `${customerFirstName}: You have ${card.pointsBalance} active points! ${pointsToNext > 0 ? `${pointsToNext} pts to your next treat.` : "Free treat ready to claim!"}`,
+              });
+              if (activeTab !== "rewards") {
+                handleTabChange("rewards");
+              }
+            }}
+            aria-label={`View loyalty rewards for ${customerFirstName}`}
+            title="View Rewards & Points Balance"
+            className="bg-[#FDF2F4] dark:bg-rose-950/40 rounded-full sm:rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 border border-rose-200/70 dark:border-rose-900/40 flex items-center gap-2 transition-all hover:shadow-xs active:scale-95 cursor-pointer shadow-2xs shrink-0"
+          >
+            <div className="w-6 h-6 rounded-full bg-[#E11D48] text-white font-black text-xs flex items-center justify-center shadow-xs uppercase shrink-0">
+              {(customer?.fullName || "S").slice(0, 1)}
+            </div>
+            <div className="flex flex-col text-left leading-none">
+              <span className="font-black text-xs text-zinc-900 dark:text-zinc-100 tabular-nums">
+                {card.pointsBalance} pts
+              </span>
+              <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 truncate max-w-[65px] sm:max-w-[100px] mt-0.5">
+                {customerFirstName}
+              </span>
+            </div>
+          </button>
         </div>
       </header>
 
