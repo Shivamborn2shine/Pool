@@ -35,7 +35,6 @@ import {
   Edit3,
   Mail,
   Cake,
-  Camera,
   Wallet,
   Lock,
   Info,
@@ -3707,15 +3706,6 @@ export default function StoreOrderingView({
 
               {/* Logout & Account Actions */}
               <div className="pt-3 border-t border-stone-200 dark:border-zinc-800 space-y-2">
-                <Link
-                  href="/menu"
-                  onClick={() => setShowAccountDrawer(false)}
-                  className="w-full py-2.5 px-3 rounded-xl border border-amber-200/80 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-                >
-                  <Camera className="w-4 h-4 text-terracotta-600" />
-                  <span>Manage Menu & Photos (Staff)</span>
-                </Link>
-
                 {!showLogoutConfirm ? (
                   <button
                     type="button"

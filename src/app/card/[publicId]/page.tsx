@@ -3668,15 +3668,6 @@ export default function CustomerPublicCardPage() {
                   <span>Profile & Privacy</span>
                 </button>
 
-                <Link
-                  href="/menu"
-                  onClick={() => setShowMenuDrawer(false)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-terracotta-700 dark:text-terracotta-300 bg-amber-50/80 dark:bg-amber-950/30 hover:bg-amber-100/80 dark:hover:bg-amber-950/50 border border-amber-200/70 dark:border-amber-900/50 transition-colors text-left"
-                >
-                  <Camera className="w-4 h-4 text-terracotta-600" />
-                  <span>Manage Menu & Photos</span>
-                </Link>
-
                 <button
                   type="button"
                   onClick={() => {
