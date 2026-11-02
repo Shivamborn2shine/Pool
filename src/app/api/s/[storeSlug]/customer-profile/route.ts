@@ -141,3 +141,74 @@ export async function PATCH(
     );
   }
 }
+
+export async function GET(
+  request: Request,
+  { params }: { params: { storeSlug: string } }
+) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const cardPublicId = searchParams.get("cardPublicId");
+
+    if (!cardPublicId) {
+      return NextResponse.json(
+        { error: "cardPublicId query param required" },
+        { status: 400 }
+      );
+    }
+
+    const rows = await sql`
+      SELECT
+        lc.id AS card_id,
+        lc.public_id AS card_public_id,
+        lc.card_number,
+        lc.points_balance,
+        lc.redeemable_amount,
+        c.id AS customer_id,
+        c.full_name,
+        c.phone,
+        c.email,
+        c.birthday_day,
+        c.birthday_month,
+        c.marketing_consent
+      FROM public.loyalty_cards lc
+      JOIN public.customers c ON c.id = lc.customer_id
+      JOIN public.businesses b ON b.id = lc.business_id
+      WHERE lc.public_id = ${cardPublicId}
+      LIMIT 1
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "Customer loyalty card not found." },
+        { status: 404 }
+      );
+    }
+
+    const row = rows[0];
+    return NextResponse.json({
+      success: true,
+      customer: {
+        id: row.customer_id,
+        fullName: row.full_name,
+        displayName: row.full_name,
+        email: row.email || null,
+        maskedPhone: maskPhone(row.phone),
+        birthdayDay: row.birthday_day || null,
+        birthdayMonth: row.birthday_month || null,
+        marketingConsent: Boolean(row.marketing_consent),
+      },
+      card: {
+        pointsBalance: Number(row.points_balance),
+        redeemableAmount: Number(row.redeemable_amount),
+        cardNumber: row.card_number,
+      },
+    });
+  } catch (err) {
+    console.error("GET /api/s/[storeSlug]/customer-profile error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

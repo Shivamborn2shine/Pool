@@ -170,6 +170,7 @@ interface CardPagePayload {
   };
   customer: {
     fullName: string;
+    email?: string | null;
     maskedPhone: string;
     birthdayDay?: number | null;
     birthdayMonth?: number | null;
