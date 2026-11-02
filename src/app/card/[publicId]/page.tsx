@@ -1859,55 +1859,43 @@ export default function CustomerPublicCardPage() {
         {/* TAB 1: REWARDS & WALLET CONVERSION — AWARD-WINNING CAFE APP DESIGN */}
         {activeTab === "rewards" && (
           <section className="space-y-5 no-print pb-4 animate-in fade-in duration-200">
-            {/* 1. Hero Promo Banner */}
-            <div className="relative rounded-3xl p-5 overflow-hidden bg-gradient-to-br from-[#FFF5EE] via-[#FFF1F2] to-[#FFF0F5] dark:from-zinc-900 dark:via-zinc-900/90 dark:to-zinc-950 border border-rose-200/60 dark:border-zinc-800 shadow-sm">
-              <div className="absolute top-0 right-0 w-44 h-44 bg-rose-200/30 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="flex items-start justify-between gap-3 relative z-10">
-                <div className="space-y-1.5 max-w-[210px] sm:max-w-xs">
-                  <h2 className="text-2xl sm:text-3xl font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.15]">
-                    Your rewards <br />
-                    are{" "}
-                    <span className="text-[#E11D48] italic font-serif">
-                      brewing! 💕 🪄
-                    </span>
-                  </h2>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
-                    Collect points, unlock treats and make every coffee moment
-                    brighter.
-                  </p>
-                </div>
-
-                {/* Mascot Illustration */}
-                <div className="flex flex-col items-center shrink-0">
-                  <div className="relative">
-                    <span className="text-4xl animate-bounce">☕</span>
-                    <span className="absolute -top-1 -right-1 text-sm">✨</span>
-                  </div>
-                  <div className="mt-1 text-center">
-                    <span className="block text-[10px] font-extrabold text-[#9F1239] dark:text-rose-400 leading-tight">
-                      Good Coffee
-                    </span>
-                    <span className="block text-[10px] font-extrabold text-[#9F1239] dark:text-rose-400 leading-tight">
-                      Brighter Days!
-                    </span>
-                  </div>
-                </div>
+            {/* 1. Hero Promo Banner (Exact Target Design) */}
+            <div className="relative rounded-3xl p-4 sm:p-5 overflow-hidden bg-[#FFF8F8] dark:bg-zinc-900 border border-rose-200/80 dark:border-zinc-800 shadow-xs space-y-3.5 sm:space-y-4">
+              {/* Top Divider: YOUR REWARDS */}
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-px bg-rose-200/80 dark:bg-zinc-700 flex-1 max-w-[60px] sm:max-w-[70px]" />
+                <span className="text-[11px] sm:text-xs font-black tracking-widest uppercase text-[#9F1239] dark:text-rose-400">
+                  YOUR REWARDS
+                </span>
+                <div className="h-px bg-rose-200/80 dark:bg-zinc-700 flex-1 max-w-[60px] sm:max-w-[70px]" />
               </div>
 
               {/* Metric Summary Cards */}
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-4 relative z-10">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 {/* 1. Points Card */}
-                <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center justify-between gap-1.5 sm:gap-2">
-                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-xs">
-                      <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                <div className="bg-white dark:bg-zinc-800/95 rounded-2xl p-3 sm:p-3.5 border border-rose-100/90 dark:border-zinc-700/60 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-100/90 dark:bg-amber-950/60 flex items-center justify-center text-amber-500 shrink-0 shadow-2xs">
+                      {/* Decorative bursts/rays */}
+                      <svg
+                        className="absolute -top-1 -left-1 w-3.5 h-3.5 text-amber-500 pointer-events-none"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                      >
+                        <line x1="12" y1="2" x2="12" y2="7" />
+                        <line x1="4" y1="11" x2="8" y2="13" />
+                        <line x1="5" y1="5" x2="9" y2="9" />
+                      </svg>
+                      <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 leading-none">
+                      <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-100 leading-none">
                         {card.pointsBalance}
                       </div>
-                      <div className="text-[10px] sm:text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
                         Points
                       </div>
                     </div>
@@ -1918,43 +1906,93 @@ export default function CustomerPublicCardPage() {
                     onClick={() => {
                       document.getElementById("earn-more-section")?.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#E11D48] hover:bg-rose-700 text-white font-bold text-[10px] sm:text-[11px] flex items-center gap-0.5 shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
+                    className="w-full mt-3 py-1.5 sm:py-2 px-3 rounded-full bg-[#E11D48] hover:bg-rose-700 text-white font-bold text-xs sm:text-[13px] flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
                   >
                     <span>Earn More</span>
-                    <span className="text-[11px] leading-none">↓</span>
+                    <span className="text-xs font-bold leading-none">&gt;</span>
                   </button>
                 </div>
 
                 {/* 2. Store Credit Card */}
-                <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 border border-rose-100/80 dark:border-zinc-700/60 shadow-xs flex items-center justify-between gap-1.5 sm:gap-2">
-                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 shadow-xs">
-                      <Wallet className="w-4 h-4" />
+                <div className="bg-white dark:bg-zinc-800/95 rounded-2xl p-3 sm:p-3.5 border border-rose-100/90 dark:border-zinc-700/60 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-rose-100/80 dark:bg-rose-950/60 flex items-center justify-center text-[#E11D48] dark:text-rose-400 shrink-0 shadow-2xs">
+                      <Wallet className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 leading-none">
+                      <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-100 leading-none">
                         {formatCurrency(card.redeemableAmount, business.currency)}
                       </div>
-                      <div className="text-[10px] sm:text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
                         Store Credit
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setShowCreditModal(true)}
-                      aria-label="Convert points to store credit"
-                      title="Convert points to store credit"
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E11D48] hover:bg-rose-700 text-white flex items-center justify-center font-bold text-sm shadow-xs active:scale-95 transition-all cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 stroke-[3]" />
-                    </button>
-                    <span className="text-[8px] sm:text-[9px] font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5 text-center leading-none">
-                      Convert points
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreditModal(true)}
+                    className="w-full mt-3 py-1.5 sm:py-2 px-3 rounded-full bg-white dark:bg-zinc-800 hover:bg-rose-50/80 dark:hover:bg-rose-950/30 border border-[#E11D48] text-[#E11D48] dark:text-rose-300 font-bold text-xs sm:text-[13px] flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Convert</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Row: Your rewards are brewing! + Storefront Illustration */}
+              <div className="flex items-end justify-between gap-3 pt-1">
+                <div className="space-y-0.5">
+                  <h2 className="text-xl sm:text-2xl font-serif font-black tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight flex items-center gap-1 flex-wrap">
+                    <span>Your rewards are</span>
+                    <span className="text-[#E11D48] italic font-serif">brewing!</span>
+                    <svg className="w-3.5 h-3.5 text-[#E11D48] inline-block -mt-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <path d="M4 12l4-2M6 6l2 3" />
+                    </svg>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 font-medium">
+                    Collect points. Unlock treats.
+                  </p>
+                </div>
+
+                {/* Cafe Storefront Illustration */}
+                <div className="shrink-0 flex items-end">
+                  <svg width="108" height="68" viewBox="0 0 108 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                    {/* Potted Plant on left */}
+                    <path d="M12 55 L22 55 L20 66 L14 66 Z" fill="#D97706" />
+                    <rect x="11" y="53" width="12" height="3" rx="1.5" fill="#B45309" />
+                    <ellipse cx="17" cy="54" rx="4" ry="1.5" fill="#78350F" />
+                    <path d="M17 53 C17 46 12 43 12 39 C16 40 18 45 18 53" fill="#84CC16" />
+                    <path d="M17 53 C18 44 24 42 25 38 C22 40 19 45 18 53" fill="#65A30D" />
+                    <path d="M17 48 C16 43 14 41 11 41 C13 44 16 46 17 48" fill="#A3E635" />
+                    <path d="M18 49 C19 44 22 43 24 43 C22 45 19 47 18 49" fill="#84CC16" />
+
+                    {/* Cafe Building Body */}
+                    <rect x="28" y="22" width="70" height="44" rx="6" fill="#FDF6EB" stroke="#78350F" strokeWidth="2.5" />
+                    
+                    {/* Cafe Glass Window */}
+                    <rect x="34" y="27" width="58" height="34" rx="4" fill="#FFFFFF" stroke="#92400E" strokeWidth="1.5" />
+
+                    {/* Coffee Bean Logo on Window */}
+                    <circle cx="63" cy="44" r="10" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="1" />
+                    <path d="M59 40 C57 44 59 49 63 50 C67 49 69 44 67 40 C65 37 61 37 59 40 Z" fill="#854D0E" />
+                    <path d="M63 38 C61 42 65 46 63 50" stroke="#FEF3C7" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M57 36 C58 34 60 35 61 33" stroke="#D97706" strokeWidth="1.2" strokeLinecap="round" />
+                    <path d="M65 36 C66 34 68 35 69 33" stroke="#D97706" strokeWidth="1.2" strokeLinecap="round" />
+
+                    {/* Wooden Counter Base */}
+                    <rect x="25" y="65" width="76" height="4" rx="2" fill="#D97706" stroke="#92400E" strokeWidth="1" />
+                    <line x1="8" y1="68" x2="104" y2="68" stroke="#FDE68A" strokeWidth="2" strokeLinecap="round" />
+
+                    {/* Red & White Striped Scalloped Awning */}
+                    <path d="M26 12 L100 12 L98 25 L28 25 Z" fill="#E11D48" />
+                    <path d="M36 12 L44 12 L42 25 L34 25 Z" fill="#FFFFFF" />
+                    <path d="M52 12 L60 12 L58 25 L50 25 Z" fill="#FFFFFF" />
+                    <path d="M68 12 L76 12 L74 25 L66 25 Z" fill="#FFFFFF" />
+                    <path d="M84 12 L92 12 L90 25 L82 25 Z" fill="#FFFFFF" />
+                    <path d="M26 23 C26 27 30 27 30 23 C30 27 34 27 34 23 C34 27 38 27 38 23 C38 27 42 27 42 23 C42 27 46 27 46 23 C46 27 50 27 50 23 C50 27 54 27 54 23 C54 27 58 27 58 23 C58 27 62 27 62 23 C62 27 66 27 66 23 C66 27 70 27 70 23 C70 27 74 27 74 23 C74 27 78 27 78 23 C78 27 82 27 82 23 C82 27 86 27 86 23 C86 27 90 27 90 23 C90 27 94 27 94 23 C94 27 98 27 98 23" fill="#E11D48" stroke="#BE123C" strokeWidth="1.2" />
+                    <path d="M24 12 L102 12" stroke="#BE123C" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
                 </div>
               </div>
             </div>
